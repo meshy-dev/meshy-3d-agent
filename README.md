@@ -25,14 +25,14 @@ Full 3D generation lifecycle: API key setup, task creation, polling, downloading
 
 ### [`meshy-3d-printing`](skills/meshy-3d-printing/) (optional)
 
-3D printing workflow: printability checks, slicer integration (Bambu Studio), multi-color guidance.
+3D printing workflow: slicer detection, white model printing, multicolor printing via API.
 
 | Capability | Description | Credits |
 |-----------|-------------|---------|
-| Print Pipeline | Text/Image to 3D → OBJ download → Slicer | 20 |
+| White Model Print | Generate → OBJ download → coordinate fix → slicer launch | 20 |
+| Multicolor Print | Generate → texture → multi-color API → 3MF → slicer launch | 35 |
+| Slicer Detection | Auto-detect 7 slicers: OrcaSlicer, Bambu Studio, Creality Print, Elegoo Slicer, Anycubic Slicer Next, PrusaSlicer, UltiMaker Cura | 0 |
 | Printability Check | Manual checklist review (automated API coming soon) | 0 |
-| Slicer Integration | Open in Bambu Studio via URL scheme | 0 |
-| Multi-Color Guidance | Manual color workflow (automated API coming soon) | 0-10 |
 
 > The printing skill depends on the generation skill's script template and environment setup.
 
@@ -43,7 +43,7 @@ A single unified skill for the [OpenClaw](https://clawhub.ai) ecosystem. Combine
 | Capability | Description | Credits |
 |-----------|-------------|---------|
 | All generation | Text/Image to 3D, Retexture, Remesh, Rig, Animate, Text/Image to Image | 3–30 |
-| 3D printing | OBJ download + Bambu Studio integration | 0 |
+| 3D printing | White model (OBJ) + multicolor (3MF via API) + slicer detection | 0–35 |
 
 > Designed for ClawHub publishing. API key is stored only in `.env` in the current working directory — no shell profile access.
 

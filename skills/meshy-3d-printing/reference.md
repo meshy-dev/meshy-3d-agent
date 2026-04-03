@@ -100,7 +100,11 @@ All timestamps in the API are Unix epoch milliseconds (not seconds). For example
 
 ### 6. Model Output Formats
 
-3D model outputs are available in multiple formats: GLB, FBX, OBJ, USDZ. Access them via `model_urls.glb`, `model_urls.fbx`, etc. Not all formats are always available; omitted properties mean that format was not generated.
+3D model outputs are available in multiple formats: GLB, FBX, OBJ, USDZ, STL (via Remesh), 3MF. Access them via `model_urls.glb`, `model_urls.fbx`, `model_urls["3mf"]`, etc. Not all formats are always available; omitted properties mean that format was not generated. Ask the user which format they need before downloading — do not download all formats.
+
+**IMPORTANT: 3MF is NOT included by default.** To receive a 3MF file, you MUST explicitly include `"3mf"` in the `target_formats` parameter when creating the task (e.g. `"target_formats": ["glb", "3mf"]`). Without this, the default output includes GLB, OBJ, FBX, STL, USDZ but not 3MF. The Multi-Color Print API always outputs 3MF.
+
+All generation endpoints (Text to 3D, Image to 3D, Multi-Image to 3D, Remesh, Retexture) support `target_formats`. Specifying only the formats you need can reduce task completion time.
 
 ### 7. Asset Retention
 
@@ -256,6 +260,9 @@ Creates a preview (mesh-only) 3D model from a text prompt.
 - `symmetry_mode` (string): `"off"`, `"auto"` (default), or `"on"`.
 - `pose_mode` (string): `"a-pose"`, `"t-pose"`, or `""` (default).
 - `moderation` (boolean): Screen input for harmful content. Default `false`.
+- `target_formats` (string[]): Output formats: `"glb"`, `"obj"`, `"fbx"`, `"stl"`, `"usdz"`, `"3mf"`. Default: all except 3mf. **3mf must be explicitly included.**
+- `auto_size` (boolean): Use AI to auto-estimate real-world height. Default `false`.
+- `origin_at` (string): `"bottom"` or `"center"`. Default `"bottom"` when auto_size is true.
 
 **Cost:** 20 credits (Meshy-6/lowpoly), 5 credits (other models).
 
@@ -276,6 +283,9 @@ Textures a previously generated preview model.
 - `ai_model` (string): `"meshy-5"`, `"meshy-6"`, or `"latest"` (default, resolves to Meshy 6).
 - `remove_lighting` (boolean): Removes highlights and shadows from the base color texture. Default `true`. Meshy-6/latest only.
 - `moderation` (boolean): Default `false`.
+- `target_formats` (string[]): Output formats: `"glb"`, `"obj"`, `"fbx"`, `"stl"`, `"usdz"`, `"3mf"`. Default: all except 3mf. **3mf must be explicitly included.**
+- `auto_size` (boolean): Use AI to auto-estimate real-world height. Default `false`.
+- `origin_at` (string): `"bottom"` or `"center"`. Default `"bottom"` when auto_size is true.
 
 **Cost:** 10 credits.
 
@@ -356,6 +366,9 @@ Generates a 3D model from a single image.
 - `image_enhancement` (boolean): Optimize input image. Default `true`. Meshy-6/latest only.
 - `remove_lighting` (boolean): Removes highlights and shadows from the base color texture for cleaner results under custom lighting. Default `true`. Meshy-6/latest only.
 - `moderation` (boolean): Default `false`.
+- `target_formats` (string[]): Output formats: `"glb"`, `"obj"`, `"fbx"`, `"stl"`, `"usdz"`, `"3mf"`. Default: all except 3mf. **3mf must be explicitly included.**
+- `auto_size` (boolean): Use AI to auto-estimate real-world height. Default `false`.
+- `origin_at` (string): `"bottom"` or `"center"`. Default `"bottom"` when auto_size is true.
 
 **Response:** `{"result": "<task_id>"}`
 
@@ -399,11 +412,12 @@ Remesh and export existing 3D models into various formats.
 If both are provided, `input_task_id` takes precedence.
 
 **Optional parameters:**
-- `target_formats` (array): Formats to export. Values: `"glb"`, `"fbx"`, `"obj"`, `"usdz"`, `"blend"`, `"stl"`. Default `["glb"]`.
+- `target_formats` (array): Formats to export. Values: `"glb"`, `"fbx"`, `"obj"`, `"usdz"`, `"blend"`, `"stl"`, `"3mf"`. Default `["glb"]`. **3mf must be explicitly included.**
 - `topology` (string): `"quad"` or `"triangle"` (default).
 - `target_polycount` (integer): 100–300,000. Default 30,000.
-- `resize_height` (number): Height in meters. Default 0 (no resize).
-- `origin_at` (string): `"bottom"` or `"center"`. Default empty.
+- `resize_height` (number): Height in meters. Default 0 (no resize). Mutually exclusive with `auto_size`.
+- `auto_size` (boolean): Use AI to auto-estimate real-world height. Mutually exclusive with `resize_height`. Default `false`.
+- `origin_at` (string): `"bottom"` or `"center"`. Default `"bottom"` when auto_size is true.
 - `convert_format_only` (boolean): Only convert format, skip remeshing. Default `false`.
 
 **Cost:** 5 credits.
@@ -432,6 +446,9 @@ Apply new AI-generated textures to existing 3D models.
 - `enable_original_uv` (boolean): Preserve original UV mapping. Default `true`.
 - `enable_pbr` (boolean): PBR maps. Default `false`.
 - `remove_lighting` (boolean): Removes highlights and shadows from the base color texture. Default `true`. Meshy-6/latest only.
+- `target_formats` (string[]): Output formats: `"glb"`, `"obj"`, `"fbx"`, `"stl"`, `"usdz"`, `"3mf"`. Default: all except 3mf. **3mf must be explicitly included.**
+
+**Note:** `image_style_url` takes precedence if both `text_style_prompt` and `image_style_url` are provided.
 
 **Cost:** 10 credits.
 
@@ -441,6 +458,47 @@ Apply new AI-generated textures to existing 3D models.
 ### DELETE /openapi/v1/retexture/:id — Delete Task
 ### GET /openapi/v1/retexture — List Tasks
 ### GET /openapi/v1/retexture/:id/stream — Stream Task
+
+---
+
+## Multi-Color Print API
+
+Process a textured 3D model for multi-color 3D printing. Segments the model's texture into discrete color regions and outputs a 3MF file. Cost: **10 credits**.
+
+### POST /openapi/v1/print/multi-color — Create Task
+
+**Required parameters:**
+- `input_task_id` (string): ID of a completed task with textures (Text to 3D refine, Image to 3D with texture, or Retexture).
+
+**Optional parameters:**
+- `max_colors` (integer, 1-16, default 4): Maximum number of colors for segmentation.
+- `max_depth` (integer, 3-6, default 4): Color segmentation depth. Higher values produce finer color boundaries.
+
+**Response:** `{"result": "<task_id>"}`
+
+**Example:**
+```python
+task_id = create_task("/openapi/v1/print/multi-color", {
+    "input_task_id": "textured-task-uuid",
+    "max_colors": 4,
+    "max_depth": 4,
+})
+```
+
+### GET /openapi/v1/print/multi-color/:id — Retrieve Task
+
+Returns the task object including `status`, `progress`, `model_urls`, `texture_urls`.
+
+**Completed task `model_urls`:**
+```json
+{
+  "3mf": "https://assets.meshy.ai/.../model.3mf?Expires=..."
+}
+```
+
+### GET /openapi/v1/print/multi-color/:id/stream — Stream Task (SSE)
+
+Server-Sent Events stream. Events include: `status`, `progress`, `model_urls` (contains `{"3mf": "https://..."}`), `texture_urls`, `task_error`.
 
 ---
 
@@ -605,6 +663,7 @@ Webhook payloads contain the full task object in JSON format matching the corres
 | Multi-Image to 3D (other, with texture) | 15 credits |
 | Retexture | 10 credits |
 | Remesh | 5 credits |
+| Multi-Color Print | 10 credits |
 | Auto-Rigging | 5 credits |
 | Animation | 3 credits |
 | Text to Image (nano-banana) | 3 credits |

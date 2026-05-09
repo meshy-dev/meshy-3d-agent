@@ -461,14 +461,109 @@ Apply new AI-generated textures to existing 3D models.
 
 ---
 
+## Analyze Printability API
+
+FDM printability analysis. Reports watertightness, volume, holes, non-manifold edges, degenerate faces. Cost: **FREE (0 credits)**.
+
+### POST /openapi/v1/print/analyze — Create Task
+
+Provide **exactly one** of:
+- `input_task_id` (string): A SUCCEEDED task you own (image-to-3d, multi-image-to-3d, text-to-3d, remesh, retexture). **MUST use Meshy 6 or any Preview model.**
+- `model_url` (string): Public URL of a 3D model. Supported formats: `.glb`, `.gltf`, `.obj`, `.fbx`, `.stl`. Max 100 MB.
+
+**Response:** `{"result": "<task_id>"}`
+
+### GET /openapi/v1/print/analyze/:id — Retrieve Task
+
+Once SUCCEEDED, the task object contains:
+```json
+{
+  "id": "...",
+  "type": "print-analyze",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "printability": {
+    "_version": "v1",
+    "status": "warning",
+    "issue_count": 1,
+    "error_count": 0,
+    "warning_count": 1,
+    "metrics": {
+      "is_watertight": true,
+      "volume": 1.316,
+      "non_manifold_edges": 0,
+      "degenerate_faces": 43242,
+      "holes": 0
+    },
+    "evaluated_at": 1700000001000
+  },
+  "consumed_credits": 0
+}
+```
+
+**`printability.status` semantics:**
+- `healthy`: no errors, no warnings.
+- `warning`: at least one warning, no errors. (Triggered by degenerate faces or holes.)
+- `error`: at least one error. (Triggered by non-watertight, non-positive volume, or non-manifold edges.) Recommend running repair.
+- `unknown`: model could not be analyzed.
+
+### DELETE /openapi/v1/print/analyze/:id — Delete Task
+### GET /openapi/v1/print/analyze — List Tasks
+### GET /openapi/v1/print/analyze/:id/stream — Stream Task (SSE)
+
+---
+
+## Repair Printability API
+
+Repair non-manifold edges, degenerate faces, holes, and ensure watertightness. Cost: **10 credits**.
+
+### POST /openapi/v1/print/repair — Create Task
+
+Provide **exactly one** of:
+- `input_task_id` (string): A SUCCEEDED task with a GLB asset. Output is GLB.
+- `model_url` (string): Public URL of `.glb` / `.stl` / `.obj`. Max 100 MB. Output format matches input extension.
+
+**Response:** `{"result": "<task_id>"}`
+
+### GET /openapi/v1/print/repair/:id — Retrieve Task
+
+```json
+{
+  "id": "...",
+  "type": "print-repair",
+  "status": "SUCCEEDED",
+  "model_urls": {
+    "glb": "https://...glb?Expires=...",
+    "fbx": "",
+    "obj": "",
+    "stl": "",
+    "usdz": "",
+    "3mf": "",
+    "mtl": ""
+  },
+  "thumbnail_url": "https://...preview.png",
+  "texture_urls": [],
+  "consumed_credits": 10
+}
+```
+
+Only the field matching the input format is populated; other fields are empty strings. Textures are NOT preserved (geometry-only repair).
+
+### DELETE /openapi/v1/print/repair/:id — Delete Task
+### GET /openapi/v1/print/repair — List Tasks
+### GET /openapi/v1/print/repair/:id/stream — Stream Task (SSE)
+
+---
+
 ## Multi-Color Print API
 
 Process a textured 3D model for multi-color 3D printing. Segments the model's texture into discrete color regions and outputs a 3MF file. Cost: **10 credits**.
 
 ### POST /openapi/v1/print/multi-color — Create Task
 
-**Required parameters:**
+Provide **exactly one** of:
 - `input_task_id` (string): ID of a completed task with textures (Text to 3D refine, Image to 3D with texture, or Retexture).
+- `model_url` (string): Public URL of a textured `.glb` or `.fbx` model.
 
 **Optional parameters:**
 - `max_colors` (integer, 1-16, default 4): Maximum number of colors for segmentation.
@@ -483,11 +578,16 @@ task_id = create_task("/openapi/v1/print/multi-color", {
     "max_colors": 4,
     "max_depth": 4,
 })
+# OR with a model URL:
+# task_id = create_task("/openapi/v1/print/multi-color", {
+#     "model_url": "https://example.com/textured.glb",
+#     "max_colors": 6,
+# })
 ```
 
 ### GET /openapi/v1/print/multi-color/:id — Retrieve Task
 
-Returns the task object including `status`, `progress`, `model_urls`, `texture_urls`.
+Returns the task object including `status`, `progress`, `model_urls`. Note: response `type` field is `"print-multi-color"`.
 
 **Completed task `model_urls`:**
 ```json
@@ -498,7 +598,7 @@ Returns the task object including `status`, `progress`, `model_urls`, `texture_u
 
 ### GET /openapi/v1/print/multi-color/:id/stream — Stream Task (SSE)
 
-Server-Sent Events stream. Events include: `status`, `progress`, `model_urls` (contains `{"3mf": "https://..."}`), `texture_urls`, `task_error`.
+Server-Sent Events stream. Events include: `status`, `progress`, `model_urls` (contains `{"3mf": "https://..."}`), `task_error`.
 
 ---
 
@@ -664,6 +764,8 @@ Webhook payloads contain the full task object in JSON format matching the corres
 | Retexture | 10 credits |
 | Remesh | 5 credits |
 | Multi-Color Print | 10 credits |
+| Analyze Printability | **0 (free)** |
+| Repair Printability | 10 credits |
 | Auto-Rigging | 5 credits |
 | Animation | 3 credits |
 | Text to Image (nano-banana) | 3 credits |

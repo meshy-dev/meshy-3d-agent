@@ -435,6 +435,8 @@ If both are provided, `input_task_id` takes precedence.
 
 Apply new AI-generated textures to existing 3D models.
 
+> **Alias note**: The historical "text-to-texture" feature has been renamed to retexture. The public docs URL `/api/text-to-texture` redirects to `/api/retexture`, and there is no separate `/openapi/v1/text-to-texture` endpoint — use `/openapi/v1/retexture` for both text-style-prompt and image-style-url retexturing.
+
 ### POST /openapi/v1/retexture — Create Task
 
 **Required (one of each):**
@@ -670,6 +672,57 @@ Webhook payloads contain the full task object in JSON format matching the corres
 | Text to Image (nano-banana-pro) | 9 credits |
 | Image to Image (nano-banana) | 3 credits |
 | Image to Image (nano-banana-pro) | 9 credits |
+| Analyze Printability | **0 (free)** |
+| Repair Printability | 10 credits |
+
+---
+
+## Print Automation APIs
+
+### POST /openapi/v1/print/analyze — Create Analyze Printability Task
+
+**Cost: FREE (0 credits).**
+
+Provide **exactly one** of:
+- `input_task_id` (string): A SUCCEEDED task you own. Supported task types: image-to-3d, multi-image-to-3d, text-to-3d, remesh, retexture. **MUST use Meshy 6 or any Preview model**.
+- `model_url` (string): Public URL of a 3D model. Supported formats: `.glb`, `.gltf`, `.obj`, `.fbx`, `.stl`. Max 100 MB. Must use `http`, `https`, or `data:` URL.
+
+Returns: `{"result": "<task_id>"}`.
+
+### GET /openapi/v1/print/analyze/:id — Retrieve Analyze Task
+
+Once SUCCEEDED, the task object contains a `printability` block with:
+- `status`: `"healthy"` / `"warning"` / `"error"` / `"unknown"`
+- `issue_count`, `error_count`, `warning_count`
+- `metrics`: `{ is_watertight, volume, non_manifold_edges, degenerate_faces, holes }`
+- Errors triggered by: non-watertight, non-positive volume, or non-manifold edges. Recommend repair before printing.
+- Warnings triggered by: degenerate faces or holes. Repair optional.
+
+### DELETE /openapi/v1/print/analyze/:id — Delete Analyze Task
+### GET /openapi/v1/print/analyze — List Analyze Tasks
+### GET /openapi/v1/print/analyze/:id/stream — Stream Analyze Task
+
+---
+
+### POST /openapi/v1/print/repair — Create Repair Printability Task
+
+**Cost: 10 credits.**
+
+Repairs non-manifold edges, degenerate faces, holes, and ensures watertightness. Output format mirrors input format.
+
+Provide **exactly one** of:
+- `input_task_id` (string): A SUCCEEDED task with a GLB asset. Output is GLB.
+- `model_url` (string): Public URL of `.glb` / `.stl` / `.obj`. Max 100 MB. Output format matches input extension.
+
+Returns: `{"result": "<task_id>"}`.
+
+### GET /openapi/v1/print/repair/:id — Retrieve Repair Task
+
+Once SUCCEEDED, `model_urls` contains the repaired model in the same format as the input. Other format fields are empty strings. Textures are NOT preserved (geometry-only repair). `consumed_credits: 10`.
+
+### DELETE /openapi/v1/print/repair/:id — Delete Repair Task
+### GET /openapi/v1/print/repair — List Repair Tasks
+### GET /openapi/v1/print/repair/:id/stream — Stream Repair Task
 
 ---
 

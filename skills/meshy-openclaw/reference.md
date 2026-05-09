@@ -435,6 +435,8 @@ If both are provided, `input_task_id` takes precedence.
 
 Apply new AI-generated textures to existing 3D models.
 
+> **Alias note**: The historical "text-to-texture" feature has been renamed to retexture. The public docs URL `/api/text-to-texture` redirects to `/api/retexture`, and there is no separate `/openapi/v1/text-to-texture` endpoint — use `/openapi/v1/retexture` for both text-style-prompt and image-style-url retexturing.
+
 ### POST /openapi/v1/retexture — Create Task
 
 **Required (one of each):**
@@ -461,14 +463,59 @@ Apply new AI-generated textures to existing 3D models.
 
 ---
 
+## Analyze Printability API
+
+FDM printability analysis. Reports watertightness, volume, holes, non-manifold edges, degenerate faces. Cost: **FREE (0 credits)**.
+
+### POST /openapi/v1/print/analyze — Create Task
+
+Provide **exactly one** of:
+- `input_task_id` (string): A SUCCEEDED task you own (image-to-3d, multi-image-to-3d, text-to-3d, remesh, retexture). **MUST use Meshy 6 or any Preview model.**
+- `model_url` (string): Public URL of a 3D model. Supported: `.glb`, `.gltf`, `.obj`, `.fbx`, `.stl`. Max 100 MB.
+
+**Response:** `{"result": "<task_id>"}`
+
+### GET /openapi/v1/print/analyze/:id — Retrieve Task
+
+Once SUCCEEDED, the task object's `printability` field reports `status` (healthy/warning/error/unknown), `issue_count`, and `metrics` (`is_watertight`, `volume`, `non_manifold_edges`, `degenerate_faces`, `holes`). `consumed_credits: 0`.
+
+### DELETE /openapi/v1/print/analyze/:id — Delete Task
+### GET /openapi/v1/print/analyze — List Tasks
+### GET /openapi/v1/print/analyze/:id/stream — Stream Task (SSE)
+
+---
+
+## Repair Printability API
+
+Repair non-manifold edges, degenerate faces, holes, and ensure watertightness. Cost: **10 credits**.
+
+### POST /openapi/v1/print/repair — Create Task
+
+Provide **exactly one** of:
+- `input_task_id` (string): A SUCCEEDED task with a GLB asset. Output is GLB.
+- `model_url` (string): Public URL of `.glb` / `.stl` / `.obj`. Max 100 MB. Output format matches input extension.
+
+**Response:** `{"result": "<task_id>"}`
+
+### GET /openapi/v1/print/repair/:id — Retrieve Task
+
+`model_urls` contains the repaired model in the same format as the input; only the matching field is populated. `texture_urls: []` (geometry-only repair). `consumed_credits: 10`.
+
+### DELETE /openapi/v1/print/repair/:id — Delete Task
+### GET /openapi/v1/print/repair — List Tasks
+### GET /openapi/v1/print/repair/:id/stream — Stream Task (SSE)
+
+---
+
 ## Multi-Color Print API
 
 Process a textured 3D model for multi-color 3D printing. Segments the model's texture into discrete color regions and outputs a 3MF file. Cost: **10 credits**.
 
 ### POST /openapi/v1/print/multi-color — Create Task
 
-**Required parameters:**
+Provide **exactly one** of:
 - `input_task_id` (string): ID of a completed task with textures (Text to 3D refine, Image to 3D with texture, or Retexture).
+- `model_url` (string): Public URL of a textured `.glb` or `.fbx` model.
 
 **Optional parameters:**
 - `max_colors` (integer, 1-16, default 4): Maximum number of colors for segmentation.
@@ -487,7 +534,7 @@ task_id = create_task("/openapi/v1/print/multi-color", {
 
 ### GET /openapi/v1/print/multi-color/:id — Retrieve Task
 
-Returns the task object including `status`, `progress`, `model_urls`, `texture_urls`.
+Returns the task object including `status`, `progress`, `model_urls`. Note: response `type` field is `"print-multi-color"`.
 
 **Completed task `model_urls`:**
 ```json
@@ -498,7 +545,7 @@ Returns the task object including `status`, `progress`, `model_urls`, `texture_u
 
 ### GET /openapi/v1/print/multi-color/:id/stream — Stream Task (SSE)
 
-Server-Sent Events stream. Events include: `status`, `progress`, `model_urls` (contains `{"3mf": "https://..."}`), `texture_urls`, `task_error`.
+Server-Sent Events stream. Events include: `status`, `progress`, `model_urls` (contains `{"3mf": "https://..."}`), `task_error`.
 
 ---
 
@@ -664,6 +711,8 @@ Webhook payloads contain the full task object in JSON format matching the corres
 | Retexture | 10 credits |
 | Remesh | 5 credits |
 | Multi-Color Print | 10 credits |
+| Analyze Printability | **0 (free)** |
+| Repair Printability | 10 credits |
 | Auto-Rigging | 5 credits |
 | Animation | 3 credits |
 | Text to Image (nano-banana) | 3 credits |

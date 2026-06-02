@@ -2,6 +2,12 @@
 
 AI agent skills for the [Meshy AI](https://www.meshy.ai) 3D generation platform. Enables AI coding assistants (Cursor, Claude Code, OpenClaw) to generate 3D models, textures, images, rig characters, animate them, and prepare models for 3D printing — no MCP server required.
 
+**New Updates**: For new web agent experience, come to try out our new [Meshy Workspace Agent](https://meshy.ai/workspace)! It supports:
+- :brain: Brainstorm with you, pitching directions first
+- :art: Generate visuals in batches, refined through chat
+- :ice_cube: Turn your favorite into 3D — print, download, anywhere
+- :books: Answer your 3D questions in-line
+
 ## How It Works
 
 These are **pure Markdown skills** — no server, no dependencies, no build step. Your AI assistant reads the skill files and gains the ability to interact with the Meshy API directly using shell commands and Python scripts.

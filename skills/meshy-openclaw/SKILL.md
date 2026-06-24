@@ -195,10 +195,14 @@ For multi-step pipelines (text-to-3d → rig → animate), show the FULL pipelin
 | 3D model from multiple images | Multi-Image to 3D | `POST /openapi/v1/multi-image-to-3d` | 5–30 |
 | New textures on existing model | Retexture | `POST /openapi/v1/retexture` | 10 |
 | Change mesh format/topology | Remesh | `POST /openapi/v1/remesh` | 5 |
+| Convert a model to other formats (no remesh) | Convert | `POST /openapi/v1/convert` | 1 |
+| Rescale a model to real-world size | Resize | `POST /openapi/v1/resize` | 1 |
+| Generate fresh UVs (GLB, ≤40k faces) before external texturing | UV Unwrap | `POST /openapi/v1/uv-unwrap` | 5 |
 | Add skeleton to character | Auto-Rigging | `POST /openapi/v1/rigging` | 5 |
 | Animate a rigged character | Animation | `POST /openapi/v1/animations` | 3 |
-| 2D image from text (recommended pre-step before image-to-3d) | Text to Image | `POST /openapi/v1/text-to-image` | 3–9 |
-| Optimize/edit a 2D image (recommended pre-step before image-to-3d) | Image to Image | `POST /openapi/v1/image-to-image` | 3–9 |
+| 2D image from text (recommended pre-step before image-to-3d) | Text to Image | `POST /openapi/v1/text-to-image` | 3 / 6 / 9 / 9 |
+| Optimize/edit a 2D image (recommended pre-step before image-to-3d) | Image to Image | `POST /openapi/v1/image-to-image` | 3 / 6 / 9 / 12 |
+| Photo → styled physical product (figure/lamp/keychain/fridge-magnet) | Creative Lab | `POST /openapi/creative-lab/{product}/v1/prototype` then `.../build` | 6 + 30 |
 | Check FDM printability | Analyze Printability | `POST /openapi/v1/print/analyze` | **0 (free)** |
 | Repair non-manifold/degenerate-face/hole topology | Repair Printability | `POST /openapi/v1/print/repair` | 10 |
 | Multi-color 3D print | Multi-Color Print | `POST /openapi/v1/print/multi-color` | 10 (+ generation) |
@@ -358,6 +362,9 @@ preview_id = create_task("/openapi/v2/text-to-3d", {
     "prompt": PROMPT,
     "ai_model": "latest",
     # "pose_mode": "t-pose",   # Use "t-pose" if rigging/animating later
+    # "hd_texture": True,      # 4K base color on refine (meshy-6/latest only)
+    # "target_formats": ["glb", "3mf"],  # 3mf must be explicitly requested
+    # NOTE: symmetry_mode / art_style / is_a_t_pose are deprecated (symmetry_mode & art_style ignored; use pose_mode)
 })
 task = poll_task("/openapi/v2/text-to-3d", preview_id)
 project_dir = get_project_dir(preview_id, prompt=PROMPT)
@@ -380,11 +387,13 @@ record_task(project_dir, refine_id, "text-to-3d", "refined", prompt=PROMPT, file
 print(f"\nREFINE COMPLETE — Task: {refine_id} | Formats: {', '.join(task['model_urls'].keys())}")
 ```
 
-> **Note:** All models (meshy-5, meshy-6, latest) support both preview and refine. The preview and refine ai_model should match to avoid 400 errors.
+> **Refine compatibility:** Refine works with `meshy-5`, `meshy-6`, or `latest` (= Meshy 6) — pick the same family as your preview for consistency. Refine costs 10 credits regardless of model. (`meshy-4` is retired and returns 400.)
 
 ---
 
 ### (Optional but strongly recommended) 2D Optimization Pre-Step
+
+**Prefer the image-to-3d route over direct text-to-3d** — it's higher quality and more controllable, so for a text-only request make a design image first, then 3D-ify.
 
 Image quality directly determines 3D model quality. Before calling `/openapi/v1/image-to-3d` or `/openapi/v1/multi-image-to-3d`, evaluate the user's input and proactively suggest a 2D pass:
 
@@ -394,7 +403,7 @@ Image quality directly determines 3D model quality. Before calling `/openapi/v1/
 | Reference image is low-resolution / cluttered background / unclear subject / bad lighting | `/openapi/v1/image-to-image` with `nano-banana-pro` to clean up. |
 | User wants to adjust style / colors / details | `/openapi/v1/image-to-image` for style transfer, then 3D-ify. |
 
-3-9 extra credits typically buy a noticeable quality bump. Skip when the user already provided a clean studio-style image.
+3-9 extra credits typically buy a noticeable quality bump. Skip when the user already provided a clean studio-style image. Also skip for **Creative Lab** products (figure / lamp / keychain / fridge-magnet): they apply their own built-in stylization — feed the raw photo (or text, for lamp) straight to Creative Lab, not through text-to-image / image-to-image first.
 
 ### Image to 3D
 
@@ -468,6 +477,69 @@ task = poll_task("/openapi/v1/remesh", task_id)
 project_dir = get_project_dir(task_id, task_type="remesh")
 for fmt, url in task["model_urls"].items():
     download(url, os.path.join(project_dir, f"remeshed.{fmt}"))
+```
+
+---
+
+### Mesh Utilities (Convert / Resize / UV Unwrap)
+
+Lightweight post-processing on a finished model (via `input_task_id` or `model_url`):
+
+```python
+# Convert to other formats without remeshing (1 credit). Cheapest way to get 3MF/STL.
+conv_id = create_task("/openapi/v1/convert", {
+    "input_task_id": "TASK_ID",         # or "model_url": "URL"
+    "target_formats": ["stl", "3mf"],   # required: glb/fbx/obj/usdz/blend/stl/3mf
+})
+poll_task("/openapi/v1/convert", conv_id)
+
+# Resize to a real-world size (1 credit). Give EXACTLY ONE resize mode.
+resize_id = create_task("/openapi/v1/resize", {
+    "input_task_id": "TASK_ID",         # or "model_url": "URL"
+    "resize_height": 0.15,              # meters — OR "resize_longest_side": 0.2  OR "auto_size": True
+    # "origin_at": "bottom",            # "bottom" | "center"
+})
+poll_task("/openapi/v1/resize", resize_id)
+
+# UV Unwrap a GLB (5 credits). GLB only, ≤ 40,000 faces (else 400 → remesh down first).
+# Output: a GLB "UV white model" (fresh UVs + placeholder grey material) for external texturing.
+uv_id = create_task("/openapi/v1/uv-unwrap", {
+    "input_task_id": "TASK_ID",         # or "model_url": "GLB_URL"
+})
+poll_task("/openapi/v1/uv-unwrap", uv_id)
+```
+
+---
+
+### Creative Lab Consumer Products
+
+Turn a photo into a styled, printable physical product. Products: **figure**, **lamp**, **keychain**, **fridge-magnet**. Two stages (replace `{product}` with one of those):
+
+1. **Prototype** (6 credits): photo → styled concept image.
+2. **Build** (30 credits): runs image-to-3d on the SUCCEEDED prototype → textured GLB / OBJ+MTL.
+
+```python
+PRODUCT = "figure"  # figure | lamp | keychain | fridge-magnet
+
+# Stage 1 — prototype (6 credits)
+proto_id = create_task(f"/openapi/creative-lab/{PRODUCT}/v1/prototype", {
+    "image_url": "PHOTO_URL_OR_DATA_URI",   # jpg/jpeg/png/webp
+    # "name": "My figure",                  # optional, ≤ 100 chars
+})
+poll_task(f"/openapi/creative-lab/{PRODUCT}/v1/prototype", proto_id)
+
+# Stage 2 — build (30 credits). Must reference a SUCCEEDED prototype of the SAME product.
+# Web-app prototypes are rejected with 404 — only API-created prototypes are accepted.
+build_id = create_task(f"/openapi/creative-lab/{PRODUCT}/v1/build", {
+    "input_task_id": proto_id,
+})
+build = poll_task(f"/openapi/creative-lab/{PRODUCT}/v1/build", build_id)
+project_dir = get_project_dir(build_id, task_type=f"creative-lab-{PRODUCT}")
+download(build["model_urls"]["glb"], os.path.join(project_dir, "creative-lab.glb"))
+
+# To MULTICOLOR a Creative Lab result: a Creative Lab model can only be sent to multi-color
+# as model_url — pass the build's GLB URL (or a data URI of the downloaded GLB):
+#   create_task("/openapi/v1/print/multi-color", {"model_url": build["model_urls"]["glb"], "max_colors": 4})
 ```
 
 ---
@@ -622,6 +694,13 @@ def open_in_slicer(file_path, slicer_name):
         exe_path = shutil.which(info.get("linux_exe", ""))
         (subprocess.Popen([exe_path, abs_path]) if exe_path else subprocess.run(["xdg-open", abs_path]))
     print(f"Opened {abs_path} in {slicer_name}")
+
+# Several SEPARATE/unrelated models (e.g. results from different tasks)? Call this once per
+# model with a short gap — Bambu Studio especially may respond to only one if fired
+# back-to-back. (Parts of ONE model belong in a single project — not spaced.)
+#     import time
+#     for f in [model_a, model_b, model_c]:
+#         open_in_slicer(f, slicer_name); time.sleep(2)
 
 slicers = detect_slicers()
 for s in slicers:
@@ -785,7 +864,9 @@ Task `FAILED` messages:
 - **99% stall**: Normal finalization (30–120s). Do NOT interrupt.
 - **Asset retention**: Files deleted after **3 days** (non-Enterprise). Download immediately.
 - **PBR maps**: Must set `enable_pbr: true` explicitly.
-- **Refine**: All models support both preview and refine. Preview and refine ai_model should match.
+- **Refine**: Works with `meshy-5`, `meshy-6`, or `latest` — pick the same family as your preview for consistency. 10 credits regardless of model. (`meshy-4` is retired → 400.)
+- **Deprecated params**: `symmetry_mode` no longer affects output; `art_style` is ignored by Meshy-6; use `pose_mode` instead of the old `is_a_t_pose` flag.
+- **`consumed_credits`**: Every task GET response includes `consumed_credits` — read it to report the real credits spent rather than estimating.
 - **Rigging**: Humanoid bipedal only, polycount ≤ 300,000.
 - **Printing formats**: White model → OBJ with `fix_obj_for_printing()`. Multicolor → 3MF from Multi-Color Print API. Always detect slicer first.
 - **Download format**: Ask the user which format they need before downloading. GLB (viewing), OBJ (printing), 3MF (multicolor), FBX (games), USDZ (AR). Do NOT download all formats.

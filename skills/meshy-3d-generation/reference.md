@@ -257,12 +257,16 @@ Creates a preview (mesh-only) 3D model from a text prompt.
 - `topology` (string): `"quad"` or `"triangle"` (default).
 - `target_polycount` (integer): 100–300,000. Default 30,000.
 - `should_remesh` (boolean): Default `false` for Meshy 6, `true` for others.
-- `symmetry_mode` (string): `"off"`, `"auto"` (default), or `"on"`.
-- `pose_mode` (string): `"a-pose"`, `"t-pose"`, or `""` (default).
+- `pose_mode` (string): `"a-pose"`, `"t-pose"`, or `""` (default). (Replaces the deprecated `is_a_t_pose` flag.)
+- `decimation_mode` (integer): Adaptive polycount mode, `1`–`4`. Trades detail vs. polygon budget.
 - `moderation` (boolean): Screen input for harmful content. Default `false`.
 - `target_formats` (string[]): Output formats: `"glb"`, `"obj"`, `"fbx"`, `"stl"`, `"usdz"`, `"3mf"`. Default: all except 3mf. **3mf must be explicitly included.**
 - `auto_size` (boolean): Use AI to auto-estimate real-world height. Default `false`.
 - `origin_at` (string): `"bottom"` or `"center"`. Default `"bottom"` when auto_size is true.
+
+**Deprecated parameters:** `symmetry_mode` — no longer affects output, safe to omit. `art_style` — ignored by Meshy-6. `is_a_t_pose` — superseded by `pose_mode`.
+
+> **Retired model:** `meshy-4` is retired; requests that pass `ai_model: "meshy-4"` return 400.
 
 **Cost:** 20 credits (Meshy-6/lowpoly), 5 credits (other models).
 
@@ -280,14 +284,15 @@ Textures a previously generated preview model.
 - `enable_pbr` (boolean): Generate metallic/roughness/normal maps. Default `false`.
 - `texture_prompt` (string): Additional text to guide texturing. Max 600 characters.
 - `texture_image_url` (string): Image URL or data URI to guide texturing.
-- `ai_model` (string): `"meshy-5"`, `"meshy-6"`, or `"latest"` (default, resolves to Meshy 6).
+- `ai_model` (string): `"meshy-5"`, `"meshy-6"`, or `"latest"` (default, resolves to Meshy 6). Refine works with `meshy-5`, `meshy-6`, or `latest` — pick the same family as your preview for consistency.
+- `hd_texture` (boolean): Generate a 4K base color texture. `meshy-6`/`latest` only. Default `false`.
 - `remove_lighting` (boolean): Removes highlights and shadows from the base color texture. Default `true`. Meshy-6/latest only.
 - `moderation` (boolean): Default `false`.
 - `target_formats` (string[]): Output formats: `"glb"`, `"obj"`, `"fbx"`, `"stl"`, `"usdz"`, `"3mf"`. Default: all except 3mf. **3mf must be explicitly included.**
 - `auto_size` (boolean): Use AI to auto-estimate real-world height. Default `false`.
 - `origin_at` (string): `"bottom"` or `"center"`. Default `"bottom"` when auto_size is true.
 
-**Cost:** 10 credits.
+**Cost:** 10 credits (regardless of `ai_model`).
 
 **Response:** `{"result": "<task_id>"}`
 
@@ -357,10 +362,12 @@ Generates a 3D model from a single image.
 - `target_polycount` (integer): 100–300,000. Default 30,000.
 - `should_remesh` (boolean): Default `false` for Meshy 6, `true` for others.
 - `save_pre_remeshed_model` (boolean): Store GLB before remeshing. Default `false`.
+- `input_task_id` (string): Chain directly off a succeeded `text-to-image` / `image-to-image` task — use its generated image as the input without re-uploading. Provide this OR `image_url`.
 - `should_texture` (boolean): Generate textures. Default `true`. Without texture: 20 credits (Meshy-6) / 5 credits (others). With texture: +10 credits.
 - `enable_pbr` (boolean): PBR maps. Default `false`.
-- `symmetry_mode` (string): `"off"`, `"auto"` (default), `"on"`.
-- `pose_mode` (string): `"a-pose"`, `"t-pose"`, or `""` (default).
+- `hd_texture` (boolean): Generate a 4K base color texture. `meshy-6`/`latest` only. Default `false`.
+- `pose_mode` (string): `"a-pose"`, `"t-pose"`, or `""` (default). (Replaces the deprecated `is_a_t_pose` flag.)
+- `decimation_mode` (integer): Adaptive polycount mode, `1`–`4`.
 - `texture_prompt` (string): Text to guide texturing. Max 600 characters.
 - `texture_image_url` (string): Image to guide texturing.
 - `image_enhancement` (boolean): Optimize input image. Default `true`. Meshy-6/latest only.
@@ -369,6 +376,8 @@ Generates a 3D model from a single image.
 - `target_formats` (string[]): Output formats: `"glb"`, `"obj"`, `"fbx"`, `"stl"`, `"usdz"`, `"3mf"`. Default: all except 3mf. **3mf must be explicitly included.**
 - `auto_size` (boolean): Use AI to auto-estimate real-world height. Default `false`.
 - `origin_at` (string): `"bottom"` or `"center"`. Default `"bottom"` when auto_size is true.
+
+**Deprecated parameters:** `symmetry_mode` — no longer affects output. `art_style` — ignored by Meshy-6. `is_a_t_pose` — superseded by `pose_mode`. `meshy-4` is retired (returns 400).
 
 **Response:** `{"result": "<task_id>"}`
 
@@ -388,7 +397,7 @@ Generates a 3D model from 1–4 images of the same object from different angles.
 **Required parameters:**
 - `image_urls` (array): 1–4 images as URLs or data URIs.
 
-**Optional parameters:** Same as Image to 3D (except `image_url` → `image_urls`).
+**Optional parameters:** Same as Image to 3D (except `image_url` → `image_urls`). Also supports `input_task_id` to chain off a succeeded `text-to-image` / `image-to-image` result, plus `multi_view_thumbnails` (boolean): generate 4 cardinal-direction thumbnails of the result (image / multi-image only).
 
 **Response:** `{"result": "<task_id>"}`
 
@@ -447,6 +456,7 @@ Apply new AI-generated textures to existing 3D models.
 - `ai_model` (string): `"meshy-5"`, `"meshy-6"`, or `"latest"` (default, resolves to Meshy 6).
 - `enable_original_uv` (boolean): Preserve original UV mapping. Default `true`.
 - `enable_pbr` (boolean): PBR maps. Default `false`.
+- `hd_texture` (boolean): Generate a 4K base color texture. `meshy-6`/`latest` only. Default `false`.
 - `remove_lighting` (boolean): Removes highlights and shadows from the base color texture. Default `true`. Meshy-6/latest only.
 - `target_formats` (string[]): Output formats: `"glb"`, `"obj"`, `"fbx"`, `"stl"`, `"usdz"`, `"3mf"`. Default: all except 3mf. **3mf must be explicitly included.**
 
@@ -569,15 +579,19 @@ Apply animations to rigged characters.
 ### POST /openapi/v1/text-to-image — Create Task
 
 **Required parameters:**
-- `ai_model` (string): `"nano-banana"` or `"nano-banana-pro"`.
+- `ai_model` (string): `"nano-banana"`, `"nano-banana-2"`, `"nano-banana-pro"`, or `"gpt-image-2"`.
 - `prompt` (string): Text description of the image.
 
 **Optional parameters:**
 - `generate_multi_view` (boolean): Multi-angle views. Default `false`. Cannot be used with `aspect_ratio`.
+- `multi_view_thumbnails` (boolean): Generate 4 cardinal-direction thumbnails. Default `false`.
+- `alpha_thumbnail` (boolean): Generate an RGBA (transparent-background) preview, returned in `alpha_thumbnail_url`. Default `false`.
 - `pose_mode` (string): `"a-pose"` or `"t-pose"`.
-- `aspect_ratio` (string): `"1:1"` (default), `"16:9"`, `"9:16"`, `"4:3"`, `"3:4"`.
+- `aspect_ratio` (string): `"1:1"` (default), `"16:9"`, `"9:16"`, `"4:3"`, `"3:4"`, `"3:2"`, `"2:3"`.
 
-**Cost:** 3 credits (nano-banana), 9 credits (nano-banana-pro).
+> **Aspect-ratio support is model-specific:** nano-banana / nano-banana-2 / nano-banana-pro accept `1:1`, `16:9`, `9:16`, `4:3`, `3:4`. gpt-image-2 accepts ONLY `1:1`, `3:2`, `2:3` — and `3:2` / `2:3` are gpt-image-2-only (the nano-banana family rejects them with 400).
+
+**Cost:** nano-banana 3 credits, nano-banana-2 6 credits, nano-banana-pro 9 credits, gpt-image-2 9 credits.
 
 **Response:** `{"result": "<task_id>"}`
 
@@ -593,14 +607,18 @@ Apply animations to rigged characters.
 ### POST /openapi/v1/image-to-image — Create Task
 
 **Required parameters:**
-- `ai_model` (string): `"nano-banana"` or `"nano-banana-pro"`.
+- `ai_model` (string): `"nano-banana"`, `"nano-banana-2"`, `"nano-banana-pro"`, or `"gpt-image-2"`.
 - `prompt` (string): Text description of the transformation.
 - `reference_image_urls` (array): 1–5 reference images as URLs or data URIs.
 
 **Optional parameters:**
 - `generate_multi_view` (boolean): Default `false`.
+- `multi_view_thumbnails` (boolean): Generate 4 cardinal-direction thumbnails. Default `false`.
+- `alpha_thumbnail` (boolean): Generate an RGBA (transparent-background) preview, returned in `alpha_thumbnail_url`. Default `false`.
 
-**Cost:** 3 credits (nano-banana), 9 credits (nano-banana-pro).
+> **Aspect-ratio support is model-specific:** nano-banana / nano-banana-2 / nano-banana-pro accept `1:1`, `16:9`, `9:16`, `4:3`, `3:4`. gpt-image-2 accepts ONLY `1:1`, `3:2`, `2:3` — and `3:2` / `2:3` are gpt-image-2-only (the nano-banana family rejects them with 400).
+
+**Cost:** nano-banana 3 credits, nano-banana-2 6 credits, nano-banana-pro 9 credits, gpt-image-2 12 credits.
 
 **Response:** `{"result": "<task_id>"}`
 
@@ -608,6 +626,77 @@ Apply animations to rigged characters.
 ### DELETE /openapi/v1/image-to-image/:id — Delete Task
 ### GET /openapi/v1/image-to-image — List Tasks
 ### GET /openapi/v1/image-to-image/:id/stream — Stream Task
+
+---
+
+## Convert API
+
+Convert a model to other file formats without remeshing. Cost: **1 credit**.
+
+### POST /openapi/v1/convert — Create Task
+
+Provide **exactly one** of:
+- `input_task_id` (string): A succeeded task you own.
+- `model_url` (string): Public URL or data URI of a 3D model.
+
+**Required parameters:**
+- `target_formats` (string[]): One or more of `"glb"`, `"fbx"`, `"obj"`, `"usdz"`, `"blend"`, `"stl"`, `"3mf"`.
+
+**Response:** `{"result": "<task_id>"}`
+
+### GET /openapi/v1/convert/:id — Retrieve Task
+### DELETE /openapi/v1/convert/:id — Delete Task
+### GET /openapi/v1/convert — List Tasks
+### GET /openapi/v1/convert/:id/stream — Stream Task
+
+---
+
+## Resize API
+
+Rescale a model to a real-world size. Cost: **1 credit**.
+
+### POST /openapi/v1/resize — Create Task
+
+Provide **exactly one** model source:
+- `input_task_id` (string), OR `model_url` (string).
+
+Provide **exactly one** resize mode:
+- `resize_height` (number): Target height in meters.
+- `resize_longest_side` (number): Target longest bounding-box side in meters.
+- `auto_size` (boolean): AI auto-estimates a real-world height.
+
+**Optional parameters:**
+- `origin_at` (string): `"bottom"` or `"center"`.
+
+**Response:** `{"result": "<task_id>"}`
+
+### GET /openapi/v1/resize/:id — Retrieve Task
+### DELETE /openapi/v1/resize/:id — Delete Task
+### GET /openapi/v1/resize — List Tasks
+### GET /openapi/v1/resize/:id/stream — Stream Task
+
+---
+
+## UV Unwrap API
+
+Generate fresh UVs for a GLB model. Cost: **5 credits**. Available (GA).
+
+### POST /openapi/v1/uv-unwrap — Create Task
+
+Provide **exactly one** of:
+- `input_task_id` (string): A succeeded task whose GLB asset will be unwrapped.
+- `model_url` (string): Public URL or data URI of a **GLB** model.
+
+**Constraints:** GLB only, **≤ 40,000 faces** (above this the API returns 400 — remesh down first). Quads/n-gons are triangulated.
+
+**Output:** a GLB "UV white model" — the mesh with fresh UVs and a placeholder grey material (no textures). Use it as a clean base for external texturing.
+
+**Response:** `{"result": "<task_id>"}`
+
+### GET /openapi/v1/uv-unwrap/:id — Retrieve Task
+### DELETE /openapi/v1/uv-unwrap/:id — Delete Task
+### GET /openapi/v1/uv-unwrap — List Tasks
+### GET /openapi/v1/uv-unwrap/:id/stream — Stream Task
 
 ---
 
@@ -665,15 +754,24 @@ Webhook payloads contain the full task object in JSON format matching the corres
 | Multi-Image to 3D (other, with texture) | 15 credits |
 | Retexture | 10 credits |
 | Remesh | 5 credits |
+| Convert | 1 credit |
+| Resize | 1 credit |
+| UV Unwrap | 5 credits |
 | Multi-Color Print | 10 credits |
 | Auto-Rigging | 5 credits |
 | Animation | 3 credits |
 | Text to Image (nano-banana) | 3 credits |
+| Text to Image (nano-banana-2) | 6 credits |
 | Text to Image (nano-banana-pro) | 9 credits |
+| Text to Image (gpt-image-2) | 9 credits |
 | Image to Image (nano-banana) | 3 credits |
+| Image to Image (nano-banana-2) | 6 credits |
 | Image to Image (nano-banana-pro) | 9 credits |
+| Image to Image (gpt-image-2) | 12 credits |
 | Analyze Printability | **0 (free)** |
 | Repair Printability | 10 credits |
+
+> Every task GET response includes a `consumed_credits` field — read it to report the real credits spent on a task rather than estimating.
 
 ---
 

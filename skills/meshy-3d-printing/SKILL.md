@@ -1,11 +1,11 @@
 ---
 name: meshy-3d-printing
-description: 3D print models generated with Meshy AI. Handles slicer detection, white model printing, multi-color printing via API, and print-optimized download workflows. Use when the user mentions 3D printing, slicing, Bambu, OrcaSlicer, Prusa, Cura, Creality Print, Elegoo, Anycubic, multicolor, multi-color, 3mf, or wants to print a figurine, miniature, or physical model.
+description: 3D print models generated with Meshy AI, plus Creative Lab consumer products. Handles slicer detection, white model printing, multi-color printing via API, the Creative Lab pipeline (figure / lamp / keychain / fridge-magnet), and print-optimized download workflows. Use when the user mentions 3D printing, slicing, Bambu, OrcaSlicer, Prusa, Cura, Creality Print, Elegoo, Anycubic, multicolor, multi-color, 3mf, Creative Lab, or wants a figurine, keychain, fridge magnet, lamp, collectible, miniature, or physical product from a photo.
 license: MIT
 compatibility: Requires Python 3 with requests package. Depends on meshy-3d-generation skill. Works with Claude Code, Cursor, and all Agent Skills compatible tools.
 metadata:
   author: meshy-dev
-  version: "0.3.0"
+  version: "0.4.0"
   homepage: https://github.com/meshy-dev/meshy-3d-agent
 allowed-tools: Bash, Read, Write, Glob, Grep
 ---
@@ -120,6 +120,13 @@ def open_in_slicer(file_path, slicer_name):
         else:
             subprocess.run(["xdg-open", abs_path])
     print(f"Opened {abs_path} in {slicer_name}")
+
+# Opening several SEPARATE/unrelated models (e.g. results from different tasks)? Open them
+# one at a time with a short gap — Bambu Studio especially may respond to only one if the
+# commands fire back-to-back. (Parts of ONE model belong in a single project — not spaced.)
+#     import time
+#     for f in [model_a, model_b, model_c]:
+#         open_in_slicer(f, slicer_name); time.sleep(2)
 
 # --- Detect slicers ---
 slicers = detect_slicers()
@@ -391,6 +398,51 @@ if mc_slicers:
 else:
     print(f"Open {threemf_path} in a multicolor-capable slicer manually.")
 ```
+
+---
+
+## Creative Lab Consumer Products
+
+For ready-to-print physical products, Meshy offers a dedicated **Creative Lab** pipeline that turns a single photo into a styled, printable model. Four products: **figure**, **lamp**, **keychain**, **fridge-magnet**. Two stages (replace `{product}` with one of those):
+
+1. **Prototype** (6 credits): `POST /openapi/creative-lab/{product}/v1/prototype` with `image_url` (jpg/jpeg/png/webp URL or data URI) and optional `name` (≤100). Returns a styled concept image.
+2. **Build** (30 credits): `POST /openapi/creative-lab/{product}/v1/build` with `input_task_id` = the SUCCEEDED prototype task (same product + key). Runs the image-to-3d pipeline → textured GLB / OBJ+MTL. Web-app prototypes are rejected with 404 — the prototype must come from the prototype API above.
+
+```python
+PRODUCT = "keychain"  # figure | lamp | keychain | fridge-magnet
+
+# Stage 1 — prototype (6 credits)
+proto_id = create_task(f"/openapi/creative-lab/{PRODUCT}/v1/prototype", {
+    "image_url": "PHOTO_URL_OR_DATA_URI",
+    # "name": "My keychain",   # optional, ≤ 100 chars
+})
+poll_task(f"/openapi/creative-lab/{PRODUCT}/v1/prototype", proto_id)
+
+# Stage 2 — build (30 credits)
+build_id = create_task(f"/openapi/creative-lab/{PRODUCT}/v1/build", {
+    "input_task_id": proto_id,
+})
+build = poll_task(f"/openapi/creative-lab/{PRODUCT}/v1/build", build_id)
+# build["model_urls"] → textured GLB / OBJ+MTL, ready to convert to STL/3MF and slice.
+```
+
+After build, treat the result like any generated model: optionally `analyze` / `repair`, convert to STL/3MF, and open in a slicer (see pipelines above).
+
+**Multicolor a Creative Lab result**: a Creative Lab model can only be sent to Multi-Color Print as `model_url` — pass the build's GLB URL (or a `data:` URI of the downloaded GLB) to `POST /openapi/v1/print/multi-color`. Example:
+```python
+glb_url = build["model_urls"]["glb"]
+mc_id = create_task("/openapi/v1/print/multi-color", {"model_url": glb_url, "max_colors": 4})
+```
+
+---
+
+## Mesh Utilities for Printing (Convert / Resize / UV Unwrap)
+
+Three lightweight endpoints help prep a model for the printer (operate via `input_task_id` or `model_url`):
+
+- **Convert** (`POST /openapi/v1/convert`, 1 credit): get a printable **STL** or **3MF** from an existing GLB/OBJ result without remeshing — pass `target_formats: ["stl"]` or `["3mf"]`. Cheaper and faster than re-running generation with `target_formats`.
+- **Resize** (`POST /openapi/v1/resize`, 1 credit): set a real-world size before slicing. Give exactly one of `resize_height` (m), `resize_longest_side` (m), or `auto_size: true`; optional `origin_at` (`"bottom"`/`"center"`). This is an alternative to `fix_obj_for_printing()`'s scaling when you want the API to handle it.
+- **UV Unwrap** (`POST /openapi/v1/uv-unwrap`, 5 credits): produce a clean **GLB "UV white model"** (fresh UVs + placeholder grey material) before externally painting/texturing for a multicolor print. **GLB only, ≤ 40,000 faces** — remesh down first if larger.
 
 ---
 

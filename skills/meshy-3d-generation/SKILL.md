@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires Python 3 with requests package. Works with Claude Code, Cursor, and all Agent Skills compatible tools.
 metadata:
   author: meshy-dev
-  version: "1.0.0"
+  version: "0.4.0"
   homepage: https://github.com/meshy-dev/meshy-3d-agent
 allowed-tools: Bash, Read, Write, Glob, Grep
 ---
@@ -234,13 +234,17 @@ Wait for user confirmation before executing.
 | 3D model from multiple images | Multi-Image to 3D | `POST /openapi/v1/multi-image-to-3d` | 5–30 |
 | New textures on existing model | Retexture | `POST /openapi/v1/retexture` | 10 |
 | Change mesh format/topology | Remesh | `POST /openapi/v1/remesh` | 5 |
+| Convert a model to other formats (no remesh) | Convert | `POST /openapi/v1/convert` | 1 |
+| Rescale a model to real-world size | Resize | `POST /openapi/v1/resize` | 1 |
+| Generate fresh UVs (GLB, ≤40k faces) before external texturing | UV Unwrap | `POST /openapi/v1/uv-unwrap` | 5 |
 | Add skeleton to character | Auto-Rigging | `POST /openapi/v1/rigging` | 5 (includes walking + running) |
 | Animate a rigged character (custom) | Animation | `POST /openapi/v1/animations` | 3 |
-| 2D image from text (recommended pre-step before image-to-3d) | Text to Image | `POST /openapi/v1/text-to-image` | 3–9 |
-| Optimize/edit a 2D image (recommended pre-step before image-to-3d) | Image to Image | `POST /openapi/v1/image-to-image` | 3–9 |
+| 2D image from text (recommended pre-step before image-to-3d) | Text to Image | `POST /openapi/v1/text-to-image` | 3 / 6 / 9 / 9 |
+| Optimize/edit a 2D image (recommended pre-step before image-to-3d) | Image to Image | `POST /openapi/v1/image-to-image` | 3 / 6 / 9 / 12 |
 | Check FDM printability (watertight / non-manifold edges / holes) | Analyze Printability | `POST /openapi/v1/print/analyze` | **0 (free)** |
 | Repair non-manifold/degenerate-face/hole topology | Repair Printability | `POST /openapi/v1/print/repair` | 10 |
 | Multi-color 3D print | Multi-Color Print | `POST /openapi/v1/print/multi-color` | 10 |
+| Stylized printable product from a photo (figure / lamp / keychain / fridge-magnet) | Creative Lab — **see the `meshy-3d-printing` skill** for the full prototype→build flow | `POST /openapi/creative-lab/{product}/v1/{prototype,build}` | 36 (6+30) |
 | Check credit balance | Balance | `GET /openapi/v1/balance` | 0 |
 
 ---
@@ -400,8 +404,10 @@ preview_id = create_task("/openapi/v2/text-to-3d", {
     # "topology": "triangle",      # "triangle" | "quad"
     # "target_polycount": 30000,   # 100–300000
     # "should_remesh": False,
-    # "symmetry_mode": "auto",     # "auto" | "on" | "off"
     # "pose_mode": "t-pose",       # "" | "a-pose" | "t-pose" (use "t-pose" if rigging/animating later)
+    # "hd_texture": True,          # 4K base color on refine (meshy-6/latest only)
+    # "target_formats": ["glb", "3mf"],  # 3mf must be explicitly requested
+    # NOTE: symmetry_mode / art_style / is_a_t_pose are deprecated (symmetry_mode & art_style ignored; use pose_mode)
 })
 
 task = poll_task("/openapi/v2/text-to-3d", preview_id)
@@ -436,9 +442,11 @@ print(f"  Project: {project_dir}")
 print(f"  Formats: {', '.join(task['model_urls'].keys())}")
 ```
 
-> **Refine compatibility**: All models (meshy-5, meshy-6, latest) support both preview and refine. The preview and refine `ai_model` should match — mismatched models may return 400 (model mismatch).
+> **Refine compatibility**: Refine works with `meshy-5`, `meshy-6`, or `latest` (= Meshy 6) — pick the same family as your preview for consistency. Refine costs 10 credits regardless of model. (`meshy-4` is retired and returns 400.)
 
 ### (Optional but strongly recommended) 2D Optimization Pre-Step
+
+**Prefer the image-to-3d route over direct text-to-3d** — it's higher quality and more controllable, so for a text-only request make a design image first, then 3D-ify.
 
 Image quality directly determines 3D model quality. Before calling `/openapi/v1/image-to-3d` or `/openapi/v1/multi-image-to-3d`, evaluate the user's input and proactively suggest a 2D pass:
 
@@ -450,7 +458,7 @@ Image quality directly determines 3D model quality. Before calling `/openapi/v1/
 
 The optimized image URL feeds directly into `/openapi/v1/image-to-3d`'s `image_url`. **3-9 extra credits typically buy a noticeable quality bump**, and downstream `refine` / texture-on-mesh stages benefit too.
 
-**Skip when**: the user already provided a clean front-facing studio shot — go straight to image-to-3d.
+**Skip when**: the user already provided a clean front-facing studio shot — go straight to image-to-3d. Also skip for **Creative Lab** products (figure / lamp / keychain / fridge-magnet): they apply their own built-in stylization, so feed the raw photo (or text, for lamp) straight to Creative Lab — do not pre-generate a design image.
 
 ```python
 # Example: text-only request → text-to-image → image-to-3d
@@ -535,6 +543,34 @@ task_id = create_task("/openapi/v1/remesh", {
 task = poll_task("/openapi/v1/remesh", task_id)
 for fmt, url in task["model_urls"].items():
     download(url, f"remeshed.{fmt}")
+```
+
+### Mesh Utilities (Convert / Resize / UV Unwrap)
+
+Lightweight post-processing on a finished model (via `input_task_id` or `model_url`):
+
+```python
+# Convert to other formats without remeshing (1 credit). Cheapest way to get 3MF/STL.
+conv_id = create_task("/openapi/v1/convert", {
+    "input_task_id": "TASK_ID",         # or "model_url": "URL"
+    "target_formats": ["stl", "3mf"],   # required: glb/fbx/obj/usdz/blend/stl/3mf
+})
+poll_task("/openapi/v1/convert", conv_id)
+
+# Resize to a real-world size (1 credit). Give EXACTLY ONE resize mode.
+resize_id = create_task("/openapi/v1/resize", {
+    "input_task_id": "TASK_ID",         # or "model_url": "URL"
+    "resize_height": 0.15,              # meters — OR "resize_longest_side": 0.2  OR "auto_size": True
+    # "origin_at": "bottom",            # "bottom" | "center"
+})
+poll_task("/openapi/v1/resize", resize_id)
+
+# UV Unwrap a GLB (5 credits). GLB only, ≤ 40,000 faces (else 400 → remesh down first).
+# Output: a GLB "UV white model" (fresh UVs + placeholder grey material) for external texturing.
+uv_id = create_task("/openapi/v1/uv-unwrap", {
+    "input_task_id": "TASK_ID",         # or "model_url": "GLB_URL"
+})
+poll_task("/openapi/v1/uv-unwrap", uv_id)
 ```
 
 ### Auto-Rigging + Animation
@@ -644,7 +680,9 @@ Task `FAILED` messages:
 - **PBR maps**: Must set `enable_pbr: true` explicitly.
 - **Format availability**: Check keys in `model_urls` before downloading — not all formats are always present. 3MF is available from the Multi-Color Print API.
 - **Download format**: ALWAYS ask the user which format they need before downloading. Recommend: GLB (viewing), OBJ (white model printing), 3MF (multicolor printing), FBX (game engines), USDZ (AR). Do NOT download all formats.
-- **3MF format**: 3MF is NOT included in default output of generation endpoints. To get 3MF from generate/remesh/retexture, pass `"3mf"` in `target_formats`. For multicolor 3D printing, the Multi-Color Print API outputs 3MF directly — no need to request it from generate/refine.
+- **3MF format**: 3MF is NOT included in default output of generation endpoints. To get 3MF, pass `"3mf"` in `target_formats` on generate/refine/remesh/retexture, or use the Convert API (`POST /openapi/v1/convert`, 1 credit). For multicolor 3D printing, the Multi-Color Print API outputs 3MF directly — no need to request it from generate/refine.
+- **Deprecated params**: `symmetry_mode` no longer affects output; `art_style` is ignored by Meshy-6; use `pose_mode` instead of the old `is_a_t_pose` flag. `meshy-4` is retired (returns 400).
+- **`consumed_credits`**: Every task GET response includes `consumed_credits` — read it to report the real credits spent rather than estimating.
 - **Timestamps**: All API timestamps are Unix epoch **milliseconds**.
 - **Large files**: Refined models can be 50–200 MB. Use streaming downloads with timeouts.
 

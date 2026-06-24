@@ -24,10 +24,13 @@ Full 3D generation lifecycle: API key setup, task creation, polling, downloading
 | Image to 3D | Convert single or multiple images to 3D | 20-30 |
 | Retexture | Apply new textures to existing models | 10 |
 | Remesh | Change topology, polycount, or export format | 5 |
+| Convert | Convert a model to other formats (glb/fbx/obj/usdz/blend/stl/3mf) without remeshing | 1 |
+| Resize | Rescale to a real-world size (height / longest-side / auto) | 1 |
+| UV Unwrap | Generate a clean UV layout for external texturing (GLB, ≤40k faces) | 5 |
 | Auto-Rigging | Add skeleton to humanoid characters (includes walking + running) | 5 |
 | Animation | Apply custom animations to rigged characters | 3 |
 | Text to Image | Generate 2D images from text (recommended pre-step before image-to-3d) | 3-9 |
-| Image to Image | Optimize/edit reference images (recommended pre-step before image-to-3d) | 3-9 |
+| Image to Image | Optimize/edit reference images (recommended pre-step before image-to-3d) | 3-12 |
 
 ### [`meshy-3d-printing`](skills/meshy-3d-printing/) (optional)
 
@@ -37,6 +40,7 @@ Full 3D generation lifecycle: API key setup, task creation, polling, downloading
 |-----------|-------------|---------|
 | White Model Print | Generate → OBJ download → coordinate fix → slicer launch | 20 |
 | Multicolor Print | Generate → texture → multi-color API → 3MF → slicer launch | 40 |
+| Creative Lab | One tool: photo or text → finished printable product (figure / lamp / keychain / fridge-magnet); prototype→build end-to-end | 36 |
 | Slicer Detection | Auto-detect 7 slicers: OrcaSlicer, Bambu Studio, Creality Print, Elegoo Slicer, Anycubic Slicer Next, PrusaSlicer, UltiMaker Cura | 0 |
 | Analyze Printability | Automated FDM check via `/openapi/v1/print/analyze` (watertight / volume / non-manifold / degenerate / holes) | **0 (free)** |
 | Repair Printability | Fix non-manifold edges, degenerate faces, holes via `/openapi/v1/print/repair` (output format mirrors input) | 10 |
@@ -49,7 +53,7 @@ A single unified skill for the [OpenClaw](https://clawhub.ai) ecosystem. Combine
 
 | Capability | Description | Credits |
 |-----------|-------------|---------|
-| All generation | Text/Image to 3D, Retexture, Remesh, Rig, Animate, Text/Image to Image | 3–30 |
+| All generation | Text/Image to 3D, Creative Lab, Retexture, Remesh, Convert, Resize, UV Unwrap, Rig, Animate, Text/Image to Image | 1–36 |
 | 3D printing | White model (OBJ) + multicolor (3MF via API) + slicer detection | 0–35 |
 
 > Designed for ClawHub publishing. API key is stored only in `.env` in the current working directory — no shell profile access.

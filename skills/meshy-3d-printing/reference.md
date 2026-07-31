@@ -1,3 +1,4 @@
+<!-- GENERATED FILE — edit reference/source.md (and skills/meshy-openclaw/SKILL.md for the SECURITY MANIFEST), then run scripts/build.py. Do not edit directly. -->
 # Meshy API
 
 > Meshy is an AI-powered 3D model generation platform. The Meshy API is a RESTful API that allows you to programmatically generate 3D models, textures, images, rig characters, and animate them.
@@ -444,6 +445,8 @@ If both are provided, `input_task_id` takes precedence.
 
 Apply new AI-generated textures to existing 3D models.
 
+> **Alias note**: The historical "text-to-texture" feature has been renamed to retexture. The public docs URL `/api/text-to-texture` redirects to `/api/retexture`, and there is no separate `/openapi/v1/text-to-texture` endpoint — use `/openapi/v1/retexture` for both text-style-prompt and image-style-url retexturing.
+
 ### POST /openapi/v1/retexture — Create Task
 
 **Required (one of each):**
@@ -479,7 +482,7 @@ FDM printability analysis. Reports watertightness, volume, holes, non-manifold e
 
 Provide **exactly one** of:
 - `input_task_id` (string): A SUCCEEDED task you own (image-to-3d, multi-image-to-3d, text-to-3d, remesh, retexture). **MUST use Meshy 6 or any Preview model.**
-- `model_url` (string): Public URL of a 3D model. Supported formats: `.glb`, `.gltf`, `.obj`, `.fbx`, `.stl`. Max 100 MB.
+- `model_url` (string): Public URL of a 3D model. Supported formats: `.glb`, `.gltf`, `.obj`, `.fbx`, `.stl`. Max 100 MB. Must use `http`, `https`, or `data:` URL.
 
 **Response:** `{"result": "<task_id>"}`
 
@@ -685,7 +688,9 @@ Apply animations to rigged characters.
 - `multi_view_thumbnails` (boolean): Generate 4 cardinal-direction thumbnails. Default `false`.
 - `alpha_thumbnail` (boolean): Generate an RGBA (transparent-background) preview, returned in `alpha_thumbnail_url`. Default `false`.
 - `pose_mode` (string): `"a-pose"` or `"t-pose"`.
-- `aspect_ratio` (string): `"1:1"` (default), `"16:9"`, `"9:16"`, `"4:3"`, `"3:4"`.
+- `aspect_ratio` (string): `"1:1"` (default), `"16:9"`, `"9:16"`, `"4:3"`, `"3:4"`, `"3:2"`, `"2:3"`.
+
+> **Aspect-ratio support is model-specific:** nano-banana / nano-banana-2 / nano-banana-pro accept `1:1`, `16:9`, `9:16`, `4:3`, `3:4`. gpt-image-2 accepts ONLY `1:1`, `3:2`, `2:3` — and `3:2` / `2:3` are gpt-image-2-only (the nano-banana family rejects them with 400).
 
 **Cost:** nano-banana 3 credits, nano-banana-2 6 credits, nano-banana-pro 9 credits, gpt-image-2 9 credits.
 
@@ -711,6 +716,8 @@ Apply animations to rigged characters.
 - `generate_multi_view` (boolean): Default `false`.
 - `multi_view_thumbnails` (boolean): Generate 4 cardinal-direction thumbnails. Default `false`.
 - `alpha_thumbnail` (boolean): Generate an RGBA (transparent-background) preview, returned in `alpha_thumbnail_url`. Default `false`.
+
+> **Aspect-ratio support is model-specific:** nano-banana / nano-banana-2 / nano-banana-pro accept `1:1`, `16:9`, `9:16`, `4:3`, `3:4`. gpt-image-2 accepts ONLY `1:1`, `3:2`, `2:3` — and `3:2` / `2:3` are gpt-image-2-only (the nano-banana family rejects them with 400).
 
 **Cost:** nano-banana 3 credits, nano-banana-2 6 credits, nano-banana-pro 9 credits, gpt-image-2 12 credits.
 
@@ -783,7 +790,7 @@ Provide **exactly one** of:
 
 **Constraints:** GLB only, **≤ 40,000 faces** (above this the API returns 400 — remesh down first). Quads/n-gons are triangulated.
 
-**Output:** a GLB "UV white model" — the mesh with fresh UVs and a placeholder grey material (no textures).
+**Output:** a GLB "UV white model" — the mesh with fresh UVs and a placeholder grey material (no textures). Use it as a clean base for external texturing.
 
 **Response:** `{"result": "<task_id>"}`
 

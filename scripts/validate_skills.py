@@ -25,9 +25,12 @@ Five checks:
      and every non-SKILL markdown file in the skill directory (reference.md,
      references/**, ...) must be reachable from SKILL.md through in-directory
      markdown links.
-  5. No parent-directory ("..") path segments in manifest string values or in
-     skill markdown links, so every skill directory stays independently
-     installable.
+  5. No parent-directory escapes: manifest string values must carry no ".."
+     path segment at all, and no markdown link inside a skill may resolve to a
+     path outside that skill's directory, so every skill directory stays
+     independently installable. A ".." that stays inside the skill (e.g.
+     references/pipelines.md → ../reference.md) is allowed: it travels with the
+     directory.
 
 Exits 0 when all checks pass, 1 otherwise. Emits ::error annotations when
 running inside GitHub Actions.
@@ -404,14 +407,28 @@ def check_no_parent_refs(manifests: dict) -> list[str]:
                     f"{value!r}"
                 )
     for directory in skill_dirs():
+        root = directory.resolve()
         for path in directory.rglob("*.md"):
             for target in md_link_targets(path.read_text(encoding="utf-8")):
                 if is_external(target):
                     continue
-                if has_parent_segment(target.split("#", 1)[0]):
+                bare = target.split("#", 1)[0]
+                if not has_parent_segment(bare):
+                    continue
+                # A '..' that still lands inside the skill directory is fine —
+                # references/pipelines.md reaching its own skill's
+                # ../reference.md travels with the directory. Only a link that
+                # resolves outside the skill directory breaks independent
+                # installation.
+                if not bare:
+                    continue
+                resolved = (path.parent / bare).resolve()
+                try:
+                    resolved.relative_to(root)
+                except ValueError:
                     errors.append(
-                        f"{rel(path)}: link '{target}' contains a '..' path "
-                        f"segment (skill directories must be independently "
+                        f"{rel(path)}: link '{target}' escapes the skill "
+                        f"directory (skill directories must be independently "
                         f"installable)"
                     )
     return errors

@@ -14,7 +14,15 @@ allowed-tools: Bash, Read, Write, Glob, Grep
 
 Directly communicate with the Meshy AI API to generate 3D assets. This skill handles the complete lifecycle: environment setup, API key detection, task creation, polling, downloading, and chaining multi-step pipelines.
 
-For full endpoint reference (all parameters, response schemas, error codes), read [reference.md](reference.md).
+All paths below are relative to **this skill's own directory** (the directory containing this SKILL.md). Resolve them before running.
+
+| Resource | When to use |
+|---|---|
+| `scripts/meshy_task.py` | Bundled CLI for every API call and file operation (Step 2) |
+| [reference.md](reference.md) | Full API reference: every parameter, response schema, error code |
+| [references/setup.md](references/setup.md) | API key setup — read when Step 0 finds no key |
+| [references/pipelines.md](references/pipelines.md) | Per-endpoint recipes: exact payloads + script calls for each workflow |
+| [references/troubleshooting.md](references/troubleshooting.md) | Error recovery trees and task failure messages |
 
 ---
 
@@ -22,7 +30,7 @@ For full endpoint reference (all parameters, response schemas, error codes), rea
 
 **If the user's request involves 3D printing** (keywords: print, 3d print, slicer, slice, bambu, orca, prusa, cura, multicolor, 3mf, figurine, miniature, statue, physical model), **use the `meshy-3d-printing` skill instead of this one for the entire workflow.** The printing skill handles generation with correct print-optimized parameters (e.g. `target_formats` with `"3mf"` for multicolor), slicer detection, coordinate conversion, and slicer launch — all in one pipeline.
 
-This skill's `create_task`/`poll_task`/`download` template functions are reused by the printing skill, but the **workflow orchestration** (what to generate, which formats, what to do after) must come from the printing skill when printing is involved.
+This skill's `scripts/meshy_task.py` is reused by the printing skill, but the **workflow orchestration** (what to generate, which formats, what to do after) must come from the printing skill when printing is involved.
 
 **Do NOT generate a model with this skill and then hand off to the printing skill** — the printing skill needs to control parameters from the start (e.g. `target_formats`, `should_texture`).
 
@@ -45,7 +53,7 @@ All downloaded files MUST go into a structured `meshy_output/` directory in the 
 - Track tasks in `metadata.json` per project, and global `history.json`
 - Auto-download thumbnails alongside models
 
-The Reusable Script Template below includes `get_project_dir()`, `record_task()`, and `save_thumbnail()` helpers.
+The bundled CLI implements this: `project-dir`, `record`, and `thumbnail` subcommands.
 
 ---
 
@@ -64,110 +72,43 @@ The Reusable Script Template below includes `get_project_dir()`, `record_task()`
 
 ## IMPORTANT: Run Long Tasks Properly
 
-Meshy generation tasks take 1–5 minutes. When running Python scripts that poll for completion:
+Meshy generation tasks take 1–5 minutes. When polling for completion:
 
-- Write the entire create → poll → download flow as **ONE Python script** and execute it in a single Bash call. Do NOT split into multiple commands. This keeps the API key, task IDs, and session in one process context.
-- Use `python3 -u script.py` (unbuffered) so progress output is visible in real time.
-- Be patient with long-running scripts — do NOT interrupt or kill them prematurely. Tasks at 99% for 30–120s is normal finalization, not a failure.
+- The bundled CLI prints unbuffered progress in real time — run each `poll` as a single Bash call and let it finish.
+- Be patient with long-running polls — do NOT interrupt or kill them prematurely. Tasks at 99% for 30–120s is normal finalization, not a failure.
+- Pass a larger `--timeout` (e.g. `--timeout 600`) for heavy tasks instead of retrying a timed-out poll.
+
+---
+
+## IMPORTANT: Never Rebuild Bundled Scripts
+
+`scripts/meshy_task.py` is the single source of truth for `create_task` / `poll_task` / `download` / `get_project_dir` / `record_task` / `save_thumbnail`. **Never retype, paraphrase, or "reconstruct" these helpers from memory** — not even partially. Compose CLI calls in bash, or write a small Python script that does `sys.path.insert(0, "<this skill's scripts dir>")` and `from meshy_task import ...`. Reimplementing them inline causes silent behavior drift and doubles the token cost of every run.
 
 ---
 
 ## Step 0: Environment Detection (ALWAYS RUN FIRST)
 
-Before any API call, detect whether the environment is ready:
+Before any API call, run the bundled environment check:
 
 **Only check the current session environment and `.env` files in the current working directory. Do NOT scan home directories or shell profile files.**
 
 ```bash
-echo "=== Meshy API Key Detection ==="
-
-# 1. Check current env var
-if [ -n "$MESHY_API_KEY" ]; then
-  echo "ENV_VAR: FOUND (${MESHY_API_KEY:0:8}...)"
-else
-  echo "ENV_VAR: NOT_FOUND"
-fi
-
-# 2. Check .env files in workspace
-for f in .env .env.local; do
-  if [ -f "$f" ] && grep -q "MESHY_API_KEY" "$f" 2>/dev/null; then
-    echo "DOTENV($f): FOUND"
-    export MESHY_API_KEY="$(grep '^MESHY_API_KEY=' "$f" | head -1 | cut -d= -f2- | tr -d "\"'")"
-  fi
-done
-
-# 3. Final status
-if [ -n "$MESHY_API_KEY" ]; then
-  echo "READY: key=${MESHY_API_KEY:0:12}..."
-else
-  echo "READY: NO_KEY_FOUND"
-fi
-
-# 4. Python requests check
-python3 -c "import requests; print('PYTHON_REQUESTS: OK')" 2>/dev/null || echo "PYTHON_REQUESTS: MISSING (run: pip install requests)"
-
-echo "=== Detection Complete ==="
+python3 scripts/meshy_task.py check-env
 ```
+
+It reports `ENV_VAR` (current environment), `DOTENV` (`.env` / `.env.local` in the working directory), `PYTHON_REQUESTS`, and a final `READY:` line. The bundled CLI loads the key itself (env var → `.env` → `.env.local`), so no manual `export` is needed to use it.
 
 ### Decision After Detection
 
-- **Key found** → Proceed to Step 1.
-- **Key NOT found** → Go to Step 0a.
-- **Python requests missing** → Run `pip install requests`.
+- **`READY: key=...`** → Proceed to Step 1.
+- **`READY: NO_KEY_FOUND`** → Go to Step 0a.
+- **`PYTHON_REQUESTS: MISSING`** → Run `pip install requests`.
 
 ## Step 0a: API Key Setup (Only If No Key Found)
 
-Tell the user:
+Follow [references/setup.md](references/setup.md). It walks the user through creating a key at https://www.meshy.ai/settings/api (Pro plan required), setting it for the **current session only**, and verifying it against `GET /openapi/v1/balance`.
 
-> To use the Meshy API, you need an API key. Here's how to get one:
->
-> 1. Go to **https://www.meshy.ai/settings/api**
-> 2. Click **"Create API Key"**, give it a name, and copy the key (it starts with `msy_`)
-> 3. The key is only shown once — save it somewhere safe
->
-> **Note:** API access requires a **Pro plan or above**. Free-tier accounts cannot create API keys. If you see "Please upgrade to a premium plan to create API tasks", you'll need to upgrade at https://www.meshy.ai/pricing first.
-
-Once the user provides their key, set it for the **current session** and verify:
-
-**macOS / Linux:**
-```bash
-export MESHY_API_KEY="msy_PASTE_KEY_HERE"
-
-# Verify
-STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-  -H "Authorization: Bearer $MESHY_API_KEY" \
-  https://api.meshy.ai/openapi/v1/balance)
-
-if [ "$STATUS" = "200" ]; then
-  BALANCE=$(curl -s -H "Authorization: Bearer $MESHY_API_KEY" https://api.meshy.ai/openapi/v1/balance)
-  echo "Key valid. $BALANCE"
-else
-  echo "Key invalid (HTTP $STATUS). Check the key and try again."
-fi
-```
-
-**Windows (PowerShell):**
-```powershell
-$env:MESHY_API_KEY = "msy_PASTE_KEY_HERE"
-
-# Verify
-$status = (Invoke-WebRequest -Uri "https://api.meshy.ai/openapi/v1/balance" -Headers @{Authorization="Bearer $env:MESHY_API_KEY"} -UseBasicParsing).StatusCode
-if ($status -eq 200) {
-    Write-Host "Key valid."
-} else {
-    Write-Host "Key invalid (HTTP $status). Check the key and try again."
-}
-```
-
-**Do NOT persist the key yourself.** Never write the API key to shell profiles (`~/.zshrc`, `~/.bashrc`, …), Windows user environment variables, or any file outside the current working directory — the key would end up in shell history, the agent transcript, and long-lived config at once. The only file you may write it to is `.env` in the current working directory, and only when the user explicitly asks.
-
-Once the key verifies, print these instructions so the **user** can persist it themselves:
-
-> To keep the key across sessions, pick one:
->
-> - **macOS / Linux:** add `export MESHY_API_KEY="msy_..."` to your shell profile (`~/.zshrc` or `~/.bashrc`) and restart your terminal.
-> - **Windows:** Settings → "Edit environment variables for your account" → add a user variable `MESHY_API_KEY`, then restart your terminal.
-> - **Any platform:** create a `.env` file in your project root containing `MESHY_API_KEY=msy_...` (remember to add `.env` to your `.gitignore`). If you ask me to, I can create this project-local `.env` for you.
+**Never persist the key yourself** — no shell profiles, no Windows user environment variables, no file outside the current working directory. The only exception is `.env` in the working directory, and only when the user explicitly asks. Otherwise print the persistence instructions and let the user apply them.
 
 ---
 
@@ -233,192 +174,33 @@ All generation endpoints return `{"result": "<task_id>"}`, NOT the model. You MU
 
 **NEVER** read `model_urls` from the POST response.
 
-### Reusable Script Template
+### The Bundled CLI: `scripts/meshy_task.py`
 
-Use this as the base for ALL generation workflows:
+Every workflow is a sequence of calls to the bundled CLI — do not write your own API code:
 
-```python
-#!/usr/bin/env python3
-"""Meshy API task runner. Handles create → poll → download."""
-import requests, time, os, sys
+| Subcommand | Purpose |
+|---|---|
+| `check-env` | Step 0 environment report |
+| `balance` | Current credit balance |
+| `create --endpoint E (--payload JSON \| --payload-file F)` | Create a task; prints the new task ID |
+| `poll --endpoint E --task-id ID [--timeout 300] [--project-dir D]` | Poll to completion; saves the task JSON into the project dir |
+| `get --endpoint E --task-id ID [--save F]` | One-shot status / progress / face_count check |
+| `download (--url U \| --task-json F [--format FMT]) --output PATH` | Stream-download a model file |
+| `project-dir --task-id ID [--prompt P]` | Create + print the project folder path |
+| `record --project-dir D --task-id ID --task-type T --stage S [--files "a,b"]` | Update `metadata.json` + `history.json` |
+| `thumbnail --project-dir D (--url U \| --task-json F)` | Save the project thumbnail |
+| `check-faces --endpoint E --task-id ID [--max-faces 300000]` | Pre-rigging polycount gate |
 
-API_KEY = os.environ.get("MESHY_API_KEY", "")
-if not API_KEY:
-    sys.exit("ERROR: MESHY_API_KEY not set")
+### Pick the Workflow
 
-BASE = "https://api.meshy.ai"
-HEADERS = {"Authorization": f"Bearer {API_KEY}"}
-SESSION = requests.Session()
-SESSION.trust_env = False  # bypass any system proxy settings
+Follow the matching recipe in [references/pipelines.md](references/pipelines.md) — each lists the exact payload options and the full create → poll → download → record call sequence:
 
-def create_task(endpoint, payload):
-    resp = SESSION.post(f"{BASE}{endpoint}", headers=HEADERS, json=payload, timeout=30)
-    if resp.status_code == 401:
-        sys.exit("ERROR: Invalid API key (401)")
-    if resp.status_code == 402:
-        try:
-            bal = SESSION.get(f"{BASE}/openapi/v1/balance", headers=HEADERS, timeout=10)
-            balance = bal.json().get("balance", "unknown")
-            sys.exit(f"ERROR: Insufficient credits (402). Current balance: {balance}. Top up at https://www.meshy.ai/pricing")
-        except Exception:
-            sys.exit("ERROR: Insufficient credits (402). Check balance at https://www.meshy.ai/pricing")
-    if resp.status_code == 429:
-        sys.exit("ERROR: Rate limited (429). Wait and retry.")
-    resp.raise_for_status()
-    task_id = resp.json()["result"]
-    print(f"TASK_CREATED: {task_id}")
-    return task_id
-
-def poll_task(endpoint, task_id, timeout=300):
-    """Poll task with exponential backoff (5s→30s, fixed 15s at 95%+)."""
-    elapsed = 0
-    delay = 5            # Initial delay: 5s
-    max_delay = 30       # Cap: 30s
-    backoff = 1.5        # Backoff multiplier
-    finalize_delay = 15  # Fixed delay during finalization (95%+)
-    poll_count = 0
-    while elapsed < timeout:
-        poll_count += 1
-        resp = SESSION.get(f"{BASE}{endpoint}/{task_id}", headers=HEADERS, timeout=30)
-        resp.raise_for_status()
-        task = resp.json()
-        status = task["status"]
-        progress = task.get("progress", 0)
-        filled = int(progress / 5)
-        bar = f"[{'█' * filled}{'░' * (20 - filled)}] {progress}%"
-        print(f"  {bar} — {status} ({elapsed}s, poll #{poll_count})", flush=True)
-        if status == "SUCCEEDED":
-            return task
-        if status in ("FAILED", "CANCELED"):
-            msg = task.get("task_error", {}).get("message", "Unknown")
-            sys.exit(f"TASK_{status}: {msg}")
-        current_delay = finalize_delay if progress >= 95 else delay
-        time.sleep(current_delay)
-        elapsed += current_delay
-        if progress < 95:
-            delay = min(delay * backoff, max_delay)
-    sys.exit(f"TIMEOUT after {timeout}s ({poll_count} polls)")
-
-def download(url, filepath):
-    """Download a file to the given path (within a project directory)."""
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
-    print(f"Downloading {filepath}...", flush=True)
-    resp = SESSION.get(url, timeout=300, stream=True)
-    resp.raise_for_status()
-    with open(filepath, "wb") as f:
-        for chunk in resp.iter_content(chunk_size=8192):
-            f.write(chunk)
-    size_mb = os.path.getsize(filepath) / (1024 * 1024)
-    print(f"DOWNLOADED: {filepath} ({size_mb:.1f} MB)")
-
-# --- File organization helpers (see File Organization section above) ---
-import re, json
-from datetime import datetime
-
-OUTPUT_ROOT = os.path.join(os.getcwd(), "meshy_output")
-os.makedirs(OUTPUT_ROOT, exist_ok=True)
-HISTORY_FILE = os.path.join(OUTPUT_ROOT, "history.json")
-
-def get_project_dir(task_id, prompt="", task_type="model"):
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    slug = re.sub(r'[^a-z0-9]+', '-', (prompt or task_type).lower())[:30].strip('-')
-    folder = f"{timestamp}_{slug}_{task_id[:8]}"
-    project_dir = os.path.join(OUTPUT_ROOT, folder)
-    os.makedirs(project_dir, exist_ok=True)
-    return project_dir
-
-def record_task(project_dir, task_id, task_type, stage, prompt="", files=None):
-    meta_path = os.path.join(project_dir, "metadata.json")
-    if os.path.exists(meta_path):
-        meta = json.load(open(meta_path))
-    else:
-        meta = {"project_name": prompt or task_type, "folder": os.path.basename(project_dir),
-                "root_task_id": task_id, "created_at": datetime.now().isoformat(),
-                "updated_at": datetime.now().isoformat(), "tasks": []}
-    meta["tasks"].append({"task_id": task_id, "task_type": task_type, "stage": stage,
-                          "files": files or [], "created_at": datetime.now().isoformat()})
-    meta["updated_at"] = datetime.now().isoformat()
-    json.dump(meta, open(meta_path, "w"), indent=2)
-    # Update global history
-    if os.path.exists(HISTORY_FILE):
-        history = json.load(open(HISTORY_FILE))
-    else:
-        history = {"version": 1, "projects": []}
-    folder = os.path.basename(project_dir)
-    entry = next((p for p in history["projects"] if p["folder"] == folder), None)
-    if entry:
-        entry["task_count"] = len(meta["tasks"])
-        entry["updated_at"] = meta["updated_at"]
-    else:
-        history["projects"].append({"folder": folder, "prompt": prompt, "task_type": task_type,
-            "root_task_id": task_id, "created_at": meta["created_at"],
-            "updated_at": meta["updated_at"], "task_count": len(meta["tasks"])})
-    json.dump(history, open(HISTORY_FILE, "w"), indent=2)
-
-def save_thumbnail(project_dir, url):
-    path = os.path.join(project_dir, "thumbnail.png")
-    if os.path.exists(path): return
-    try:
-        r = SESSION.get(url, timeout=15); r.raise_for_status()
-        open(path, "wb").write(r.content)
-    except Exception: pass
-```
-
-### Text to 3D (Preview + Refine)
-
-Append this to the template above and run as one script:
-
-```python
-PROMPT = "USER_PROMPT"  # max 600 chars
-
-# --- Preview ---
-preview_id = create_task("/openapi/v2/text-to-3d", {
-    "mode": "preview",
-    "prompt": PROMPT,
-    "ai_model": "latest",
-    # "model_type": "standard",    # "standard" | "lowpoly"
-    # "topology": "triangle",      # "triangle" | "quad"
-    # "target_polycount": 30000,   # 100–300000
-    # "should_remesh": False,
-    # "pose_mode": "t-pose",       # "" | "a-pose" | "t-pose" (use "t-pose" if rigging/animating later)
-    # "hd_texture": True,          # 4K base color on refine (meshy-6/latest only)
-    # "target_formats": ["glb", "3mf"],  # 3mf must be explicitly requested
-    # NOTE: symmetry_mode / art_style / is_a_t_pose are deprecated (symmetry_mode & art_style ignored; use pose_mode)
-})
-
-task = poll_task("/openapi/v2/text-to-3d", preview_id)
-project_dir = get_project_dir(preview_id, prompt=PROMPT)
-download(task["model_urls"]["glb"], os.path.join(project_dir, "preview.glb"))
-record_task(project_dir, preview_id, "text-to-3d", "preview", prompt=PROMPT, files=["preview.glb"])
-if task.get("thumbnail_url"):
-    save_thumbnail(project_dir, task["thumbnail_url"])
-
-print(f"\nPREVIEW COMPLETE")
-print(f"  Task ID: {preview_id}")
-print(f"  Project: {project_dir}")
-print(f"  Formats: {', '.join(task['model_urls'].keys())}")
-
-# --- Refine ---
-refine_id = create_task("/openapi/v2/text-to-3d", {
-    "mode": "refine",
-    "preview_task_id": preview_id,
-    "enable_pbr": True,
-    "ai_model": "latest",
-    # "texture_prompt": "",
-    # "remove_lighting": True,     # Remove baked lighting (meshy-6/latest only, default True)
-})
-
-task = poll_task("/openapi/v2/text-to-3d", refine_id)
-download(task["model_urls"]["glb"], os.path.join(project_dir, "refined.glb"))
-record_task(project_dir, refine_id, "text-to-3d", "refined", prompt=PROMPT, files=["refined.glb"])
-
-print(f"\nREFINE COMPLETE")
-print(f"  Task ID: {refine_id}")
-print(f"  Project: {project_dir}")
-print(f"  Formats: {', '.join(task['model_urls'].keys())}")
-```
-
-> **Refine compatibility**: Refine works with `meshy-5`, `meshy-6`, or `latest` (= Meshy 6) — pick the same family as your preview for consistency. Refine costs 10 credits regardless of model. (`meshy-4` is retired and returns 400.)
+- **Text to 3D** (preview → refine) — the default for "make a 3D model of X"
+- **Image to 3D** / **Multi-Image to 3D**
+- **Retexture** / **Remesh**
+- **Convert / Resize / UV Unwrap** (lightweight mesh utilities)
+- **Auto-Rigging + Animation** — requires t-pose + a face-count gate; rigging includes walking/running for free
+- **Text to Image** / **Image to Image** — see the 2D pre-step below
 
 ### (Optional but strongly recommended) 2D Optimization Pre-Step
 
@@ -436,181 +218,6 @@ The optimized image URL feeds directly into `/openapi/v1/image-to-3d`'s `image_u
 
 **Skip when**: the user already provided a clean front-facing studio shot — go straight to image-to-3d. Also skip for **Creative Lab** products (figure / lamp / keychain / fridge-magnet): they apply their own built-in stylization, so feed the raw photo (or text, for lamp) straight to Creative Lab — do not pre-generate a design image.
 
-```python
-# Example: text-only request → text-to-image → image-to-3d
-img_id = create_task("/openapi/v1/text-to-image", {
-    "ai_model": "nano-banana-pro",
-    "prompt": "studio render of a sci-fi helmet, neutral background, even lighting",
-    "aspect_ratio": "1:1",
-    # "generate_multi_view": True,   # for character meshes use multi-view + pose_mode
-})
-img_task = poll_task("/openapi/v1/text-to-image", img_id)
-generated_image_url = img_task["image_urls"][0]   # use as input for image-to-3d below
-```
-
-### Image to 3D
-
-```python
-import base64
-
-# For local files, convert to data URI:
-# with open("photo.jpg", "rb") as f:
-#     image_url = "data:image/jpeg;base64," + base64.b64encode(f.read()).decode()
-
-task_id = create_task("/openapi/v1/image-to-3d", {
-    "image_url": "IMAGE_URL_OR_DATA_URI",
-    "should_texture": True,
-    "enable_pbr": True,            # Default is False; set True for metallic/roughness/normal maps
-    "ai_model": "latest",
-    # "image_enhancement": True,   # Optimize input image (meshy-6/latest only, default True)
-    # "remove_lighting": True,     # Remove baked lighting from texture (meshy-6/latest only, default True)
-})
-
-task = poll_task("/openapi/v1/image-to-3d", task_id)
-download(task["model_urls"]["glb"], "model.glb")
-```
-
-### Multi-Image to 3D
-
-```python
-task_id = create_task("/openapi/v1/multi-image-to-3d", {
-    "image_urls": ["URL_1", "URL_2", "URL_3"],  # 1–4 images
-    "should_texture": True,
-    "enable_pbr": True,            # Default is False; set True for metallic/roughness/normal maps
-    "ai_model": "latest",
-    # "image_enhancement": True,   # Optimize input images (meshy-6/latest only, default True)
-    # "remove_lighting": True,     # Remove baked lighting from texture (meshy-6/latest only, default True)
-})
-task = poll_task("/openapi/v1/multi-image-to-3d", task_id)
-download(task["model_urls"]["glb"], "model.glb")
-```
-
-### Retexture
-
-**IMPORTANT**: Before calling, ask the user to provide a texture style:
-- **Text prompt**: e.g. "rusty metal", "cartoon style" → `text_style_prompt`
-- **Reference image**: URL of style image → `image_style_url`
-One of these is **required**. If both provided, `image_style_url` takes precedence.
-
-```python
-# REQUIRED: ask user for text_style_prompt OR image_style_url before calling
-task_id = create_task("/openapi/v1/retexture", {
-    "input_task_id": "PREVIOUS_TASK_ID",      # or "model_url": "URL"
-    "text_style_prompt": "wooden texture",     # REQUIRED if no image_style_url
-    # "image_style_url": "URL",               # REQUIRED if no text_style_prompt (takes precedence)
-    "enable_pbr": True,
-    # "remove_lighting": True,     # Remove baked lighting (meshy-6/latest only, default True)
-    # "target_formats": ["glb", "3mf"],  # 3mf must be explicitly requested
-    # "auto_size": True,           # AI auto-estimate real-world height
-})
-task = poll_task("/openapi/v1/retexture", task_id)
-download(task["model_urls"]["glb"], "retextured.glb")
-```
-
-### Remesh / Format Conversion
-
-```python
-task_id = create_task("/openapi/v1/remesh", {
-    "input_task_id": "TASK_ID",
-    "target_formats": ["glb", "fbx", "obj"],
-    "topology": "quad",
-    "target_polycount": 10000,
-})
-task = poll_task("/openapi/v1/remesh", task_id)
-for fmt, url in task["model_urls"].items():
-    download(url, f"remeshed.{fmt}")
-```
-
-### Mesh Utilities (Convert / Resize / UV Unwrap)
-
-Lightweight post-processing on a finished model (via `input_task_id` or `model_url`):
-
-```python
-# Convert to other formats without remeshing (1 credit). Cheapest way to get 3MF/STL.
-conv_id = create_task("/openapi/v1/convert", {
-    "input_task_id": "TASK_ID",         # or "model_url": "URL"
-    "target_formats": ["stl", "3mf"],   # required: glb/fbx/obj/usdz/blend/stl/3mf
-})
-poll_task("/openapi/v1/convert", conv_id)
-
-# Resize to a real-world size (1 credit). Give EXACTLY ONE resize mode.
-resize_id = create_task("/openapi/v1/resize", {
-    "input_task_id": "TASK_ID",         # or "model_url": "URL"
-    "resize_height": 0.15,              # meters — OR "resize_longest_side": 0.2  OR "auto_size": True
-    # "origin_at": "bottom",            # "bottom" | "center"
-})
-poll_task("/openapi/v1/resize", resize_id)
-
-# UV Unwrap a GLB (5 credits). GLB only, ≤ 40,000 faces (else 400 → remesh down first).
-# Output: a GLB "UV white model" (fresh UVs + placeholder grey material) for external texturing.
-uv_id = create_task("/openapi/v1/uv-unwrap", {
-    "input_task_id": "TASK_ID",         # or "model_url": "GLB_URL"
-})
-poll_task("/openapi/v1/uv-unwrap", uv_id)
-```
-
-### Auto-Rigging + Animation
-
-**IMPORTANT: When the user explicitly asks to rig or animate, the generation step (text-to-3d / image-to-3d) MUST use `pose_mode: "t-pose"` for best rigging results.** If the model was already generated without t-pose, recommend regenerating with `pose_mode: "t-pose"` first.
-
-**Before rigging, verify the model's polygon count is under 300,000.** The script should auto-check and block if exceeded:
-
-```python
-# Pre-rig check: verify face count (MUST be ≤ 300,000)
-source_endpoint = "/openapi/v2/text-to-3d"  # adjust to match the source task's endpoint
-source_task_id = "TASK_ID"
-check_resp = SESSION.get(f"{BASE}{source_endpoint}/{source_task_id}", headers=HEADERS, timeout=30)
-check_resp.raise_for_status()
-source = check_resp.json()
-face_count = source.get("face_count", 0)
-if face_count > 300000:
-    print(f"ERROR: Model has {face_count:,} faces (limit: 300,000). Remesh first:")
-    print(f"  create_task('/openapi/v1/remesh', {{'input_task_id': '{source_task_id}', 'target_polycount': 100000}})")
-    sys.exit("Rigging blocked: face count too high")
-```
-
-```python
-# Rig (humanoid bipedal characters only, polycount must be ≤ 300,000)
-rig_id = create_task("/openapi/v1/rigging", {
-    "input_task_id": "TASK_ID",
-    "height_meters": 1.7,
-})
-rig_task = poll_task("/openapi/v1/rigging", rig_id)
-download(rig_task["result"]["rigged_character_glb_url"], "rigged.glb")
-
-# Rigging automatically includes basic walking + running animations — download them:
-download(rig_task["result"]["basic_animations"]["walking_glb_url"], "walking.glb")
-download(rig_task["result"]["basic_animations"]["running_glb_url"], "running.glb")
-
-# Only call meshy_animate if you need a CUSTOM animation beyond walking/running:
-# anim_id = create_task("/openapi/v1/animations", {
-#     "rig_task_id": rig_id,
-#     "action_id": 1,  # from Animation Library
-# })
-# anim_task = poll_task("/openapi/v1/animations", anim_id)
-# download(anim_task["result"]["animation_glb_url"], "animated.glb")
-```
-
-### Text to Image / Image to Image
-
-```python
-# Text to Image
-task_id = create_task("/openapi/v1/text-to-image", {
-    "ai_model": "nano-banana-pro",
-    "prompt": "a futuristic spaceship",
-})
-task = poll_task("/openapi/v1/text-to-image", task_id)
-# Result: task["image_url"]
-
-# Image to Image
-task_id = create_task("/openapi/v1/image-to-image", {
-    "ai_model": "nano-banana-pro",
-    "prompt": "make it look cyberpunk",
-    "reference_image_urls": ["URL"],
-})
-task = poll_task("/openapi/v1/image-to-image", task_id)
-```
-
 ---
 
 ## Step 3: Report Results
@@ -621,7 +228,7 @@ After task succeeds, report:
 2. **Task IDs** (for follow-up operations like refine, rig, retexture)
 3. **Available formats** (list `model_urls` keys — may include glb, fbx, obj, usdz, 3mf)
 4. **Thumbnail URL** if present
-5. **Credits consumed** and remaining balance (run balance check)
+5. **Credits consumed** and remaining balance (run `balance`; each task JSON also has `consumed_credits`)
 6. **Suggested next steps**:
    - Preview done → "Want to refine (add textures)?"
    - Model done → "Want to rig this character for animation?"
@@ -634,17 +241,7 @@ After task succeeds, report:
 
 ## Error Recovery
 
-| HTTP Status | Meaning | Action |
-|---|---|---|
-| 401 | Invalid API key | Re-run Step 0; ask user to check key |
-| 402 | Insufficient credits | Auto-query balance (`GET /openapi/v1/balance`), show current balance, link https://www.meshy.ai/pricing |
-| 422 | Cannot process | Explain limitation (e.g., non-humanoid for rigging) |
-| 429 | Rate limited | Auto-retry after 5s (max 3 times) |
-| 5xx | Server error | Auto-retry after 10s (once) |
-
-Task `FAILED` messages:
-- `"The server is busy..."` → retry with backoff (5s, 10s, 20s)
-- `"Internal server error."` → simplify prompt, retry once
+On any failure, follow [references/troubleshooting.md](references/troubleshooting.md): HTTP status handling (401/402/422/429/5xx), retry policy, and known task `FAILED` messages. The bundled CLI already auto-reports the current balance on 402 and exits non-zero with the server's error message on failure.
 
 ---
 
@@ -654,26 +251,22 @@ Task `FAILED` messages:
 - **CORS**: API blocks browser requests. Always server-side.
 - **Asset retention**: Files deleted after **3 days** (non-Enterprise). Download immediately.
 - **PBR maps**: Must set `enable_pbr: true` explicitly.
-- **Format availability**: Check keys in `model_urls` before downloading — not all formats are always present. 3MF is available from the Multi-Color Print API.
+- **Format availability**: Check keys in `model_urls` before downloading — not all formats are always present (the `poll` summary lists them). 3MF is available from the Multi-Color Print API.
 - **Download format**: ALWAYS ask the user which format they need before downloading. Recommend: GLB (viewing), OBJ (white model printing), 3MF (multicolor printing), FBX (game engines), USDZ (AR). Do NOT download all formats.
 - **3MF format**: 3MF is NOT included in default output of generation endpoints. To get 3MF, pass `"3mf"` in `target_formats` on generate/refine/remesh/retexture, or use the Convert API (`POST /openapi/v1/convert`, 1 credit). For multicolor 3D printing, the Multi-Color Print API outputs 3MF directly — no need to request it from generate/refine.
 - **Deprecated params**: `symmetry_mode` no longer affects output; `art_style` is ignored by Meshy-6; use `pose_mode` instead of the old `is_a_t_pose` flag. `meshy-4` is retired (returns 400).
 - **`consumed_credits`**: Every task GET response includes `consumed_credits` — read it to report the real credits spent rather than estimating.
 - **Timestamps**: All API timestamps are Unix epoch **milliseconds**.
-- **Large files**: Refined models can be 50–200 MB. Use streaming downloads with timeouts.
+- **Large files**: Refined models can be 50–200 MB. The CLI streams downloads with timeouts; just be patient.
 
 ---
 
 ## Execution Checklist
 
-- [ ] Ran environment detection (Step 0)
+- [ ] Ran environment detection (`check-env`, Step 0)
 - [ ] API key present and verified
 - [ ] Presented cost summary and got user confirmation
-- [ ] Wrote complete workflow as single Python script
-- [ ] Ran script with `python3 -u` for unbuffered output
+- [ ] Composed the workflow from bundled `scripts/meshy_task.py` calls (never retyped the helpers)
+- [ ] Followed the matching recipe in [references/pipelines.md](references/pipelines.md)
 - [ ] Reported file paths, formats, task IDs, and balance
 - [ ] Suggested next steps
-
-## Additional Resources
-
-For the complete API endpoint reference including all parameters, response schemas, deprecated fields, and detailed error codes, read [reference.md](reference.md).

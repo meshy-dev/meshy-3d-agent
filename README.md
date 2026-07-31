@@ -10,7 +10,7 @@ AI agent skills for the [Meshy AI](https://www.meshy.ai) 3D generation platform.
 
 ## How It Works
 
-These are **pure Markdown skills** — no server, no dependencies, no build step. Your AI assistant reads the skill files and gains the ability to interact with the Meshy API directly using shell commands and Python scripts.
+These are **agent skills** — no server, no MCP process. Each skill bundles a small Python CLI (`scripts/`) plus on-demand markdown references (`references/`), and your AI assistant reads the skill files and drives the Meshy API directly through the bundled scripts.
 
 ## Skills
 
@@ -45,11 +45,11 @@ Full 3D generation lifecycle: API key setup, task creation, polling, downloading
 | Analyze Printability | Automated FDM check via `/openapi/v1/print/analyze` (watertight / volume / non-manifold / degenerate / holes) | **0 (free)** |
 | Repair Printability | Fix non-manifold edges, degenerate faces, holes via `/openapi/v1/print/repair` (output format mirrors input) | 10 |
 
-> The printing skill depends on the generation skill's script template and environment setup.
+> The printing skill bundles the same task-runner CLI as the generation skill and shares its environment setup.
 
 ### [`meshy-openclaw`](skills/meshy-openclaw/) (OpenClaw / ClawHub)
 
-A single unified skill for the [OpenClaw](https://clawhub.ai) ecosystem. Combines generation + printing into one file, with OpenClaw-compatible `metadata.clawdbot` frontmatter and a full SECURITY MANIFEST.
+A single unified skill for the [OpenClaw](https://clawhub.ai) ecosystem. Combines generation + printing into one self-contained skill, with OpenClaw-compatible `metadata.clawdbot` frontmatter and a full SECURITY MANIFEST.
 
 | Capability | Description | Credits |
 |-----------|-------------|---------|
@@ -204,6 +204,25 @@ cp skills/meshy-3d-printing/SKILL.md skills/meshy-3d-printing/reference.md .agen
 | File management | Via skill instructions | Built-in auto-save with project folders |
 
 Both approaches provide the same Meshy API capabilities. Choose based on your preference and setup.
+
+## For Maintainers
+
+Single sources of truth — edit these, never the generated copies:
+
+| Source | Generated outputs |
+|---|---|
+| `reference/source.md` | `skills/*/reference.md` (the OpenClaw build also injects the SECURITY MANIFEST extracted from `skills/meshy-openclaw/SKILL.md`) |
+| `scripts/src/meshy_task.py` | `skills/*/scripts/meshy_task.py` |
+| `skills/meshy-3d-printing/scripts/slicers.py`, `fix_obj.py` | `skills/meshy-openclaw/scripts/slicers.py`, `fix_obj.py` |
+
+After editing a source, regenerate and verify:
+
+```bash
+python3 scripts/build.py          # regenerate all targets
+python3 scripts/build.py --check  # CI mode: fail if outputs are stale, a SKILL.md exceeds 300 lines, or a references/*.md is unlinked
+```
+
+Generated files carry a `GENERATED` marker comment. CI runs `python3 scripts/build.py --check` to reject edits that bypass the sources.
 
 ## License
 

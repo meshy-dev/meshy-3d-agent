@@ -6,14 +6,20 @@ Five checks:
      metadata.version, and a non-empty description containing both a trigger
      phrase ("use when ...") and a routing boundary ("... instead", "not for ...").
   2. Version sync: .claude-plugin/plugin.json, .cursor-plugin/plugin.json,
-     .codex-plugin/plugin.json, every SKILL.md metadata.version, and the top
-     CHANGELOG.md entry must all agree. Optional version fields in
-     .claude-plugin/marketplace.json (top level or per entry) must agree too.
-  3. Manifest coverage: all four manifests exist, parse, and carry a non-empty
+     every SKILL.md metadata.version, and the top CHANGELOG.md entry must all
+     agree. Optional version fields in .claude-plugin/marketplace.json (top
+     level or per entry) must agree too.
+  3. Manifest coverage: all three manifests exist, parse, and carry a non-empty
      "name"; .claude-plugin/marketplace.json must list every skills/<dir>
-     across its entries' skills arrays; the explicit skills list in
-     .codex-plugin/plugin.json (and in the claude / cursor plugin.json, if
-     present) must cover the same set.
+     across its entries' skills arrays; an explicit skills list in the claude /
+     cursor plugin.json (if present) must cover the same set.
+
+     There is deliberately no .codex-plugin/plugin.json: Codex's plugin
+     marketplace only accepts a plugin root in a subdirectory carrying its own
+     real skills/ tree (a symlink or a "../skills" manifest path both install
+     with zero skills and still report success), which would mean committing a
+     second copy of every skill. Codex reads .agents/skills instead, so the
+     README's directory install covers it without a manifest.
   4. Reference bidirectionality: every relative markdown link in a skill's
      SKILL.md must resolve to an existing file inside the skill directory,
      and every non-SKILL markdown file in the skill directory (reference.md,
@@ -45,8 +51,7 @@ CHANGELOG = ROOT / "CHANGELOG.md"
 CLAUDE_PLUGIN = ROOT / ".claude-plugin" / "plugin.json"
 MARKETPLACE = ROOT / ".claude-plugin" / "marketplace.json"
 CURSOR_PLUGIN = ROOT / ".cursor-plugin" / "plugin.json"
-CODEX_PLUGIN = ROOT / ".codex-plugin" / "plugin.json"
-MANIFEST_PATHS = [CLAUDE_PLUGIN, MARKETPLACE, CURSOR_PLUGIN, CODEX_PLUGIN]
+MANIFEST_PATHS = [CLAUDE_PLUGIN, MARKETPLACE, CURSOR_PLUGIN]
 
 SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
 FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
@@ -309,30 +314,6 @@ def check_manifest_coverage(manifests: dict, load_errors: list[str]) -> list[str
                     f"{rel(MARKETPLACE)}: entries cover {sorted(covered)} but "
                     f"skills/ contains {sorted(actual)}"
                 )
-
-    codex = manifests.get(CODEX_PLUGIN)
-    if codex is not None:
-        if "skills" not in codex:
-            errors.append(
-                f"{rel(CODEX_PLUGIN)}: explicit skills list missing (required so "
-                f"Codex exposes every skill directory)"
-            )
-        else:
-            covered = expand_skills_field(
-                codex["skills"], rel(CODEX_PLUGIN), actual, errors
-            )
-            if covered != actual:
-                errors.append(
-                    f"{rel(CODEX_PLUGIN)}: skills covers {sorted(covered)} but "
-                    f"skills/ contains {sorted(actual)}"
-                )
-            items = codex["skills"] if isinstance(codex["skills"], list) else [codex["skills"]]
-            for item in items:
-                if isinstance(item, str) and not item.startswith("./"):
-                    errors.append(
-                        f"{rel(CODEX_PLUGIN)}: skills entry '{item}' must start "
-                        f"with './' (Codex manifest rule)"
-                    )
 
     # If the claude/cursor root plugin.json ever gains an explicit skills
     # list, it must cover every skill directory too (auto-discovery does the

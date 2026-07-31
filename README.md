@@ -10,7 +10,7 @@ AI agent skills for the [Meshy AI](https://www.meshy.ai) 3D generation platform.
 
 ## How It Works
 
-These are **pure Markdown skills** — no server, no dependencies, no build step. Your AI assistant reads the skill files and gains the ability to interact with the Meshy API directly using shell commands and Python scripts.
+These are **agent skills** — no server, no MCP process. Each skill bundles a small Python CLI (`scripts/`) plus on-demand markdown references (`references/`), and your AI assistant reads the skill files and drives the Meshy API directly through the bundled scripts.
 
 ## Skills
 
@@ -45,11 +45,11 @@ Full 3D generation lifecycle: API key setup, task creation, polling, downloading
 | Analyze Printability | Automated FDM check via `/openapi/v1/print/analyze` (watertight / volume / non-manifold / degenerate / holes) | **0 (free)** |
 | Repair Printability | Fix non-manifold edges, degenerate faces, holes via `/openapi/v1/print/repair` (output format mirrors input) | 10 |
 
-> The printing skill depends on the generation skill's script template and environment setup.
+> The printing skill bundles the same task-runner CLI as the generation skill and shares its environment setup.
 
 ### [`meshy-openclaw`](skills/meshy-openclaw/) (OpenClaw / ClawHub)
 
-A single unified skill for the [OpenClaw](https://clawhub.ai) ecosystem. Combines generation + printing into one file, with OpenClaw-compatible `metadata.clawdbot` frontmatter and a full SECURITY MANIFEST.
+A single unified skill for the [OpenClaw](https://clawhub.ai) ecosystem. Combines generation + printing into one self-contained skill, with OpenClaw-compatible `metadata.clawdbot` frontmatter and a full SECURITY MANIFEST.
 
 | Capability | Description | Credits |
 |-----------|-------------|---------|
@@ -148,13 +148,13 @@ npx clawhub install meshy-dev/meshy-3d-agent
 <summary>Cursor</summary>
 
 ```bash
+mkdir -p .cursor/skills
+
 # Core (required)
-mkdir -p .cursor/skills/meshy-3d-generation
-cp skills/meshy-3d-generation/SKILL.md skills/meshy-3d-generation/reference.md .cursor/skills/meshy-3d-generation/
+cp -R skills/meshy-3d-generation .cursor/skills/
 
 # 3D Printing (optional)
-mkdir -p .cursor/skills/meshy-3d-printing
-cp skills/meshy-3d-printing/SKILL.md skills/meshy-3d-printing/reference.md .cursor/skills/meshy-3d-printing/
+cp -R skills/meshy-3d-printing .cursor/skills/
 ```
 
 </details>
@@ -163,13 +163,13 @@ cp skills/meshy-3d-printing/SKILL.md skills/meshy-3d-printing/reference.md .curs
 <summary>Claude Code</summary>
 
 ```bash
+mkdir -p .claude/skills
+
 # Core (required)
-mkdir -p .claude/skills/meshy-3d-generation
-cp skills/meshy-3d-generation/SKILL.md skills/meshy-3d-generation/reference.md .claude/skills/meshy-3d-generation/
+cp -R skills/meshy-3d-generation .claude/skills/
 
 # 3D Printing (optional)
-mkdir -p .claude/skills/meshy-3d-printing
-cp skills/meshy-3d-printing/SKILL.md skills/meshy-3d-printing/reference.md .claude/skills/meshy-3d-printing/
+cp -R skills/meshy-3d-printing .claude/skills/
 ```
 
 </details>
@@ -180,13 +180,13 @@ cp skills/meshy-3d-printing/SKILL.md skills/meshy-3d-printing/reference.md .clau
 Codex reads skills from `.agents/skills` — per repository, or from `~/.agents/skills` to make them available everywhere.
 
 ```bash
+mkdir -p .agents/skills
+
 # Core (required)
-mkdir -p .agents/skills/meshy-3d-generation
-cp skills/meshy-3d-generation/SKILL.md skills/meshy-3d-generation/reference.md .agents/skills/meshy-3d-generation/
+cp -R skills/meshy-3d-generation .agents/skills/
 
 # 3D Printing (optional)
-mkdir -p .agents/skills/meshy-3d-printing
-cp skills/meshy-3d-printing/SKILL.md skills/meshy-3d-printing/reference.md .agents/skills/meshy-3d-printing/
+cp -R skills/meshy-3d-printing .agents/skills/
 ```
 
 `.agents/skills` is the cross-editor convention, so Cursor picks these up as well.
@@ -197,13 +197,32 @@ cp skills/meshy-3d-printing/SKILL.md skills/meshy-3d-printing/reference.md .agen
 
 | Feature | Agent Skill (this repo) | [MCP Server](https://github.com/meshy-dev/meshy-mcp-server) |
 |---------|------------------------|-------------------------------------------------------------|
-| Setup | Copy Markdown files | `npx meshy-mcp-server` |
+| Setup | Copy a skill directory | `npx meshy-mcp-server` |
 | Dependencies | Python 3 + requests | Node.js >= 18 |
 | How it works | AI reads instructions, makes API calls directly | Dedicated server process with structured tools |
 | IDE support | Amp, Cline, Codex, Cursor, Gemini CLI, Claude Code, OpenCode and 20+ more | Any MCP-compatible client |
 | File management | Via skill instructions | Built-in auto-save with project folders |
 
 Both approaches provide the same Meshy API capabilities. Choose based on your preference and setup.
+
+## For Maintainers
+
+Single sources of truth — edit these, never the generated copies:
+
+| Source | Generated outputs |
+|---|---|
+| `reference/source.md` | `skills/*/reference.md` (the OpenClaw build also injects the SECURITY MANIFEST extracted from `skills/meshy-openclaw/SKILL.md`) |
+| `scripts/src/meshy_task.py` | `skills/*/scripts/meshy_task.py` |
+| `skills/meshy-3d-printing/scripts/slicers.py`, `fix_obj.py` | `skills/meshy-openclaw/scripts/slicers.py`, `fix_obj.py` |
+
+After editing a source, regenerate and verify:
+
+```bash
+python3 scripts/build.py          # regenerate all targets
+python3 scripts/build.py --check  # CI mode: fail if outputs are stale, a SKILL.md exceeds 300 lines, or a references/*.md is unlinked
+```
+
+Generated files carry a `GENERATED` marker comment. CI runs `python3 scripts/build.py --check` to reject edits that bypass the sources.
 
 ## License
 

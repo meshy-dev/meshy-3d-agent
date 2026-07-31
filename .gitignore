@@ -10,3 +10,5 @@ labels/
 statuses/
 sessions/
 sources/
+__pycache__/
+*.pyc

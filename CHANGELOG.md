@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed (internal restructure — no behavior or content changes for end users)
+
+- **SKILL.md split**: all three skills (`meshy-3d-generation`, `meshy-3d-printing`, `meshy-openclaw`) now have a ≤300-line `SKILL.md` (frontmatter, flow overview, decision trees, per-round UX rules) with detail moved into per-skill `references/` docs (`setup.md`, `pipelines.md`, `printing.md`, `troubleshooting.md` as applicable). Content was moved verbatim.
+- **Bundled scripts**: the inline Python template (`create_task` / `poll_task` / `download` / `get_project_dir` / `record_task` / `save_thumbnail`) is now a real CLI, `scripts/meshy_task.py`, inside each skill. The printing slicer detection / OBJ-fix snippets are `scripts/slicers.py` and `scripts/fix_obj.py`. SKILL.md files now state the explicit rule: never retype or reconstruct bundled scripts from memory.
+- **Single-source `reference.md`**: the three hand-drifted copies are merged into `reference/source.md`; `scripts/build.py` regenerates each skill's `reference.md` (the OpenClaw build injects the SECURITY MANIFEST extracted from its SKILL.md). `python3 scripts/build.py --check` validates freshness, the ≤300-line limit, and that every `references/*.md` is linked from its SKILL.md. Drift resolved in the merge: kept the model-specific `aspect_ratio` notes, the retexture alias note, the fuller analyze/repair JSON examples, and the `model_url` option for multi-color; dropped the redundant trailing "Print Automation APIs" section.
+- The OpenClaw SECURITY MANIFEST now reads `.env` / `.env.local` (was: `.env` only), matching the bundled CLI's key lookup.
+
 ## [0.4.1] - 2026-07-31
 
 ### Fixed

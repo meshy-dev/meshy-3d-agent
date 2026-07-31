@@ -1,3 +1,4 @@
+<!-- GENERATED FILE — edit reference/source.md (and skills/meshy-openclaw/SKILL.md for the SECURITY MANIFEST), then run scripts/build.py. Do not edit directly. -->
 # Meshy API
 
 > Meshy is an AI-powered 3D model generation platform. The Meshy API is a RESTful API that allows you to programmatically generate 3D models, textures, images, rig characters, and animate them.
@@ -5,6 +6,25 @@
 Base URL: `https://api.meshy.ai`
 
 Docs: https://docs.meshy.ai
+
+## SECURITY MANIFEST
+
+**Environment variables accessed:**
+- `MESHY_API_KEY` — API authentication token sent in HTTP `Authorization: Bearer` header only. Never logged, never written to any file except `.env` in the current working directory when explicitly requested by the user.
+
+**External network endpoints:**
+- `https://api.meshy.ai` — Meshy AI API (task creation, status polling, model/image downloads)
+
+**File system access:**
+- Read: `.env` / `.env.local` in the current working directory only (API key lookup)
+- Write: `.env` in the current working directory only (API key storage, only on user request)
+- Write: `./meshy_output/` in the current working directory (downloaded model files, metadata)
+- Read: files explicitly provided by the user (e.g., local images passed for image-to-3D conversion), accessed only at the exact path the user specifies
+- No access to home directories, shell profiles, or any path outside the above
+
+**Data leaving this machine:**
+- API requests to `api.meshy.ai` include the `MESHY_API_KEY` in the Authorization header and user-provided text prompts or image URLs. No other local data is transmitted. Downloaded model files are saved locally only.
+---
 
 ## Instructions for Large Language Models
 
@@ -481,13 +501,43 @@ FDM printability analysis. Reports watertightness, volume, holes, non-manifold e
 
 Provide **exactly one** of:
 - `input_task_id` (string): A SUCCEEDED task you own (image-to-3d, multi-image-to-3d, text-to-3d, remesh, retexture). **MUST use Meshy 6 or any Preview model.**
-- `model_url` (string): Public URL of a 3D model. Supported: `.glb`, `.gltf`, `.obj`, `.fbx`, `.stl`. Max 100 MB.
+- `model_url` (string): Public URL of a 3D model. Supported formats: `.glb`, `.gltf`, `.obj`, `.fbx`, `.stl`. Max 100 MB. Must use `http`, `https`, or `data:` URL.
 
 **Response:** `{"result": "<task_id>"}`
 
 ### GET /openapi/v1/print/analyze/:id — Retrieve Task
 
-Once SUCCEEDED, the task object's `printability` field reports `status` (healthy/warning/error/unknown), `issue_count`, and `metrics` (`is_watertight`, `volume`, `non_manifold_edges`, `degenerate_faces`, `holes`). `consumed_credits: 0`.
+Once SUCCEEDED, the task object contains:
+```json
+{
+  "id": "...",
+  "type": "print-analyze",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "printability": {
+    "_version": "v1",
+    "status": "warning",
+    "issue_count": 1,
+    "error_count": 0,
+    "warning_count": 1,
+    "metrics": {
+      "is_watertight": true,
+      "volume": 1.316,
+      "non_manifold_edges": 0,
+      "degenerate_faces": 43242,
+      "holes": 0
+    },
+    "evaluated_at": 1700000001000
+  },
+  "consumed_credits": 0
+}
+```
+
+**`printability.status` semantics:**
+- `healthy`: no errors, no warnings.
+- `warning`: at least one warning, no errors. (Triggered by degenerate faces or holes.)
+- `error`: at least one error. (Triggered by non-watertight, non-positive volume, or non-manifold edges.) Recommend running repair.
+- `unknown`: model could not be analyzed.
 
 ### DELETE /openapi/v1/print/analyze/:id — Delete Task
 ### GET /openapi/v1/print/analyze — List Tasks
@@ -509,7 +559,27 @@ Provide **exactly one** of:
 
 ### GET /openapi/v1/print/repair/:id — Retrieve Task
 
-`model_urls` contains the repaired model in the same format as the input; only the matching field is populated. `texture_urls: []` (geometry-only repair). `consumed_credits: 10`.
+```json
+{
+  "id": "...",
+  "type": "print-repair",
+  "status": "SUCCEEDED",
+  "model_urls": {
+    "glb": "https://...glb?Expires=...",
+    "fbx": "",
+    "obj": "",
+    "stl": "",
+    "usdz": "",
+    "3mf": "",
+    "mtl": ""
+  },
+  "thumbnail_url": "https://...preview.png",
+  "texture_urls": [],
+  "consumed_credits": 10
+}
+```
+
+Only the field matching the input format is populated; other fields are empty strings. Textures are NOT preserved (geometry-only repair).
 
 ### DELETE /openapi/v1/print/repair/:id — Delete Task
 ### GET /openapi/v1/print/repair — List Tasks
@@ -540,6 +610,11 @@ task_id = create_task("/openapi/v1/print/multi-color", {
     "max_colors": 4,
     "max_depth": 4,
 })
+# OR with a model URL:
+# task_id = create_task("/openapi/v1/print/multi-color", {
+#     "model_url": "https://example.com/textured.glb",
+#     "max_colors": 6,
+# })
 ```
 
 ### GET /openapi/v1/print/multi-color/:id — Retrieve Task
@@ -632,9 +707,9 @@ Apply animations to rigged characters.
 - `multi_view_thumbnails` (boolean): Generate 4 cardinal-direction thumbnails. Default `false`.
 - `alpha_thumbnail` (boolean): Generate an RGBA (transparent-background) preview, returned in `alpha_thumbnail_url`. Default `false`.
 - `pose_mode` (string): `"a-pose"` or `"t-pose"`.
-- `aspect_ratio` (string): `"1:1"` (default), `"16:9"`, `"9:16"`, `"4:3"`, `"3:4"`.
+- `aspect_ratio` (string): `"1:1"` (default), `"16:9"`, `"9:16"`, `"4:3"`, `"3:4"`, `"3:2"`, `"2:3"`.
 
-> **Aspect ratio by model:** gpt-image-2 supports ONLY 1:1, 3:2, 2:3; the nano-banana family (nano-banana / -2 / -pro) supports 1:1, 16:9, 9:16, 4:3, 3:4; 3:2 and 2:3 are gpt-image-2-only. gpt-image-2 is generally available.
+> **Aspect-ratio support is model-specific:** nano-banana / nano-banana-2 / nano-banana-pro accept `1:1`, `16:9`, `9:16`, `4:3`, `3:4`. gpt-image-2 accepts ONLY `1:1`, `3:2`, `2:3` — and `3:2` / `2:3` are gpt-image-2-only (the nano-banana family rejects them with 400).
 
 **Cost:** nano-banana 3 credits, nano-banana-2 6 credits, nano-banana-pro 9 credits, gpt-image-2 9 credits.
 
@@ -661,6 +736,8 @@ Apply animations to rigged characters.
 - `multi_view_thumbnails` (boolean): Generate 4 cardinal-direction thumbnails. Default `false`.
 - `alpha_thumbnail` (boolean): Generate an RGBA (transparent-background) preview, returned in `alpha_thumbnail_url`. Default `false`.
 
+> **Aspect-ratio support is model-specific:** nano-banana / nano-banana-2 / nano-banana-pro accept `1:1`, `16:9`, `9:16`, `4:3`, `3:4`. gpt-image-2 accepts ONLY `1:1`, `3:2`, `2:3` — and `3:2` / `2:3` are gpt-image-2-only (the nano-banana family rejects them with 400).
+
 **Cost:** nano-banana 3 credits, nano-banana-2 6 credits, nano-banana-pro 9 credits, gpt-image-2 12 credits.
 
 **Response:** `{"result": "<task_id>"}`
@@ -674,7 +751,7 @@ Apply animations to rigged characters.
 
 ## Convert API
 
-Convert a model to other file formats without remeshing. Cost: **1 credit**.
+Convert a model to other file formats without remeshing. Cost: **1 credit**. Print-relevant use: get a printable **STL** or **3MF** from an existing GLB/OBJ result.
 
 ### POST /openapi/v1/convert — Create Task
 
@@ -696,7 +773,7 @@ Provide **exactly one** of:
 
 ## Resize API
 
-Rescale a model to a real-world size. Cost: **1 credit**.
+Rescale a model to a real-world size. Cost: **1 credit**. Print-relevant use: set the model to a real-world height (mm → m) before slicing so the slicer imports it at the right scale.
 
 ### POST /openapi/v1/resize — Create Task
 
@@ -722,7 +799,7 @@ Provide **exactly one** resize mode:
 
 ## UV Unwrap API
 
-Generate fresh UVs for a GLB model. Cost: **5 credits**. Available (GA).
+Generate fresh UVs for a GLB model. Cost: **5 credits**. Available (GA). Print-relevant use: produce a clean UV white model before externally painting/texturing a model for multicolor printing.
 
 ### POST /openapi/v1/uv-unwrap — Create Task
 
@@ -745,7 +822,7 @@ Provide **exactly one** of:
 
 ## Creative Lab API
 
-Two-stage pipeline that turns a photo into a styled physical product. Four products: **figure**, **lamp**, **keychain**, **fridge-magnet**. Replace `{product}` in the path with one of these.
+Two-stage pipeline that turns a photo into a styled physical product, ready to print. Four products: **figure**, **lamp**, **keychain**, **fridge-magnet**. Replace `{product}` in the path with one of these.
 
 ### POST /openapi/creative-lab/{product}/v1/prototype — Create Prototype Task
 

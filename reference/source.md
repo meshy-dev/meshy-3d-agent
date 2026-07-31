@@ -1,4 +1,3 @@
-<!-- GENERATED FILE — edit reference/source.md (and skills/meshy-openclaw/SKILL.md for the SECURITY MANIFEST), then run scripts/build.py. Do not edit directly. -->
 # Meshy API
 
 > Meshy is an AI-powered 3D model generation platform. The Meshy API is a RESTful API that allows you to programmatically generate 3D models, textures, images, rig characters, and animate them.

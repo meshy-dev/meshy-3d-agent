@@ -1,6 +1,6 @@
 ---
-name: meshy-3d-agent
-description: Generate 3D models, textures, images, rig characters, animate them, and prepare for 3D printing using the Meshy AI API. Handles API key detection, task creation, polling, downloading, and full 3D print pipeline with slicer integration. Use when the user asks to create 3D models, convert text/images to 3D, texture models, rig or animate characters, 3D print a model, or interact with the Meshy API.
+name: meshy-openclaw
+description: Generate 3D models, textures, images, rig characters, animate them, and prepare for 3D printing using the Meshy AI API. Handles API key detection, task creation, polling, downloading, and full 3D print pipeline with slicer integration. Use when the user asks to create 3D models, convert text/images to 3D, texture models, rig or animate characters, 3D print a model, or interact with the Meshy API. For Claude Code or Cursor, use the meshy-3d-generation and meshy-3d-printing skills instead.
 license: MIT-0
 compatibility: Requires Python 3 with requests package. Compatible with OpenClaw and all Agent Skills tools.
 metadata:

@@ -1,0 +1,39 @@
+{
+  "name": "meshy-3d-agent",
+  "version": "0.4.1",
+  "description": "Generate 3D models, textures, and images, rig and animate characters, and prepare models for 3D printing with the Meshy AI API.",
+  "author": {
+    "name": "Meshy",
+    "url": "https://github.com/meshy-dev"
+  },
+  "homepage": "https://www.meshy.ai",
+  "repository": "https://github.com/meshy-dev/meshy-3d-agent",
+  "license": "MIT",
+  "keywords": [
+    "meshy",
+    "3d-generation",
+    "text-to-3d",
+    "image-to-3d",
+    "3d-printing",
+    "rigging",
+    "animation"
+  ],
+  "skills": [
+    "./skills/meshy-3d-generation",
+    "./skills/meshy-3d-printing",
+    "./skills/meshy-openclaw"
+  ],
+  "interface": {
+    "displayName": "Meshy 3D Agent",
+    "shortDescription": "Generate and 3D-print 3D models with the Meshy AI API.",
+    "longDescription": "Text-to-3D, image-to-3D, texturing, rigging, animation, and a full 3D printing pipeline (slicer detection, multicolor, Creative Lab) via the Meshy AI API.",
+    "developerName": "Meshy",
+    "category": "Developer Tools",
+    "websiteURL": "https://www.meshy.ai",
+    "defaultPrompt": [
+      "Generate a 3D model of a medieval castle with Meshy",
+      "Turn this photo into a textured 3D model",
+      "3D-print my Meshy model in multicolor"
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 ---
 name: meshy-3d-printing
-description: 3D print models generated with Meshy AI, plus Creative Lab consumer products. Handles slicer detection, white model printing, multi-color printing via API, the Creative Lab pipeline (figure / lamp / keychain / fridge-magnet), and print-optimized download workflows. Use when the user mentions 3D printing, slicing, Bambu, OrcaSlicer, Prusa, Cura, Creality Print, Elegoo, Anycubic, multicolor, multi-color, 3mf, Creative Lab, or wants a figurine, keychain, fridge magnet, lamp, collectible, miniature, or physical product from a photo.
+description: 3D print models generated with Meshy AI, plus Creative Lab consumer products. Handles slicer detection, white model printing, multi-color printing via API, the Creative Lab pipeline (figure / lamp / keychain / fridge-magnet), and print-optimized download workflows. Use when the user mentions 3D printing, slicing, Bambu, OrcaSlicer, Prusa, Cura, Creality Print, Elegoo, Anycubic, multicolor, multi-color, 3mf, Creative Lab, or wants a figurine, keychain, fridge magnet, lamp, collectible, miniature, or physical product from a photo. For generation without 3D printing, use the meshy-3d-generation skill instead.
 license: MIT
 compatibility: Requires Python 3 with requests package. Depends on meshy-3d-generation skill. Works with Claude Code, Cursor, and all Agent Skills compatible tools.
 metadata:

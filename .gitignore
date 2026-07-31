@@ -3,7 +3,6 @@
 .idea/
 *.swp
 *.swo
-.claude-plugin/
 config.json
 views.json
 events.jsonl

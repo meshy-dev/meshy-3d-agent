@@ -1,11 +1,11 @@
 ---
 name: meshy-3d-generation
-description: Generate 3D models, textures, images, rig characters, and animate them using the Meshy AI API. Handles API key detection, setup, and all generation workflows via direct HTTP calls. Use when the user asks to create 3D models, convert text/images to 3D, texture models, rig or animate characters, or interact with the Meshy API.
+description: Generate 3D models, textures, images, rig characters, and animate them using the Meshy AI API. Handles API key detection, setup, and all generation workflows via direct HTTP calls. Use when the user asks to create 3D models, convert text/images to 3D, texture models, rig or animate characters, or interact with the Meshy API. For 3D printing requests, use the meshy-3d-printing skill instead.
 license: MIT
 compatibility: Requires Python 3 with requests package. Works with Claude Code, Cursor, and all Agent Skills compatible tools.
 metadata:
   author: meshy-dev
-  version: "0.4.0"
+  version: "0.4.1"
   homepage: https://github.com/meshy-dev/meshy-3d-agent
 allowed-tools: Bash, Read, Write, Glob, Grep
 ---
@@ -76,6 +76,8 @@ Meshy generation tasks take 1–5 minutes. When running Python scripts that poll
 
 Before any API call, detect whether the environment is ready:
 
+**Only check the current session environment and `.env` files in the current working directory. Do NOT scan home directories or shell profile files.**
+
 ```bash
 echo "=== Meshy API Key Detection ==="
 
@@ -90,25 +92,18 @@ fi
 for f in .env .env.local; do
   if [ -f "$f" ] && grep -q "MESHY_API_KEY" "$f" 2>/dev/null; then
     echo "DOTENV($f): FOUND"
-    export $(grep "MESHY_API_KEY" "$f" | head -1)
+    export MESHY_API_KEY="$(grep '^MESHY_API_KEY=' "$f" | head -1 | cut -d= -f2- | tr -d "\"'")"
   fi
 done
 
-# 3. Check shell profiles
-for f in ~/.zshrc ~/.bashrc ~/.bash_profile ~/.profile; do
-  if [ -f "$f" ] && grep -q "MESHY_API_KEY" "$f" 2>/dev/null; then
-    echo "SHELL_PROFILE: FOUND in $f"
-  fi
-done
-
-# 4. Final status
+# 3. Final status
 if [ -n "$MESHY_API_KEY" ]; then
   echo "READY: key=${MESHY_API_KEY:0:12}..."
 else
   echo "READY: NO_KEY_FOUND"
 fi
 
-# 5. Python requests check
+# 4. Python requests check
 python3 -c "import requests; print('PYTHON_REQUESTS: OK')" 2>/dev/null || echo "PYTHON_REQUESTS: MISSING (run: pip install requests)"
 
 echo "=== Detection Complete ==="
@@ -132,9 +127,9 @@ Tell the user:
 >
 > **Note:** API access requires a **Pro plan or above**. Free-tier accounts cannot create API keys. If you see "Please upgrade to a premium plan to create API tasks", you'll need to upgrade at https://www.meshy.ai/pricing first.
 
-Once the user provides their key, set it and verify:
+Once the user provides their key, set it for the **current session** and verify:
 
-**macOS (zsh):**
+**macOS / Linux:**
 ```bash
 export MESHY_API_KEY="msy_PASTE_KEY_HERE"
 
@@ -146,27 +141,6 @@ STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
 if [ "$STATUS" = "200" ]; then
   BALANCE=$(curl -s -H "Authorization: Bearer $MESHY_API_KEY" https://api.meshy.ai/openapi/v1/balance)
   echo "Key valid. $BALANCE"
-  echo 'export MESHY_API_KEY="msy_PASTE_KEY_HERE"' >> ~/.zshrc
-  echo "Persisted to ~/.zshrc"
-else
-  echo "Key invalid (HTTP $STATUS). Check the key and try again."
-fi
-```
-
-**Linux (bash):**
-```bash
-export MESHY_API_KEY="msy_PASTE_KEY_HERE"
-
-# Verify (same as above), then persist to ~/.bashrc
-STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-  -H "Authorization: Bearer $MESHY_API_KEY" \
-  https://api.meshy.ai/openapi/v1/balance)
-
-if [ "$STATUS" = "200" ]; then
-  BALANCE=$(curl -s -H "Authorization: Bearer $MESHY_API_KEY" https://api.meshy.ai/openapi/v1/balance)
-  echo "Key valid. $BALANCE"
-  echo 'export MESHY_API_KEY="msy_PASTE_KEY_HERE"' >> ~/.bashrc
-  echo "Persisted to ~/.bashrc"
 else
   echo "Key invalid (HTTP $STATUS). Check the key and try again."
 fi
@@ -180,18 +154,20 @@ $env:MESHY_API_KEY = "msy_PASTE_KEY_HERE"
 $status = (Invoke-WebRequest -Uri "https://api.meshy.ai/openapi/v1/balance" -Headers @{Authorization="Bearer $env:MESHY_API_KEY"} -UseBasicParsing).StatusCode
 if ($status -eq 200) {
     Write-Host "Key valid."
-    # Persist permanently
-    [System.Environment]::SetEnvironmentVariable("MESHY_API_KEY", $env:MESHY_API_KEY, "User")
-    Write-Host "Persisted to user environment variables. Restart terminal to take effect."
 } else {
     Write-Host "Key invalid (HTTP $status). Check the key and try again."
 }
 ```
 
-**Alternative (all platforms):** Create a `.env` file in your project root:
-```
-MESHY_API_KEY=msy_PASTE_KEY_HERE
-```
+**Do NOT persist the key yourself.** Never write the API key to shell profiles (`~/.zshrc`, `~/.bashrc`, …), Windows user environment variables, or any file outside the current working directory — the key would end up in shell history, the agent transcript, and long-lived config at once. The only file you may write it to is `.env` in the current working directory, and only when the user explicitly asks.
+
+Once the key verifies, print these instructions so the **user** can persist it themselves:
+
+> To keep the key across sessions, pick one:
+>
+> - **macOS / Linux:** add `export MESHY_API_KEY="msy_..."` to your shell profile (`~/.zshrc` or `~/.bashrc`) and restart your terminal.
+> - **Windows:** Settings → "Edit environment variables for your account" → add a user variable `MESHY_API_KEY`, then restart your terminal.
+> - **Any platform:** create a `.env` file in your project root containing `MESHY_API_KEY=msy_...` (remember to add `.env` to your `.gitignore`). If you ask me to, I can create this project-local `.env` for you.
 
 ---
 

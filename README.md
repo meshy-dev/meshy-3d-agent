@@ -148,13 +148,13 @@ npx clawhub install meshy-dev/meshy-3d-agent
 <summary>Cursor</summary>
 
 ```bash
+mkdir -p .cursor/skills
+
 # Core (required)
-mkdir -p .cursor/skills/meshy-3d-generation
-cp skills/meshy-3d-generation/SKILL.md skills/meshy-3d-generation/reference.md .cursor/skills/meshy-3d-generation/
+cp -R skills/meshy-3d-generation .cursor/skills/
 
 # 3D Printing (optional)
-mkdir -p .cursor/skills/meshy-3d-printing
-cp skills/meshy-3d-printing/SKILL.md skills/meshy-3d-printing/reference.md .cursor/skills/meshy-3d-printing/
+cp -R skills/meshy-3d-printing .cursor/skills/
 ```
 
 </details>
@@ -163,13 +163,13 @@ cp skills/meshy-3d-printing/SKILL.md skills/meshy-3d-printing/reference.md .curs
 <summary>Claude Code</summary>
 
 ```bash
+mkdir -p .claude/skills
+
 # Core (required)
-mkdir -p .claude/skills/meshy-3d-generation
-cp skills/meshy-3d-generation/SKILL.md skills/meshy-3d-generation/reference.md .claude/skills/meshy-3d-generation/
+cp -R skills/meshy-3d-generation .claude/skills/
 
 # 3D Printing (optional)
-mkdir -p .claude/skills/meshy-3d-printing
-cp skills/meshy-3d-printing/SKILL.md skills/meshy-3d-printing/reference.md .claude/skills/meshy-3d-printing/
+cp -R skills/meshy-3d-printing .claude/skills/
 ```
 
 </details>
@@ -180,13 +180,13 @@ cp skills/meshy-3d-printing/SKILL.md skills/meshy-3d-printing/reference.md .clau
 Codex reads skills from `.agents/skills` — per repository, or from `~/.agents/skills` to make them available everywhere.
 
 ```bash
+mkdir -p .agents/skills
+
 # Core (required)
-mkdir -p .agents/skills/meshy-3d-generation
-cp skills/meshy-3d-generation/SKILL.md skills/meshy-3d-generation/reference.md .agents/skills/meshy-3d-generation/
+cp -R skills/meshy-3d-generation .agents/skills/
 
 # 3D Printing (optional)
-mkdir -p .agents/skills/meshy-3d-printing
-cp skills/meshy-3d-printing/SKILL.md skills/meshy-3d-printing/reference.md .agents/skills/meshy-3d-printing/
+cp -R skills/meshy-3d-printing .agents/skills/
 ```
 
 `.agents/skills` is the cross-editor convention, so Cursor picks these up as well.
@@ -197,7 +197,7 @@ cp skills/meshy-3d-printing/SKILL.md skills/meshy-3d-printing/reference.md .agen
 
 | Feature | Agent Skill (this repo) | [MCP Server](https://github.com/meshy-dev/meshy-mcp-server) |
 |---------|------------------------|-------------------------------------------------------------|
-| Setup | Copy Markdown files | `npx meshy-mcp-server` |
+| Setup | Copy a skill directory | `npx meshy-mcp-server` |
 | Dependencies | Python 3 + requests | Node.js >= 18 |
 | How it works | AI reads instructions, makes API calls directly | Dedicated server process with structured tools |
 | IDE support | Amp, Cline, Codex, Cursor, Gemini CLI, Claude Code, OpenCode and 20+ more | Any MCP-compatible client |

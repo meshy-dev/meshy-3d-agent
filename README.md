@@ -174,6 +174,25 @@ cp skills/meshy-3d-printing/SKILL.md skills/meshy-3d-printing/reference.md .clau
 
 </details>
 
+<details>
+<summary>Codex</summary>
+
+Codex reads skills from `.agents/skills` — per repository, or from `~/.agents/skills` to make them available everywhere.
+
+```bash
+# Core (required)
+mkdir -p .agents/skills/meshy-3d-generation
+cp skills/meshy-3d-generation/SKILL.md skills/meshy-3d-generation/reference.md .agents/skills/meshy-3d-generation/
+
+# 3D Printing (optional)
+mkdir -p .agents/skills/meshy-3d-printing
+cp skills/meshy-3d-printing/SKILL.md skills/meshy-3d-printing/reference.md .agents/skills/meshy-3d-printing/
+```
+
+`.agents/skills` is the cross-editor convention, so Cursor picks these up as well.
+
+</details>
+
 ## Skill vs MCP Server
 
 | Feature | Agent Skill (this repo) | [MCP Server](https://github.com/meshy-dev/meshy-mcp-server) |

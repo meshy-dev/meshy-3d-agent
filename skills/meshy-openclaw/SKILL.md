@@ -4,6 +4,9 @@ description: Generate 3D models, textures, images, rig characters, animate them,
 license: MIT-0
 compatibility: Requires Python 3 with requests package. Compatible with OpenClaw and all Agent Skills tools.
 metadata:
+  author: meshy-dev
+  version: "0.4.1"
+  homepage: https://github.com/meshy-dev/meshy-3d-agent
   openclaw:
     primaryEnv: MESHY_API_KEY
     requires:

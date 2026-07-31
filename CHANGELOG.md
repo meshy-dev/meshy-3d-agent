@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1] - 2026-07-31
+
+### Fixed
+
+- **README manual install no longer breaks relative links.** The Claude Code / Cursor steps previously copied `SKILL.md` and `reference.md` as two unrelated flat files (`.claude/skills/meshy-3d-generation.md` + `.claude/skills/meshy-reference.md`), which broke the `[reference.md](reference.md)` links inside the skill. The steps now install each skill as a directory (`.claude/skills/meshy-3d-generation/{SKILL.md,reference.md}`, same for Cursor), matching the current Agent Skills directory convention so every relative link resolves.
+- **Skills no longer write the API key to shell profiles or system env.** `meshy-3d-generation` Step 0a previously had the agent append the key to `~/.zshrc` / `~/.bashrc` and set Windows user environment variables — putting the key into shell history, the agent transcript, and long-lived config simultaneously, and contradicting the `meshy-openclaw` SECURITY MANIFEST ("No access to home directories, shell profiles"). All three skills now share the openclaw posture: the agent sets the key for the current session only, may write `.env` in the current working directory only on explicit user request, and otherwise prints persistence instructions for the user to apply themselves. Step 0 detection no longer scans shell profile files.
+- **Version drift pinned.** All three SKILL.md frontmatters now declare the same version (`meshy-openclaw` previously had no `version` field), aligned with the top of this CHANGELOG, and a CI check (`scripts/check-version.sh`) fails the build if they drift apart again. The README Windows setup no longer shows a `setx` command for the key; it points at the Environment Variables GUI instead.
+
 ## [0.4.0] - 2026-06-24
 
 ### Added

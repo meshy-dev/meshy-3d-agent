@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires Python 3 with requests package. Depends on meshy-3d-generation skill. Works with Claude Code, Cursor, and all Agent Skills compatible tools.
 metadata:
   author: meshy-dev
-  version: "0.4.0"
+  version: "0.4.1"
   homepage: https://github.com/meshy-dev/meshy-3d-agent
 allowed-tools: Bash, Read, Write, Glob, Grep
 ---

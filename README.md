@@ -68,7 +68,7 @@ npx skills add meshy-dev/meshy-3d-agent
 
 Then set your API key (pick any method below):
 
-> Or simply start using the skill — when the agent loads it, it will detect that no API key is configured, ask you for it, and set it up automatically.
+> Or simply start using the skill — when the agent loads it, it will detect that no API key is configured, ask you for it, and set it up for the current session (it never writes your key anywhere except `.env` on your request).
 
 <details>
 <summary>macOS / Linux</summary>
@@ -106,11 +106,9 @@ echo 'MESHY_API_KEY=msy_YOUR_API_KEY' > .env
 
 **Option A: Permanent (recommended)** — set via System Environment Variables:
 
-```powershell
-setx MESHY_API_KEY "msy_YOUR_API_KEY"
-```
-
-Restart your terminal after running this command.
+1. Open Settings → search for **"Edit environment variables for your account"**
+2. Add a new user variable named `MESHY_API_KEY` with your key as the value
+3. Restart your terminal for it to take effect
 
 **Option B: Current session only:**
 
@@ -151,12 +149,12 @@ npx clawhub install meshy-dev/meshy-3d-agent
 
 ```bash
 # Core (required)
-mkdir -p .cursor/skills
-cp skills/meshy-3d-generation/SKILL.md .cursor/skills/meshy-3d-generation.md
-cp skills/meshy-3d-generation/reference.md .cursor/skills/meshy-reference.md
+mkdir -p .cursor/skills/meshy-3d-generation
+cp skills/meshy-3d-generation/SKILL.md skills/meshy-3d-generation/reference.md .cursor/skills/meshy-3d-generation/
 
 # 3D Printing (optional)
-cp skills/meshy-3d-printing/SKILL.md .cursor/skills/meshy-3d-printing.md
+mkdir -p .cursor/skills/meshy-3d-printing
+cp skills/meshy-3d-printing/SKILL.md skills/meshy-3d-printing/reference.md .cursor/skills/meshy-3d-printing/
 ```
 
 </details>
@@ -166,12 +164,12 @@ cp skills/meshy-3d-printing/SKILL.md .cursor/skills/meshy-3d-printing.md
 
 ```bash
 # Core (required)
-mkdir -p .claude/skills
-cp skills/meshy-3d-generation/SKILL.md .claude/skills/meshy-3d-generation.md
-cp skills/meshy-3d-generation/reference.md .claude/skills/meshy-reference.md
+mkdir -p .claude/skills/meshy-3d-generation
+cp skills/meshy-3d-generation/SKILL.md skills/meshy-3d-generation/reference.md .claude/skills/meshy-3d-generation/
 
 # 3D Printing (optional)
-cp skills/meshy-3d-printing/SKILL.md .claude/skills/meshy-3d-printing.md
+mkdir -p .claude/skills/meshy-3d-printing
+cp skills/meshy-3d-printing/SKILL.md skills/meshy-3d-printing/reference.md .claude/skills/meshy-3d-printing/
 ```
 
 </details>

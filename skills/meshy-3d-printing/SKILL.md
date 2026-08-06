@@ -30,6 +30,17 @@ All paths below are relative to **this skill's own directory** (the directory co
 
 ---
 
+## Security & Data Handling
+
+- **API key (`MESHY_API_KEY`)** — sent only in the HTTP `Authorization: Bearer` header to `https://api.meshy.ai`. Never logged in full (only a `key[:8]...` prefix is ever printed). The bundled script never persists it; it is written to `.env` in the current working directory *only* when the user explicitly asks, and never to shell profiles, Windows user variables, or any path outside the working directory.
+- **Key sources read** — the current session environment, then `.env` / `.env.local` in the current working directory. Home directories and shell profiles are never scanned.
+- **Network** — the only external endpoint is `https://api.meshy.ai`. System proxies are bypassed (`trust_env = False`).
+- **Filesystem writes** — `.env` in the working directory (on explicit request only) and `./meshy_output/` for downloaded models, print-ready OBJ/3MF files, thumbnails, and metadata.
+- **Local slicer launch** — `scripts/slicers.py` detects already-installed slicers (known install paths + `PATH` lookup) and opens the generated model file in the slicer the user chooses. It launches only pre-existing local applications; it never downloads or installs software.
+- **Data leaving the machine** — the API key, user-provided text prompts, and image URLs/data go to `api.meshy.ai` only. No other local data is transmitted; downloaded assets are saved locally.
+
+---
+
 ## IMPORTANT: Never Rebuild Bundled Scripts
 
 `scripts/meshy_task.py`, `scripts/slicers.py`, and `scripts/fix_obj.py` are the single source of truth for their respective helpers (`create_task` / `poll_task` / `download` / `get_project_dir` / `record_task` / `save_thumbnail` / `detect_slicers` / `open_in_slicer` / `fix_obj_for_printing`). **Never retype, paraphrase, or "reconstruct" these helpers from memory** — not even partially. Compose CLI calls in bash, or import them from a small Python script.

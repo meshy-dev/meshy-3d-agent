@@ -205,6 +205,25 @@ cp -R skills/meshy-3d-printing .agents/skills/
 
 Both approaches provide the same Meshy API capabilities. Choose based on your preference and setup.
 
+## Security & Data
+
+These skills run entirely on your machine and talk to a single service — the Meshy API. No telemetry, no third-party endpoints.
+
+**Your API key**
+- Read from the current session environment, or from `.env` / `.env.local` in the current working directory. Home directories and shell profiles are **never scanned**.
+- Sent only in the HTTP `Authorization: Bearer` header to `https://api.meshy.ai`. It is **never logged in full** — scripts print at most a `msy_1234...` prefix.
+- **Never persisted by the scripts.** The key is written to `.env` in the current working directory *only* when you explicitly ask, and that `.env` is added to `.gitignore` automatically. It is never written to shell profiles, Windows user variables, or any path outside the working directory. Persisting it globally is offered to **you** as instructions to run yourself — the skill never does it silently.
+- System proxies are bypassed (`requests` session `trust_env = False`), so the key is never handed to an environment-configured proxy.
+
+**What leaves your machine**
+- Only what a generation request needs: your API key, text prompts, and image URLs/data (for image-to-3D) — all to `api.meshy.ai`.
+- Generated assets are downloaded and saved locally under `./meshy_output/`; nothing else is uploaded.
+
+**Filesystem footprint**
+- Reads: `.env` / `.env.local` in the working directory, and any input files you explicitly pass (e.g. local images), at the exact path you provide.
+- Writes: `./meshy_output/` (models, thumbnails, `metadata.json`, `history.json`) and — on request — `.env` in the working directory.
+- The 3D-printing skill additionally launches an **already-installed** slicer with your model file; it never downloads or installs software.
+
 ## For Maintainers
 
 Single sources of truth — edit these, never the generated copies:

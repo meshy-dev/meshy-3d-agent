@@ -26,6 +26,16 @@ All paths below are relative to **this skill's own directory** (the directory co
 
 ---
 
+## Security & Data Handling
+
+- **API key (`MESHY_API_KEY`)** — sent only in the HTTP `Authorization: Bearer` header to `https://api.meshy.ai`. Never logged in full (only a `key[:8]...` prefix is ever printed). The bundled script never persists it; it is written to `.env` in the current working directory *only* when the user explicitly asks, and never to shell profiles, Windows user variables, or any path outside the working directory (see [references/setup.md](references/setup.md)).
+- **Key sources read** — the current session environment, then `.env` / `.env.local` in the current working directory. Home directories and shell profiles are never scanned.
+- **Network** — the only external endpoint is `https://api.meshy.ai`. System proxies are bypassed (`trust_env = False`) so the key is never handed to an environment-configured proxy.
+- **Filesystem writes** — `.env` in the working directory (on explicit request only) and `./meshy_output/` for downloaded models, thumbnails, and metadata. Input files (e.g. local images for image-to-3D) are read only at the exact path the user provides.
+- **Data leaving the machine** — the API key, user-provided text prompts, and image URLs/data go to `api.meshy.ai` only. No other local data is transmitted; downloaded assets are saved locally.
+
+---
+
 ## IMPORTANT: 3D Printing → Use `meshy-3d-printing` Skill
 
 **If the user's request involves 3D printing** (keywords: print, 3d print, slicer, slice, bambu, orca, prusa, cura, multicolor, 3mf, figurine, miniature, statue, physical model), **use the `meshy-3d-printing` skill instead of this one for the entire workflow.** The printing skill handles generation with correct print-optimized parameters (e.g. `target_formats` with `"3mf"` for multicolor), slicer detection, coordinate conversion, and slicer launch — all in one pipeline.

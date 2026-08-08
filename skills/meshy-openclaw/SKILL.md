@@ -158,8 +158,9 @@ For multi-step pipelines (text-to-3d → rig → animate), show the FULL pipelin
 | Convert a model to other formats (no remesh) | Convert | `POST /openapi/v1/convert` | 1 |
 | Rescale a model to real-world size | Resize | `POST /openapi/v1/resize` | 1 |
 | Generate fresh UVs (GLB, ≤40k faces) before external texturing | UV Unwrap | `POST /openapi/v1/uv-unwrap` | 5 |
-| Add skeleton to character | Auto-Rigging | `POST /openapi/v1/rigging` | 5 |
+| Add skeleton to character (**textured** humanoid only) | Auto-Rigging | `POST /openapi/v1/rigging` | 5 |
 | Animate a rigged character | Animation | `POST /openapi/v1/animations` | 3 |
+| Browse animations to pick an `action_id` | Animation Library (public, **no API key**) | `GET https://api.meshy.ai/web/public/animations/resources` | 0 |
 | 2D image from text (recommended pre-step before image-to-3d) | Text to Image | `POST /openapi/v1/text-to-image` | 3 / 6 / 9 / 9 |
 | Optimize/edit a 2D image (recommended pre-step before image-to-3d) | Image to Image | `POST /openapi/v1/image-to-image` | 3 / 6 / 9 / 12 |
 | Photo → styled physical product (figure/lamp/keychain/fridge-magnet) | Creative Lab | `POST /openapi/creative-lab/{product}/v1/prototype` then `.../build` | 6 + 30 |
@@ -190,7 +191,7 @@ Every workflow is a sequence of calls to the bundled CLI `scripts/meshy_task.py`
 | `thumbnail --project-dir D (--url U \| --task-json F)` | Save the project thumbnail |
 | `check-faces --endpoint E --task-id ID [--max-faces 300000]` | Pre-rigging polycount gate |
 
-Follow the matching recipe in [references/pipelines.md](references/pipelines.md): **Text to 3D** (preview → refine), **Image to 3D**, **Multi-Image to 3D**, **Retexture**, **Remesh**, **Convert / Resize / UV Unwrap**, **Auto-Rigging + Animation** (t-pose + face-count gate), **Text/Image to Image**.
+Follow the matching recipe in [references/pipelines.md](references/pipelines.md): **Text to 3D** (preview → refine), **Image to 3D**, **Multi-Image to 3D**, **Retexture**, **Remesh**, **Convert / Resize / UV Unwrap**, **Auto-Rigging + Animation** (textured humanoid + t-pose + face-count gate; look `action_id` up in the public catalog), **Text/Image to Image**.
 
 **2D Optimization Pre-Step (strongly recommended):** prefer the image-to-3d route over direct text-to-3d — for a text-only request, first make a design image via `/openapi/v1/text-to-image` (`nano-banana-pro`; characters: `generate_multi_view: true` + `pose_mode`), then 3D-ify. For low-quality reference images, clean up first via `/openapi/v1/image-to-image`. 3–9 extra credits typically buy a noticeable quality bump. Skip when the user provides a clean studio shot, and always skip for Creative Lab products (they stylize internally).
 
@@ -248,8 +249,11 @@ On any failure, follow [references/troubleshooting.md](references/troubleshootin
 - **Asset retention**: Files deleted after **3 days** (non-Enterprise). Download immediately.
 - **PBR maps**: Must set `enable_pbr: true` explicitly.
 - **Refine**: Works with `meshy-5`, `meshy-6`, or `latest` — pick the same family as your preview for consistency. 10 credits regardless of model. (`meshy-4` is retired → 400.)
-- **Deprecated params**: `symmetry_mode` no longer affects output; `art_style` is ignored by Meshy-6; use `pose_mode` instead of the old `is_a_t_pose` flag.
-- **`consumed_credits`**: Every task GET response includes `consumed_credits` — read it to report the real credits spent rather than estimating.
+- **Deprecated params**: `symmetry_mode` no longer affects output; `art_style` is ignored by Meshy-6; use `pose_mode` instead of the old `is_a_t_pose` flag; use `texture_resolution` (`"2k"`/`"4k"`/`"8k"`) instead of `hd_texture`; on image-to-3d use `model_type: "smart-topology"` (with `ai_model: "meshy-t2"`) instead of the deprecated `"lowpoly"`. Smart Topology is image-to-3d only — Text to 3D and Multi-Image to 3D don't have it.
+- **Rigging needs textures**: rig the *textured* task (text-to-3d **refine**, or image-to-3d with `should_texture: true`) — untextured meshes are unsupported, so a mesh-only preview fails. Also: bipedal humanoid only, ≤300k faces via `input_task_id`, and a `model_url` model must face +Z.
+- **Inspect before downloading**: pass `multi_view_thumbnails: true` on image-to-3d / multi-image-to-3d and read `thumbnail_urls` (front/right/back/left, 512×512 PNG) instead of pulling a 50–200 MB GLB just to check the result. ~3s extra latency.
+- **Never hardcode `action_id`**: fetch `GET https://api.meshy.ai/web/public/animations/resources` (public, no key, `?category=` to narrow) and match the user's intent against `name` / `category`. IDs are not `1..N` — the catalog includes `-2`, `-1`, `0`.
+- **`consumed_credits`**: Every task GET response includes `consumed_credits` — read it to report the real credits spent rather than estimating. A `FAILED` task reports `0` (credits are refunded), so a transient failure can be retried without re-approving the spend.
 - **Rigging**: Humanoid bipedal only, polycount ≤ 300,000 (enforced by `check-faces`).
 - **Printing formats**: White model → OBJ with `scripts/fix_obj.py`. Multicolor → 3MF from Multi-Color Print API. Always detect slicer first.
 - **Download format**: Ask the user which format they need before downloading. GLB (viewing), OBJ (printing), 3MF (multicolor), FBX (games), USDZ (AR). Do NOT download all formats.

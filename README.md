@@ -27,8 +27,8 @@ Full 3D generation lifecycle: API key setup, task creation, polling, downloading
 | Convert | Convert a model to other formats (glb/fbx/obj/usdz/blend/stl/3mf) without remeshing | 1 |
 | Resize | Rescale to a real-world size (height / longest-side / auto) | 1 |
 | UV Unwrap | Generate a clean UV layout for external texturing (GLB, ≤40k faces) | 5 |
-| Auto-Rigging | Add skeleton to humanoid characters (includes walking + running) | 5 |
-| Animation | Apply custom animations to rigged characters | 3 |
+| Auto-Rigging | Add skeleton to **textured** humanoid characters, ≤300k faces (includes walking + running) | 5 |
+| Animation | Apply custom animations to rigged characters (`action_id` from the [public Animation Library](https://api.meshy.ai/web/public/animations/resources)) | 3 |
 | Text to Image | Generate 2D images from text (recommended pre-step before image-to-3d) | 3-9 |
 | Image to Image | Optimize/edit reference images (recommended pre-step before image-to-3d) | 3-12 |
 

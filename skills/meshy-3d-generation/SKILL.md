@@ -166,6 +166,7 @@ Wait for user confirmation before executing.
 | Generate fresh UVs (GLB, ≤40k faces) before external texturing | UV Unwrap | `POST /openapi/v1/uv-unwrap` | 5 |
 | Add skeleton to character | Auto-Rigging | `POST /openapi/v1/rigging` | 5 (includes walking + running) |
 | Animate a rigged character (custom) | Animation | `POST /openapi/v1/animations` | 3 |
+| Browse animations to pick an `action_id` | Animation Library (public, **no API key**) | `GET https://api.meshy.ai/web/public/animations/resources` | 0 |
 | 2D image from text (recommended pre-step before image-to-3d) | Text to Image | `POST /openapi/v1/text-to-image` | 3 / 6 / 9 / 9 |
 | Optimize/edit a 2D image (recommended pre-step before image-to-3d) | Image to Image | `POST /openapi/v1/image-to-image` | 3 / 6 / 9 / 12 |
 | Check FDM printability (watertight / non-manifold edges / holes) | Analyze Printability | `POST /openapi/v1/print/analyze` | **0 (free)** |
@@ -209,7 +210,7 @@ Follow the matching recipe in [references/pipelines.md](references/pipelines.md)
 - **Image to 3D** / **Multi-Image to 3D**
 - **Retexture** / **Remesh**
 - **Convert / Resize / UV Unwrap** (lightweight mesh utilities)
-- **Auto-Rigging + Animation** — requires t-pose + a face-count gate; rigging includes walking/running for free
+- **Auto-Rigging + Animation** — requires a **textured** humanoid model (rig the refine task, never the preview), t-pose, and a ≤300k face-count gate; rigging includes walking/running for free. A custom animation needs a real `action_id` from the public catalog
 - **Text to Image** / **Image to Image** — see the 2D pre-step below
 
 ### (Optional but strongly recommended) 2D Optimization Pre-Step
@@ -264,7 +265,12 @@ On any failure, follow [references/troubleshooting.md](references/troubleshootin
 - **Format availability**: Check keys in `model_urls` before downloading — not all formats are always present (the `poll` summary lists them). 3MF is available from the Multi-Color Print API.
 - **Download format**: ALWAYS ask the user which format they need before downloading. Recommend: GLB (viewing), OBJ (white model printing), 3MF (multicolor printing), FBX (game engines), USDZ (AR). Do NOT download all formats.
 - **3MF format**: 3MF is NOT included in default output of generation endpoints. To get 3MF, pass `"3mf"` in `target_formats` on generate/refine/remesh/retexture, or use the Convert API (`POST /openapi/v1/convert`, 1 credit). For multicolor 3D printing, the Multi-Color Print API outputs 3MF directly — no need to request it from generate/refine.
-- **Deprecated params**: `symmetry_mode` no longer affects output; `art_style` is ignored by Meshy-6; use `pose_mode` instead of the old `is_a_t_pose` flag. `meshy-4` is retired (returns 400).
+- **Deprecated params**: `symmetry_mode` no longer affects output; `art_style` is ignored by Meshy-6; use `pose_mode` instead of the old `is_a_t_pose` flag; use `texture_resolution` (`"2k"`/`"4k"`/`"8k"`) instead of `hd_texture`; on image-to-3d use `model_type: "smart-topology"` (with `ai_model: "meshy-t2"`) instead of the deprecated `"lowpoly"`. `meshy-4` is retired (returns 400).
+- **Smart Topology is image-to-3d only**: Text to 3D and Multi-Image to 3D have no `smart-topology` — for clean low-poly from text, go text-to-image → image-to-3d, or remesh down afterwards.
+- **Rigging needs textures**: rig the *textured* task (text-to-3d **refine**, or image-to-3d with `should_texture: true`). Rigging a mesh-only preview fails — untextured meshes are unsupported.
+- **Inspect before downloading**: pass `multi_view_thumbnails: true` on image-to-3d / multi-image-to-3d and read `thumbnail_urls` (front/right/back/left, 512×512 PNG) instead of pulling a 50–200 MB GLB just to check the result. ~3s extra latency.
+- **Never hardcode `action_id`**: fetch `GET https://api.meshy.ai/web/public/animations/resources` (public, no key, `?category=` to narrow) and match the user's intent against `name` / `category`. IDs are not `1..N` — the catalog includes `-2`, `-1`, `0`.
+- **Failed tasks are free**: a `FAILED` task reports `consumed_credits: 0` (credits are refunded), so a transient failure can be retried without re-asking the user to approve the spend.
 - **`consumed_credits`**: Every task GET response includes `consumed_credits` — read it to report the real credits spent rather than estimating.
 - **Timestamps**: All API timestamps are Unix epoch **milliseconds**.
 - **Large files**: Refined models can be 50–200 MB. The CLI streams downloads with timeouts; just be patient.

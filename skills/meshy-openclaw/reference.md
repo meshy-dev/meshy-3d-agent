@@ -145,6 +145,7 @@ Exceeding limits returns `429 Too Many Requests`.
 - Use `"latest"` or `"meshy-6"` for the best quality (default).
 - Use `"meshy-5"` for the previous generation model.
 - `"latest"` always resolves to the newest model (currently Meshy 6).
+- **Low-poly / clean-topology output:** on Image to 3D, use `model_type: "smart-topology"` with `ai_model: "meshy-t2"` (default and recommended for that model type). `model_type: "lowpoly"` is **deprecated** — the docs recommend `smart-topology` instead. `smart-topology` exists on Image to 3D only; for Text to 3D and Multi-Image to 3D, generate normally and drop the polycount with the Remesh API.
 
 ### 10. Common Mistakes to Avoid
 
@@ -152,6 +153,9 @@ Exceeding limits returns `429 Too Many Requests`.
 - **Don't forget `enable_pbr: true`** if you need metallic/roughness/normal maps.
 - **Don't set both `texture_prompt` and `texture_image_url`** — if both are provided, `texture_prompt` takes precedence.
 - **Don't assume model format availability.** Check that the URL key exists in `model_urls` before downloading.
+- **Don't guess an `action_id`.** Animation action IDs are not a `1..N` range (the catalog includes `-2`, `-1`, and `0`). Fetch the public catalog first — see the Animation API section.
+- **Don't rig an untextured mesh.** Rigging requires a *textured* humanoid model, so texture first (Text to 3D `refine`, Image to 3D with `should_texture: true`, or Retexture), then rig.
+- **Don't pass `hd_texture`.** It is deprecated in favour of `texture_resolution` (`"2k"` / `"4k"` / `"8k"`).
 
 ---
 
@@ -272,7 +276,7 @@ Creates a preview (mesh-only) 3D model from a text prompt.
 - `prompt` (string): Description of the 3D model. Max 600 characters.
 
 **Optional parameters:**
-- `model_type` (string): `"standard"` (default) or `"lowpoly"`. When `"lowpoly"`, `ai_model`, `topology`, `target_polycount`, `should_remesh` are ignored.
+- `model_type` (string): `"standard"` (default) or `"lowpoly"`. When `"lowpoly"`, `ai_model`, `topology`, `target_polycount`, `should_remesh` are ignored. **Text to 3D has no `"smart-topology"`** — that model type is Image to 3D only. For clean low-poly output from a text prompt, generate normally and remesh down, or go text-to-image → image-to-3d with `smart-topology`.
 - `ai_model` (string): `"meshy-5"`, `"meshy-6"`, or `"latest"` (default, resolves to Meshy 6).
 - `topology` (string): `"quad"` or `"triangle"` (default).
 - `target_polycount` (integer): 100–300,000. Default 30,000.
@@ -284,7 +288,7 @@ Creates a preview (mesh-only) 3D model from a text prompt.
 - `auto_size` (boolean): Use AI to auto-estimate real-world height. Default `false`.
 - `origin_at` (string): `"bottom"` or `"center"`. Default `"bottom"` when auto_size is true.
 
-**Deprecated parameters:** `symmetry_mode` — no longer affects output, safe to omit. `art_style` — ignored by Meshy-6. `is_a_t_pose` — superseded by `pose_mode`.
+**Deprecated parameters:** `symmetry_mode` — no longer affects output, safe to omit. `art_style` — ignored by Meshy-6. `is_a_t_pose` — superseded by `pose_mode`. (In refine mode, `hd_texture` is superseded by `texture_resolution`.)
 
 > **Retired model:** `meshy-4` is retired; requests that pass `ai_model: "meshy-4"` return 400.
 
@@ -305,7 +309,8 @@ Textures a previously generated preview model.
 - `texture_prompt` (string): Additional text to guide texturing. Max 600 characters.
 - `texture_image_url` (string): Image URL or data URI to guide texturing.
 - `ai_model` (string): `"meshy-5"`, `"meshy-6"`, or `"latest"` (default, resolves to Meshy 6). Refine works with `meshy-5`, `meshy-6`, or `latest` — pick the same family as your preview for consistency.
-- `hd_texture` (boolean): Generate a 4K base color texture. `meshy-6`/`latest` only. Default `false`.
+- `texture_resolution` (string): Base color texture resolution — `"2k"` (default, 2048²), `"4k"` (4096²), or `"8k"` (8192²). `"4k"`/`"8k"` require `meshy-6`/`latest`; at `"8k"` no emission map is produced. Refine mode only.
+- `hd_texture` (boolean): **Deprecated** — use `texture_resolution` instead (`hd_texture: true` ≡ `texture_resolution: "4k"`). When both are set, `texture_resolution` wins.
 - `remove_lighting` (boolean): Removes highlights and shadows from the base color texture. Default `true`. Meshy-6/latest only.
 - `moderation` (boolean): Default `false`.
 - `target_formats` (string[]): Output formats: `"glb"`, `"obj"`, `"fbx"`, `"stl"`, `"usdz"`, `"3mf"`. Default: all except 3mf. **3mf must be explicitly included.**
@@ -376,8 +381,12 @@ Generates a 3D model from a single image.
 - `image_url` (string): Publicly accessible URL or base64 data URI (.jpg, .jpeg, .png).
 
 **Optional parameters:**
-- `model_type` (string): `"standard"` (default) or `"lowpoly"`.
-- `ai_model` (string): `"meshy-5"`, `"meshy-6"`, or `"latest"` (default).
+- `model_type` (string): `"standard"` (default), `"smart-topology"`, or `"lowpoly"` (**deprecated** — the docs recommend `"smart-topology"` instead).
+  - `"smart-topology"` — cleaner topology, natively separated parts, triangle output. Ignores `topology`, `should_remesh`, `save_pre_remeshed_model`.
+  - `"lowpoly"` (deprecated) — ignores `ai_model`, `topology`, `target_polycount`, `should_remesh`, `save_pre_remeshed_model`.
+- `ai_model` (string): allowed values depend on `model_type`.
+  - `model_type: "standard"` → `"meshy-5"`, `"meshy-6"`, or `"latest"` (default, Meshy 6).
+  - `model_type: "smart-topology"` → `"meshy-t2"` (default, recommended — supports `target_polycount`) or `"meshy-t1"` (the old low-poly model; does **not** support setting a face count via `target_polycount`).
 - `topology` (string): `"quad"` or `"triangle"` (default).
 - `target_polycount` (integer): 100–300,000. Default 30,000.
 - `should_remesh` (boolean): Default `false` for Meshy 6, `true` for others.
@@ -385,7 +394,10 @@ Generates a 3D model from a single image.
 - `input_task_id` (string): Chain directly off a succeeded `text-to-image` / `image-to-image` task — use its generated image as the input without re-uploading. Provide this OR `image_url`.
 - `should_texture` (boolean): Generate textures. Default `true`. Without texture: 20 credits (Meshy-6) / 5 credits (others). With texture: +10 credits.
 - `enable_pbr` (boolean): PBR maps. Default `false`.
-- `hd_texture` (boolean): Generate a 4K base color texture. `meshy-6`/`latest` only. Default `false`.
+- `texture_resolution` (string): `"2k"` (default), `"4k"`, or `"8k"`. `"4k"`/`"8k"` are not available with `meshy-5`; at `"8k"` no emission map is produced.
+- `hd_texture` (boolean): **Deprecated** — use `texture_resolution` instead (`hd_texture: true` ≡ `texture_resolution: "4k"`). When both are set, `texture_resolution` wins.
+- `multi_view_thumbnails` (boolean): Render four cardinal-view thumbnails (front / right / back / left) and return them under `thumbnail_urls`. Default `false`. Adds ~3s of latency. **Use this instead of downloading the GLB when you only need to eyeball the result.**
+- `alpha_thumbnail` (boolean): Also render a transparent-background (RGBA) preview, returned as `alpha_thumbnail_url`. Default `false`.
 - `pose_mode` (string): `"a-pose"`, `"t-pose"`, or `""` (default). (Replaces the deprecated `is_a_t_pose` flag.)
 - `decimation_mode` (integer): Adaptive polycount mode, `1`–`4`.
 - `texture_prompt` (string): Text to guide texturing. Max 600 characters.
@@ -397,7 +409,7 @@ Generates a 3D model from a single image.
 - `auto_size` (boolean): Use AI to auto-estimate real-world height. Default `false`.
 - `origin_at` (string): `"bottom"` or `"center"`. Default `"bottom"` when auto_size is true.
 
-**Deprecated parameters:** `symmetry_mode` — no longer affects output. `art_style` — ignored by Meshy-6. `is_a_t_pose` — superseded by `pose_mode`. `meshy-4` is retired (returns 400).
+**Deprecated parameters:** `symmetry_mode` — no longer affects output. `art_style` — ignored by Meshy-6. `is_a_t_pose` — superseded by `pose_mode`. `hd_texture` — superseded by `texture_resolution`. `model_type: "lowpoly"` — superseded by `model_type: "smart-topology"`. `meshy-4` is retired (returns 400).
 
 **Response:** `{"result": "<task_id>"}`
 
@@ -417,7 +429,9 @@ Generates a 3D model from 1–4 images of the same object from different angles.
 **Required parameters:**
 - `image_urls` (array): 1–4 images as URLs or data URIs.
 
-**Optional parameters:** Same as Image to 3D (except `image_url` → `image_urls`). Also supports `input_task_id` to chain off a succeeded `text-to-image` / `image-to-image` result, plus `multi_view_thumbnails` (boolean): generate 4 cardinal-direction thumbnails of the result (image / multi-image only).
+**Optional parameters:** Same as Image to 3D (except `image_url` → `image_urls`), including `input_task_id` chaining off a succeeded `text-to-image` / `image-to-image` result, `texture_resolution`, `multi_view_thumbnails`, and `alpha_thumbnail`.
+
+> **Exception:** Multi-Image to 3D has **no `model_type` parameter at all** — no `"lowpoly"`, no `"smart-topology"`. `ai_model` is `"meshy-5"` / `"meshy-6"` / `"latest"` (default). Reduce polycount with the Remesh API instead.
 
 **Response:** `{"result": "<task_id>"}`
 
@@ -476,7 +490,8 @@ Apply new AI-generated textures to existing 3D models.
 - `ai_model` (string): `"meshy-5"`, `"meshy-6"`, or `"latest"` (default, resolves to Meshy 6).
 - `enable_original_uv` (boolean): Preserve original UV mapping. Default `true`.
 - `enable_pbr` (boolean): PBR maps. Default `false`.
-- `hd_texture` (boolean): Generate a 4K base color texture. `meshy-6`/`latest` only. Default `false`.
+- `texture_resolution` (string): `"2k"` (default), `"4k"`, or `"8k"`. At `"8k"` no emission map is produced.
+- `hd_texture` (boolean): **Deprecated** — use `texture_resolution` instead (`hd_texture: true` ≡ `texture_resolution: "4k"`). When both are set, `texture_resolution` wins.
 - `remove_lighting` (boolean): Removes highlights and shadows from the base color texture. Default `true`. Meshy-6/latest only.
 - `target_formats` (string[]): Output formats: `"glb"`, `"obj"`, `"fbx"`, `"stl"`, `"usdz"`, `"3mf"`. Default: all except 3mf. **3mf must be explicitly included.**
 
@@ -638,13 +653,21 @@ Server-Sent Events stream. Events include: `status`, `progress`, `model_urls` (c
 
 Create an internal skeleton and bind mesh to it for animation.
 
-Currently works best with **standard humanoid (bipedal) characters** with clearly defined limbs.
+### Preconditions — check these BEFORE spending credits
+
+Auto-rigging is **not suitable** for: untextured meshes · non-humanoid assets · humanoid assets with unclear limb and body structure.
+
+1. **The input model must be textured.** The docs state: "We currently support textured humanoid models." A Text to 3D **preview** task is mesh-only — rigging it will fail. Texture first (`mode: "refine"`, or Image to 3D with `should_texture: true`, or Retexture), then pass *that* task ID.
+2. **Standard humanoid (bipedal) only**, with clearly defined limbs and body structure. A non-humanoid input fails pose estimation and returns `422`.
+3. **≤ 300,000 faces when using `input_task_id`.** Over that returns `400 Face count exceeded` — reduce with the Remesh API first.
+4. **With `model_url`, the character's face must point toward the +Z axis** (the standard glTF forward direction). Models facing another axis fail pose estimation.
+5. Generating with `pose_mode: "t-pose"` gives the best rigging results — decide this at generation time, since it cannot be changed afterwards.
 
 ### POST /openapi/v1/rigging — Create Task
 
 **Required (one of):**
-- `input_task_id` (string): ID of a succeeded task.
-- `model_url` (string): URL or data URI of a GLB file.
+- `input_task_id` (string): ID of a succeeded task producing a **textured** humanoid model. Takes priority if `model_url` is also given.
+- `model_url` (string): URL or data URI of a **textured** humanoid GLB file (`.glb` only).
 
 **Optional parameters:**
 - `height_meters` (number): Character height in meters. Default 1.7.
@@ -669,11 +692,32 @@ Currently works best with **standard humanoid (bipedal) characters** with clearl
 
 Apply animations to rigged characters.
 
+### Finding a valid `action_id` (do this first)
+
+The public Animation Library catalog is served as JSON, **no API key required**:
+
+```
+GET https://api.meshy.ai/web/public/animations/resources
+```
+
+The docs point here directly: "The full list of available animations (with `action_id`, name, category, preview URL) is served as JSON at https://api.meshy.ai/web/public/animations/resources — fetch it directly to retrieve the current catalog."
+
+- Response shape: `{"result": {"total": <int>, "list": [ ... ]}}`. Each entry carries `id` (**this is the `action_id`**), `name`, `key`, `category`, `subCategory`, `previewUrl` (an animated GIF), `rigType`, `isDefault`, `isFree`.
+- Categories currently in the catalog: `WalkAndRun`, `BodyMovements`, `DailyActions`, `Fighting`, `Dancing`.
+- Narrow the payload with `?category=<Category>` (e.g. `?category=Fighting`) to keep it out of your context window.
+- **Never hardcode or guess an ID.** IDs are not a `1..N` range — the catalog includes `-2`, `-1`, and `0`. Match the user's intent against `name` / `category` / `subCategory`, and when several candidates fit, show the user the `previewUrl` GIFs and let them pick.
+
+```bash
+# Pick an action_id for "a waving character"
+curl -s "https://api.meshy.ai/web/public/animations/resources?category=DailyActions" \
+  | python3 -c "import json,sys; [print(a['id'], a['name'], '|', a['subCategory'], '|', a['previewUrl']) for a in json.load(sys.stdin)['result']['list'] if 'wav' in a['name'].lower()]"
+```
+
 ### POST /openapi/v1/animations — Create Task
 
 **Required parameters:**
-- `rig_task_id` (string): ID of a succeeded rigging task.
-- `action_id` (integer): Animation action ID from the Animation Library.
+- `rig_task_id` (string): ID of a succeeded rigging task (from `POST /openapi/v1/rigging`).
+- `action_id` (integer): Animation action ID — look it up in the public catalog above.
 
 **Optional parameters:**
 - `post_process` (object):
@@ -931,6 +975,8 @@ Webhook payloads contain the full task object in JSON format matching the corres
 | Creative Lab (build) | 30 credits |
 
 > Every task GET response includes a `consumed_credits` field — read it to report the real credits spent on a task rather than estimating.
+>
+> **A `FAILED` task costs nothing.** The docs state `consumed_credits` "Returns `0` for `FAILED` tasks (credits are refunded on failure)." So a failed task is a lost *wait*, not lost credits — retry a transient failure instead of asking the user to re-approve the spend.
 
 ---
 
@@ -940,12 +986,12 @@ Webhook payloads contain the full task object in JSON format matching the corres
 
 - `200 OK`: Success.
 - `202 Accepted`: Task created, processing not yet complete.
-- `400 Bad Request`: Missing or invalid parameter.
+- `400 Bad Request`: Missing or invalid parameter. For rigging this also covers `Face count exceeded` (input model over 300,000 faces — remesh it down first).
 - `401 Unauthorized`: Invalid API key.
 - `402 Payment Required`: Insufficient credits.
 - `403 Forbidden`: CORS or permission issue.
 - `404 Not Found`: Resource not found.
-- `422 Unprocessable Entity`: Valid request but cannot process (e.g., non-humanoid model for rigging).
+- `422 Unprocessable Entity`: Valid request but cannot process. For rigging this is pose estimation failing — the model is not a valid humanoid, or it is untextured, or (with `model_url`) it is not facing +Z.
 - `429 Too Many Requests`: Rate limit exceeded.
 - `5xx`: Server error.
 
@@ -960,3 +1006,5 @@ Webhook payloads contain the full task object in JSON format matching the corres
 When `status` is `"FAILED"`, check `task_error.message`:
 - `"The server is busy. Please try again later."` — Timeout or server overload. Retry with exponential backoff.
 - `"Internal server error."` — Processing failure. Verify inputs and retry.
+
+A `FAILED` task reports `consumed_credits: 0` — credits are refunded on failure, so retrying costs the user nothing beyond the wait.

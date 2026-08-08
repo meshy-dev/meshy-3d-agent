@@ -44,7 +44,7 @@ python3 scripts/meshy_task.py record --project-dir "$PROJECT_DIR" --task-id "$RE
 
 Common **preview** options (add to the payload):
 
-- `"model_type": "standard" | "lowpoly"` — with `lowpoly`, `ai_model` / `topology` / `target_polycount` / `should_remesh` are ignored
+- `"model_type": "standard" | "lowpoly"` — with `lowpoly`, `ai_model` / `topology` / `target_polycount` / `should_remesh` are ignored. Text to 3D has **no** `smart-topology`; for clean low-poly output route through image-to-3d (see below) or remesh down afterwards
 - `"topology": "triangle"` (default) or `"quad"`
 - `"target_polycount": 30000` — 100–300000
 - `"should_remesh": false` — default false for Meshy 6, true for others
@@ -55,7 +55,7 @@ Common **preview** options (add to the payload):
 Common **refine** options:
 
 - `"texture_prompt": ""` — extra guidance for texturing
-- `"hd_texture": true` — 4K base color texture (meshy-6/latest only)
+- `"texture_resolution": "2k" | "4k" | "8k"` — base color resolution, default `2k`; `4k`/`8k` need meshy-6/latest, and `8k` produces no emission map. (`hd_texture` is **deprecated** — it just means `"4k"`; don't send it)
 - `"remove_lighting": true` — remove baked lighting (meshy-6/latest only, default true)
 
 > **Refine compatibility**: Refine works with `meshy-5`, `meshy-6`, or `latest` (= Meshy 6) — pick the same family as your preview for consistency. Refine costs 10 credits regardless of model. (`meshy-4` is retired and returns 400.)
@@ -102,6 +102,25 @@ python3 scripts/meshy_task.py record --project-dir "$PROJECT_DIR" --task-id "$TA
 - `enable_pbr` default is **false** — set `true` for metallic/roughness/normal maps
 - `"image_enhancement": true` — optimize input image (meshy-6/latest only, default true)
 - `"remove_lighting": true` — remove baked lighting from texture (meshy-6/latest only, default true)
+- `"texture_resolution": "2k" | "4k" | "8k"` — default `2k`; `4k`/`8k` are unavailable on meshy-5. `hd_texture` is **deprecated**, don't send it
+- `"multi_view_thumbnails": true` — adds `thumbnail_urls` (front / right / back / left, 512×512 PNG) to the result, ~3s extra latency. **Inspect these instead of downloading a 50–200 MB GLB just to look at the model**
+
+**Low-poly / clean topology — use Smart Topology, not `lowpoly`:**
+
+```bash
+TASK_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v1/image-to-3d --payload '{
+  "image_url": "'"$IMG_URL"'",
+  "model_type": "smart-topology",
+  "ai_model": "meshy-t2",
+  "target_polycount": 10000,
+  "should_texture": true
+}')
+```
+
+- `model_type: "lowpoly"` is **deprecated**; the docs recommend `smart-topology` instead
+- `meshy-t2` (default for this model type, recommended) honours `target_polycount`; `meshy-t1` is the old low-poly model and does **not**
+- `smart-topology` ignores `topology` / `should_remesh` / `save_pre_remeshed_model`
+- Image to 3D only — Text to 3D and Multi-Image to 3D have no `smart-topology`
 
 ---
 
@@ -200,16 +219,26 @@ python3 scripts/meshy_task.py poll --endpoint /openapi/v1/uv-unwrap --task-id "$
 
 **IMPORTANT: When the user explicitly asks to rig or animate, the generation step (text-to-3d / image-to-3d) MUST use `pose_mode: "t-pose"` for best rigging results.** If the model was already generated without t-pose, recommend regenerating with `pose_mode: "t-pose"` first.
 
+**IMPORTANT: rigging requires a TEXTURED humanoid model.** The docs are explicit — "We currently support textured humanoid models", and untextured meshes are listed as unsupported. So the task ID you rig must be a **textured** one:
+
+| Source | Rig this task ID |
+|---|---|
+| Text to 3D | the **refine** task (`mode: "refine"`) — **never the preview task**, it is mesh-only |
+| Image to 3D / Multi-Image to 3D | the generation task, created with `should_texture: true` (the default) |
+| An untextured mesh you already have | run Retexture first, then rig the retexture task |
+
+Other preconditions: standard humanoid (bipedal) with clear limbs (otherwise `422`); ≤ 300,000 faces when rigging by `input_task_id` (otherwise `400`); and if you pass `model_url` instead, the character must face **+Z**.
+
 **Before rigging, verify the model's polygon count is under 300,000** — the bundled `check-faces` subcommand blocks and prints a remesh hint when exceeded:
 
 ```bash
 SOURCE_ENDPOINT="/openapi/v2/text-to-3d"  # adjust to match the source task's endpoint
-SOURCE_TASK_ID="TASK_ID"
+SOURCE_TASK_ID="$REFINE_ID"               # a TEXTURED task — refine, not preview
 
 # Pre-rig check: face count MUST be ≤ 300,000 (exits 1 with a remesh hint otherwise)
 python3 scripts/meshy_task.py check-faces --endpoint "$SOURCE_ENDPOINT" --task-id "$SOURCE_TASK_ID" || exit 1
 
-# Rig (humanoid bipedal characters only)
+# Rig (textured humanoid bipedal characters only)
 RIG_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v1/rigging --payload '{
   "input_task_id": "'"$SOURCE_TASK_ID"'",
   "height_meters": 1.7
@@ -223,16 +252,39 @@ python3 scripts/meshy_task.py download --url "$(python3 -c "import json;print(js
 python3 scripts/meshy_task.py download --url "$(python3 -c "import json;print(json.load(open('$TJ'))['result']['basic_animations']['running_glb_url'])")" --output "$PROJECT_DIR/running.glb"
 python3 scripts/meshy_task.py record --project-dir "$PROJECT_DIR" --task-id "$RIG_ID" --task-type rigging --stage rigged --files rigged.glb,walking.glb,running.glb
 
-# Only create an Animation task if you need a CUSTOM animation beyond walking/running:
+# Only create an Animation task if you need a CUSTOM animation beyond walking/running.
+# Look up a real action_id FIRST (see below) — never hardcode one.
 # ANIM_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v1/animations --payload '{
 #   "rig_task_id": "'"$RIG_ID"'",
-#   "action_id": 1
+#   "action_id": '"$ACTION_ID"'
 # }')
 # python3 scripts/meshy_task.py poll --endpoint /openapi/v1/animations --task-id "$ANIM_ID" --project-dir "$PROJECT_DIR"
 # python3 scripts/meshy_task.py download --url "$(python3 -c "import json;print(json.load(open('$PROJECT_DIR/task_$ANIM_ID.json'))['result']['animation_glb_url'])")" --output "$PROJECT_DIR/animated.glb"
 ```
 
-`action_id` comes from the Animation Library.
+### Finding `action_id`
+
+The Animation Library catalog is public JSON — **no API key needed**, and it is the only way to get a valid `action_id`:
+
+```bash
+# Whole catalog, or one category to keep it small.
+# Categories: WalkAndRun | BodyMovements | DailyActions | Fighting | Dancing
+curl -s "https://api.meshy.ai/web/public/animations/resources?category=DailyActions" \
+  | python3 -c "
+import json, sys
+KEYWORD = 'wave'   # match against the user's intent
+for a in json.load(sys.stdin)['result']['list']:
+    if KEYWORD in a['name'].lower():
+        print(a['id'], '|', a['name'], '|', a['subCategory'], '|', a['previewUrl'])
+"
+# 290 | Wave One Hand | Interacting | https://cdn.meshy.ai/.../Wave_One_Hand.gif
+```
+
+Each entry has `id` (**= `action_id`**), `name`, `key`, `category`, `subCategory`, `previewUrl` (GIF), `rigType`, `isDefault`, `isFree`.
+
+- **Never guess an ID.** They are not a `1..N` range — the catalog contains `-2`, `-1`, and `0`, so a hardcoded `1` is not "the first animation".
+- Drop `?category=` only when you need to search the whole catalog; the filtered payload is much smaller.
+- When several actions match, show the user the `previewUrl` GIFs and let them choose before spending the 3 credits.
 
 ---
 

@@ -1,247 +1,135 @@
 # Meshy 3D Agent
 
-AI agent skills for the [Meshy AI](https://www.meshy.ai) 3D generation platform. Enables AI coding assistants (Cursor, Claude Code, OpenClaw) to generate 3D models, textures, images, rig characters, animate them, and prepare models for 3D printing — no MCP server required.
+Meshy skills for creating digital assets and preparing 3D prints. The generation and printing
+skills drive **Meshy CLI 0.3.0** (`meshy`) on **Node.js 24+**. They are instructions and
+references only — no bundled runtime scripts. This is the **0.5.0 development candidate**.
 
-**New Updates**: For new web agent experience, come to try out our new [Meshy Workspace Agent](https://meshy.ai/workspace)! It supports:
-- :brain: Brainstorm with you, pitching directions first
-- :art: Generate visuals in batches, refined through chat
-- :ice_cube: Turn your favorite into 3D — print, download, anywhere
-- :books: Answer your 3D questions in-line
+## Start by asking for what you want
 
-## How It Works
+Install the skills (below), then say the thing, in your own words:
 
-These are **agent skills** — no server, no MCP process. Each skill bundles a small Python CLI (`scripts/`) plus on-demand markdown references (`references/`), and your AI assistant reads the skill files and drives the Meshy API directly through the bundled scripts.
+> Turn this photo into a textured GLB and save it to `./assets/chest.glb`. Set it up if it
+> isn't yet.
+
+The agent resolves the CLI, checks whether a session already exists and, if not, starts one
+browser login and shows you a link and a code. You approve in the browser; nothing is pasted
+into the chat, no API key is copied, and the agent then continues the request you actually
+made. The file lands at the path you named — `./meshy_output` is only the fallback when you
+name none — with a rendered preview alongside it and the task IDs for whatever you ask next
+("make a 1500-face LOD", "now as FBX", "scale it to 150 mm").
+
+Two more things worth knowing:
+
+- **No global CLI needed.** With Node 24+ the agent runs the pinned package temporarily
+  (`npm exec --yes --package=meshy-cli@0.3.0 -- meshy …`). A global
+  `npm install -g meshy-cli@0.3.0` only makes startup faster.
+- **Local print work needs no account.** Rescaling an OBJ or opening a 3MF in a slicer runs
+  entirely on your machine — no login, no balance check, no credits.
+
+### Doing it by hand instead
+
+```bash
+npm install -g meshy-cli@0.3.0
+meshy --version
+meshy auth login
+meshy auth status --format json --no-update-check
+```
+
+Run `meshy auth login` from a desktop terminal and approve in your browser; in SSH, CI or
+container sessions use `meshy auth login --device` and open the verification URL it prints.
+Keep the login process alive until you have approved. The CLI stores and refreshes the session;
+both skills reuse it under the same OS user and CLI configuration, in any directory.
+
+An existing `MESHY_API_KEY` overrides the stored browser session — keep it if that is
+intentional; `auth status` reports the effective source. Explicit key files need
+`--api-key-file`; the CLI never searches `.env`. Never paste a key into a chat. The
+self-contained [setup reference](skills/meshy-3d-generation/references/setup.md) has the
+version, path and error handling in full.
 
 ## Skills
 
-### [`meshy-3d-generation`](skills/meshy-3d-generation/) (core)
-
-Full 3D generation lifecycle: API key setup, task creation, polling, downloading, and multi-step pipelines.
-
-| Capability | Description | Credits |
-|-----------|-------------|---------|
-| Text to 3D | Generate 3D models from text descriptions | 20-30 |
-| Image to 3D | Convert single or multiple images to 3D | 20-30 |
-| Retexture | Apply new textures to existing models | 10 |
-| Remesh | Change topology, polycount, or export format | 5 |
-| Convert | Convert a model to other formats (glb/fbx/obj/usdz/blend/stl/3mf) without remeshing | 1 |
-| Resize | Rescale to a real-world size (height / longest-side / auto) | 1 |
-| UV Unwrap | Generate a clean UV layout for external texturing (GLB, ≤40k faces) | 5 |
-| Auto-Rigging | Add skeleton to **textured** humanoid characters, ≤300k faces (includes walking + running) | 5 |
-| Animation | Apply custom animations to rigged characters (`action_id` from the [public Animation Library](https://api.meshy.ai/web/public/animations/resources)) | 3 |
-| Text to Image | Generate 2D images from text (recommended pre-step before image-to-3d) | 3-9 |
-| Image to Image | Optimize/edit reference images (recommended pre-step before image-to-3d) | 3-12 |
-
-### [`meshy-3d-printing`](skills/meshy-3d-printing/) (optional)
-
-3D printing workflow: slicer detection, automated printability analysis & repair, white model printing, multicolor printing via API.
-
-| Capability | Description | Credits |
-|-----------|-------------|---------|
-| White Model Print | Generate → OBJ download → coordinate fix → slicer launch | 20 |
-| Multicolor Print | Generate → texture → multi-color API → 3MF → slicer launch | 40 |
-| Creative Lab | One tool: photo or text → finished printable product (figure / lamp / keychain / fridge-magnet); prototype→build end-to-end | 36 |
-| Slicer Detection | Auto-detect 7 slicers: OrcaSlicer, Bambu Studio, Creality Print, Elegoo Slicer, Anycubic Slicer Next, PrusaSlicer, UltiMaker Cura | 0 |
-| Analyze Printability | Automated FDM check via `/openapi/v1/print/analyze` (watertight / volume / non-manifold / degenerate / holes) | **0 (free)** |
-| Repair Printability | Fix non-manifold edges, degenerate faces, holes via `/openapi/v1/print/repair` (output format mirrors input) | 10 |
-
-> The printing skill bundles the same task-runner CLI as the generation skill and shares its environment setup.
-
-### [`meshy-openclaw`](skills/meshy-openclaw/) (OpenClaw / ClawHub)
-
-A single unified skill for the [OpenClaw](https://clawhub.ai) ecosystem. Combines generation + printing into one self-contained skill, with OpenClaw-compatible `metadata.clawdbot` frontmatter and a full SECURITY MANIFEST.
-
-| Capability | Description | Credits |
-|-----------|-------------|---------|
-| All generation | Text/Image to 3D, Creative Lab, Retexture, Remesh, Convert, Resize, UV Unwrap, Rig, Animate, Text/Image to Image | 1–36 |
-| 3D printing | White model (OBJ) + multicolor (3MF via API) + slicer detection | 0–35 |
-
-> Designed for ClawHub publishing. API key is stored only in `.env` in the current working directory — no shell profile access.
-
-## Quick Install
-
-One command to install all skills:
-
-```bash
-npx skills add meshy-dev/meshy-3d-agent
-```
-
-Then set your API key (pick any method below):
-
-> Or simply start using the skill — when the agent loads it, it will detect that no API key is configured, ask you for it, and set it up for the current session (it never writes your key anywhere except `.env` on your request).
-
-<details>
-<summary>macOS / Linux</summary>
-
-**Option A: Global (recommended)** — add to your shell profile so it persists across sessions:
-
-```bash
-nano ~/.zshrc
-```
-
-Add this line at the end, save and exit (`Ctrl+O`, `Enter`, `Ctrl+X`):
-
-```bash
-export MESHY_API_KEY="msy_YOUR_API_KEY"
-```
-
-Then reload:
-
-```bash
-source ~/.zshrc
-```
-
-**Option B: Project-local** — create a `.env` file in your project root:
-
-```bash
-echo 'MESHY_API_KEY=msy_YOUR_API_KEY' > .env
-```
-
-> Remember to add `.env` to your `.gitignore` to avoid committing your key.
-
-</details>
-
-<details>
-<summary>Windows</summary>
-
-**Option A: Permanent (recommended)** — set via System Environment Variables:
-
-1. Open Settings → search for **"Edit environment variables for your account"**
-2. Add a new user variable named `MESHY_API_KEY` with your key as the value
-3. Restart your terminal for it to take effect
-
-**Option B: Current session only:**
-
-```powershell
-$env:MESHY_API_KEY = "msy_YOUR_API_KEY"
-```
-
-**Option C: Project-local** — create a `.env` file in your project root:
-
-```
-MESHY_API_KEY=msy_YOUR_API_KEY
-```
-
-</details>
-
-### Prerequisites
-
-- A Meshy API key ([get one here](https://www.meshy.ai/settings/api) — requires Pro plan or above)
-- Python 3 with `requests` package (`pip install requests`)
-
-### Manual Installation
-
-<details>
-<summary>OpenClaw</summary>
-
-**Option A: Via ClawHub**
-
-```bash
-npx clawhub install meshy-dev/meshy-3d-agent
-```
-
-**Option B: Manual** — copy the `skills/meshy-openclaw/` folder to your OpenClaw skills directory.
-
-</details>
-
-<details>
-<summary>Cursor</summary>
-
-```bash
-mkdir -p .cursor/skills
-
-# Core (required)
-cp -R skills/meshy-3d-generation .cursor/skills/
-
-# 3D Printing (optional)
-cp -R skills/meshy-3d-printing .cursor/skills/
-```
-
-</details>
-
-<details>
-<summary>Claude Code</summary>
-
-```bash
-mkdir -p .claude/skills
-
-# Core (required)
-cp -R skills/meshy-3d-generation .claude/skills/
-
-# 3D Printing (optional)
-cp -R skills/meshy-3d-printing .claude/skills/
-```
-
-</details>
-
-<details>
-<summary>Codex</summary>
-
-Codex reads skills from `.agents/skills` — per repository, or from `~/.agents/skills` to make them available everywhere.
-
-```bash
-mkdir -p .agents/skills
-
-# Core (required)
-cp -R skills/meshy-3d-generation .agents/skills/
-
-# 3D Printing (optional)
-cp -R skills/meshy-3d-printing .agents/skills/
-```
-
-`.agents/skills` is the cross-editor convention, so Cursor picks these up as well.
-
-</details>
-
-## Skill vs MCP Server
-
-| Feature | Agent Skill (this repo) | [MCP Server](https://github.com/meshy-dev/meshy-mcp-server) |
-|---------|------------------------|-------------------------------------------------------------|
-| Setup | Copy a skill directory | `npx meshy-mcp-server` |
-| Dependencies | Python 3 + requests | Node.js >= 18 |
-| How it works | AI reads instructions, makes API calls directly | Dedicated server process with structured tools |
-| IDE support | Amp, Cline, Codex, Cursor, Gemini CLI, Claude Code, OpenCode and 20+ more | Any MCP-compatible client |
-| File management | Via skill instructions | Built-in auto-save with project folders |
-
-Both approaches provide the same Meshy API capabilities. Choose based on your preference and setup.
-
-## Security & Data
-
-These skills run entirely on your machine and talk to a single service — the Meshy API. No telemetry, no third-party endpoints.
-
-**Your API key**
-- Read from the current session environment, or from `.env` / `.env.local` in the current working directory. Home directories and shell profiles are **never scanned**.
-- Sent only in the HTTP `Authorization: Bearer` header to `https://api.meshy.ai`. It is **never logged in full** — scripts print at most a `msy_1234...` prefix.
-- **Never persisted by the scripts.** The key is written to `.env` in the current working directory *only* when you explicitly ask, and that `.env` is added to `.gitignore` automatically. It is never written to shell profiles, Windows user variables, or any path outside the working directory. Persisting it globally is offered to **you** as instructions to run yourself — the skill never does it silently.
-- System proxies are bypassed (`requests` session `trust_env = False`), so the key is never handed to an environment-configured proxy.
-
-**What leaves your machine**
-- Only what a generation request needs: your API key, text prompts, and image URLs/data (for image-to-3D) — all to `api.meshy.ai`.
-- Generated assets are downloaded and saved locally under `./meshy_output/`; nothing else is uploaded.
-
-**Filesystem footprint**
-- Reads: `.env` / `.env.local` in the working directory, and any input files you explicitly pass (e.g. local images), at the exact path you provide.
-- Writes: `./meshy_output/` (models, thumbnails, `metadata.json`, `history.json`) and — on request — `.env` in the working directory.
-- The 3D-printing skill additionally launches an **already-installed** slicer with your model file; it never downloads or installs software.
-
-## For Maintainers
-
-Single sources of truth — edit these, never the generated copies:
-
-| Source | Generated outputs |
+| Skill | Workflow |
 |---|---|
-| `reference/source.md` | `skills/*/reference.md` (the OpenClaw build also injects the SECURITY MANIFEST extracted from `skills/meshy-openclaw/SKILL.md`) |
-| `scripts/src/meshy_task.py` | `skills/*/scripts/meshy_task.py` |
-| `skills/meshy-3d-printing/scripts/slicers.py`, `fix_obj.py` | `skills/meshy-openclaw/scripts/slicers.py`, `fix_obj.py` |
+| [meshy-3d-generation](skills/meshy-3d-generation/SKILL.md) | Text/image/2D/motion, textures, remesh, conversion, sizing, UV, rigging and animation |
+| [meshy-3d-printing](skills/meshy-3d-printing/SKILL.md) | White models, multi-color 3MF, analysis/repair, Creative Lab products and slicers |
 
-After editing a source, regenerate and verify:
+Printing installs independently and controls its generation parameters from the start.
+Requested formats and already-approved budgets are preserved. Cost estimates come from
+`meshy make --dry-run` or the published price list, never from your balance; the real charge is
+the task's own `consumed_credits`. No live spending happens during install.
+
+Install these directories with your host's skills installer, or copy each **whole directory**:
+
+- Claude Code: `.claude/skills/` (the repository also retains its Claude plugin manifest).
+- Cursor: `.cursor/skills/` (Cursor plugin manifest retained).
+- Codex: `.agents/skills/`.
+
+Replace a prior managed skill directory rather than merging files, so old `scripts/` files are
+removed. Back up personal edits before replacement. Do not remove model projects or CLI state.
+Host discovery and browser interaction require a real host smoke test; local contract tests
+alone do not certify a host or operating system.
+
+### OpenClaw compatibility boundary
+
+`skills/meshy-openclaw` remains the separate **0.4.1 legacy Python skill**, unchanged by this
+migration of the two named skills. Its own prerequisites and API-key setup still apply; it
+does not gain CLI browser-session sharing. Do not install all skills expecting all three to
+use the CLI. Legacy `reference/source.md` and
+`scripts/src/meshy_task.py` belong to that older skill, not the two CLI skills.
+
+## Data and local effects
+
+The CLI sends prompts, media and task requests to the resolved Meshy API origins (normally
+`api.meshy.ai`); OAuth opens Meshy's browser page. Asset downloads and input URL preflights
+contact their media hosts without the API credential. npm is contacted when the CLI is installed
+or run as a temporary package; workflow commands disable the update notifier. An unexpected
+custom API or login origin must be resolved before credentials are sent.
+
+CLI profiles normally live in `~/.config/meshy/credentials.json` with mode 0600.
+`MESHY_CONFIG_DIR` moves the config root, including operation and device-flow state;
+`MESHY_CREDENTIALS_PATH` overrides only the credential file. The skills never read or copy tokens,
+and never print a token, device code or signed URL.
+`auth use` changes the shared active profile, so concurrent tasks should not switch accounts
+independently. Profile sharing is local, not automatic across machines or containers.
+
+Models, task snapshots and project metadata are written inside one workspace per job: the
+directory you named, or `./meshy_output` when you named none. Every writing command carries that
+boundary explicitly, so a path outside it — including through a symlink — is refused rather than
+written. Downloads are selected, not fetched in every format; existing files are not overwritten
+without `--overwrite`. OBJ preparation writes a new file. Slicer integration launches a detected
+installed application; a launch request is not proof the model was imported.
+
+## Development and validation
+
+Only maintainers need Python 3.11+ and PyYAML. None of these tools ships in the CLI skill folders.
 
 ```bash
-python3 scripts/build.py          # regenerate all targets
-python3 scripts/build.py --check  # CI mode: fail if outputs are stale, a SKILL.md exceeds 300 lines, or a references/*.md is unlinked
+python3 scripts/build.py
+python3 scripts/build.py --check
+python3 scripts/validate_skills.py
+MESHY_CLI_BIN=/absolute/path/to/meshy node --test tests/*.test.mjs
 ```
 
-Generated files carry a `GENERATED` marker comment. CI runs `python3 scripts/build.py --check` to reject edits that bypass the sources.
+`build.py` copies the shared setup, delivery and troubleshooting references from generation to
+printing so each skill directory installs on its own; `--check` fails when a copy is stale.
+`validate_skills.py` checks frontmatter, link closure, the absence of bundled runtime files, the
+JSON envelope and resolved workspace placeholder on every documented CLI command, and the plugin
+manifests. Neither touches OpenClaw.
+
+Tests use a loopback API, synthetic credentials and temporary config/workspace directories.
+`tests/runner-contract.test.mjs` additionally runs the documented `npm exec` entry point, so it
+populates an isolated npm cache from the registry on its first run and needs no `MESHY_CLI_BIN`.
+CI installs the pinned CLI into a temporary prefix; tests never contact production or spend
+credits. Without `MESHY_CLI_BIN`, the CLI contract tests skip explicitly — a skip is not a pass,
+so set it.
+
+## Upgrade and rollback
+
+Old task IDs remain usable. Initialize or reopen a CLI project and resume the original resource's
+wait; never recreate a task just to migrate. The CLI backs up legacy metadata when first writing
+its newer schema. Keep that backup. Returning to an old Python skill requires its old runtime
+and API-key setup; it cannot use the CLI OAuth store. Backward reading of newer project metadata
+is not guaranteed. Keep the CLI for inspecting in-flight tasks rather than submitting again.
 
 ## License
 

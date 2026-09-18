@@ -1,6 +1,44 @@
 # Changelog
 
-## [Unreleased]
+## [0.5.0] - Development candidate
+
+### Added (first-run and delivery experience)
+
+- One sentence starts the job: the skills resolve the runner, reuse an existing session, and —
+  when there is none — run `meshy auth login --device` as a live process, show the verification
+  URL and code as soon as the CLI prints them, and resume the original request once the session
+  verifies. No API key, token or task ID is ever copied by hand.
+- No global CLI required: with Node 24+ the pinned package runs temporarily through
+  `npm exec --yes --package=meshy-cli@0.3.0 -- meshy …`, verified for entry point, flag and
+  exit-code forwarding, and credential reuse across working directories.
+- The user's requested path wins. `WORKSPACE`/`PROJECT_ROOT` are resolved from the request and
+  `./meshy_output` is only the default; every writing command still carries the workspace
+  boundary, and out-of-boundary, symlink and overwrite protection is unchanged.
+- Previews are part of delivery: the task's thumbnail is downloaded, looked at and shown, an
+  earlier stage's preview is reused when a post-processing task has none, and a missing preview
+  is stated rather than implied. A rendered PNG is never called an interactive 3D viewer.
+- Follow-ups ("a 1500-face LOD", "now as FBX") locate the existing task or asset through the
+  session, the project index or a resource listing, and run only the missing step.
+- Estimates come from `meshy make --dry-run` or the dated published price list — never from the
+  balance, and never from an invented command.
+- Printing gained a local-only route: preparing an existing OBJ or opening a 3MF triggers no
+  authentication, no balance check and no generation, and "figurine" alone no longer implies
+  Creative Lab.
+
+### Changed
+
+- Rebuilt generation and printing from the 0.4.1 baseline around Meshy CLI 0.3.0;
+  removed their bundled Python runtime and duplicated API manuals.
+- Prefer one browser login, shared CLI profiles and automatic token refresh. Existing
+  API-key environments remain supported. Printing is independently installable.
+- Use async task IDs, resource-specific waits, explicit workspaces and selective downloads.
+- Added isolated auth, runner and recipe tests against the real CLI on loopback. No live-host
+  certification is implied.
+- SKILL.md frontmatter carries only name, description and license; the release version lives
+  in the plugin manifests.
+- OpenClaw remains the separate 0.4.1 Python skill; its runtime is outside this change.
+
+## [Unreleased — historical 0.4.1 baseline notes]
 
 ### Fixed (API facts that were making agents do the wrong thing)
 

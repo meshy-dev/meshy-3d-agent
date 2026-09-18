@@ -1,478 +1,129 @@
 #!/usr/bin/env python3
-"""CI validation for the meshy-3d-agent skills repository (ENG-1578).
-
-Five checks:
-  1. Frontmatter: every skills/<dir>/SKILL.md has name == <dir>, a semver
-     metadata.version, and a non-empty description containing both a trigger
-     phrase ("use when ...") and a routing boundary ("... instead", "not for ...").
-  2. Version sync: .claude-plugin/plugin.json, .cursor-plugin/plugin.json,
-     every SKILL.md metadata.version, and the top CHANGELOG.md entry must all
-     agree. Optional version fields in .claude-plugin/marketplace.json (top
-     level or per entry) must agree too.
-  3. Manifest coverage: all three manifests exist, parse, and carry a non-empty
-     "name"; .claude-plugin/marketplace.json must list every skills/<dir>
-     across its entries' skills arrays; an explicit skills list in the claude /
-     cursor plugin.json (if present) must cover the same set.
-
-     There is deliberately no .codex-plugin/plugin.json: Codex's plugin
-     marketplace only accepts a plugin root in a subdirectory carrying its own
-     real skills/ tree (a symlink or a "../skills" manifest path both install
-     with zero skills and still report success), which would mean committing a
-     second copy of every skill. Codex reads .agents/skills instead, so the
-     README's directory install covers it without a manifest.
-  4. Reference bidirectionality: every relative markdown link in a skill's
-     SKILL.md must resolve to an existing file inside the skill directory,
-     and every non-SKILL markdown file in the skill directory (reference.md,
-     references/**, ...) must be reachable from SKILL.md through in-directory
-     markdown links.
-  5. No parent-directory escapes: manifest string values must carry no ".."
-     path segment at all, and no markdown link inside a skill may resolve to a
-     path outside that skill's directory, so every skill directory stays
-     independently installable. A ".." that stays inside the skill (e.g.
-     references/pipelines.md → ../reference.md) is allowed: it travels with the
-     directory.
-
-Exits 0 when all checks pass, 1 otherwise. Emits ::error annotations when
-running inside GitHub Actions.
-
-Local run:  python3 scripts/validate_skills.py   (requires pyyaml)
-"""
-
-from __future__ import annotations
-
+"""Validate the two independently installable CLI skills and the plugin manifests that list them."""
+import argparse
 import json
-import os
-import re
-import sys
 from pathlib import Path
-
+import re
+import shlex
+import sys
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
-SKILLS_DIR = ROOT / "skills"
-CHANGELOG = ROOT / "CHANGELOG.md"
-CLAUDE_PLUGIN = ROOT / ".claude-plugin" / "plugin.json"
-MARKETPLACE = ROOT / ".claude-plugin" / "marketplace.json"
-CURSOR_PLUGIN = ROOT / ".cursor-plugin" / "plugin.json"
-MANIFEST_PATHS = [CLAUDE_PLUGIN, MARKETPLACE, CURSOR_PLUGIN]
+SKILLS = ("meshy-3d-generation", "meshy-3d-printing")
+VERSION = "0.5.0"
+LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
+# The pinned temporary-package runner documented in setup.md; recipes stay written as `meshy ...`.
+RUNNER = ["npm", "exec", "--yes", "--package=meshy-cli@0.3.0", "--"]
+# Written paths are placeholders resolved from the user's request, never a hardcoded directory.
+WORKSPACE_FLAGS = ("--workspace", "WORKSPACE")
 
-SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
-FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
-TRIGGER_RE = re.compile(r"use\s+(?:this\s+skill\s+)?when", re.IGNORECASE)
-BOUNDARY_RE = re.compile(
-    r"\b(?:instead|not\s+for|do\s+not\s+use|don'?t\s+use|only\s+(?:for|when)|except)\b",
-    re.IGNORECASE,
-)
-MD_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
-CHANGELOG_VER_RE = re.compile(r"^##\s+\[(\d+\.\d+\.\d+)\]", re.MULTILINE)
-EXTERNAL_LINK_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
 
-IN_CI = os.environ.get("GITHUB_ACTIONS") == "true"
+def commands(text):
+    for fence in re.finditer(r"```(?:bash|sh|shell)\n(.*?)```", text, re.S):
+        body = fence.group(1).replace("\\\n", " ")
+        for line in body.splitlines():
+            argv = shlex.split(line, comments=True)
+            if argv:
+                yield argv
 
-
-def rel(path: Path) -> str:
-    return str(Path(path).resolve().relative_to(ROOT))
-
-
-def skill_dirs() -> list[Path]:
-    if not SKILLS_DIR.is_dir():
-        return []
-    return sorted(
-        d for d in SKILLS_DIR.iterdir() if d.is_dir() and (d / "SKILL.md").is_file()
-    )
-
-
-def load_json(path: Path, errors: list[str]):
-    if not path.is_file():
-        errors.append(f"{rel(path)}: manifest missing")
-        return None
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        errors.append(f"{rel(path)}: invalid JSON: {exc}")
-        return None
-
-
-def load_frontmatter(path: Path):
-    match = FRONTMATTER_RE.match(path.read_text(encoding="utf-8"))
-    if not match:
-        return None
-    try:
-        return yaml.safe_load(match.group(1))
-    except yaml.YAMLError:
-        return None
-
-
-def md_link_targets(text: str) -> list[str]:
-    targets = []
-    for match in MD_LINK_RE.finditer(text):
-        target = match.group(1).strip()
-        if target.startswith("<"):
-            end = target.find(">")
-            target = target[1:end] if end != -1 else target[1:]
-        else:
-            target = target.split(" ")[0]  # drop optional "title"
-        targets.append(target)
-    return targets
-
-
-def is_external(target: str) -> bool:
-    return (
-        bool(EXTERNAL_LINK_RE.match(target))
-        or target.startswith("#")
-        or target.startswith("//")
-    )
-
-
-# --- Check 1: frontmatter ----------------------------------------------------
-
-
-def check_frontmatter() -> list[str]:
-    errors = []
-    for directory in skill_dirs():
-        path = directory / "SKILL.md"
-        fm = load_frontmatter(path)
-        if not isinstance(fm, dict):
-            errors.append(f"{rel(path)}: missing or unparseable YAML frontmatter")
-            continue
-        name = fm.get("name")
-        if name != directory.name:
-            errors.append(
-                f'{rel(path)}: frontmatter name "{name}" != directory name '
-                f'"{directory.name}"'
-            )
-        metadata = fm.get("metadata")
-        version = metadata.get("version") if isinstance(metadata, dict) else None
-        if version is None:
-            errors.append(f"{rel(path)}: metadata.version missing")
-        elif not SEMVER_RE.match(str(version)):
-            errors.append(
-                f'{rel(path)}: metadata.version "{version}" is not semver x.y.z'
-            )
-        description = fm.get("description")
-        if not isinstance(description, str) or not description.strip():
-            errors.append(f"{rel(path)}: description missing or empty")
-            continue
-        if not TRIGGER_RE.search(description):
-            errors.append(
-                f'{rel(path)}: description lacks a trigger phrase '
-                f'(expected "use when ...")'
-            )
-        if not BOUNDARY_RE.search(description):
-            errors.append(
-                f"{rel(path)}: description lacks a boundary note "
-                f'(e.g. "use ... instead", "not for ...")'
-            )
-    return errors
-
-
-# --- Check 2: version sync ---------------------------------------------------
-
-
-def collect_versions(manifests: dict) -> tuple[list[str], dict[str, str]]:
-    errors: list[str] = []
-    versions: dict[str, str] = {}
-
-    for path, data in manifests.items():
-        if data is None:
-            continue
-        label = rel(path)
-        if path == MARKETPLACE:
-            if "version" in data:
-                versions[f"{label} (top level)"] = str(data["version"])
-            entries = data.get("plugins")
-            if isinstance(entries, list):
-                for entry in entries:
-                    if isinstance(entry, dict) and "version" in entry:
-                        versions[
-                            f"{label} entry {entry.get('name', '?')}"
-                        ] = str(entry["version"])
-        else:
-            value = data.get("version")
-            if value is None:
-                errors.append(f"{label}: version field missing")
-            else:
-                versions[label] = str(value)
-
-    for directory in skill_dirs():
-        path = directory / "SKILL.md"
-        fm = load_frontmatter(path)
-        if (
-            isinstance(fm, dict)
-            and isinstance(fm.get("metadata"), dict)
-            and fm["metadata"].get("version") is not None
-        ):
-            versions[f"{rel(path)} metadata.version"] = str(fm["metadata"]["version"])
-
-    if CHANGELOG.is_file():
-        match = CHANGELOG_VER_RE.search(CHANGELOG.read_text(encoding="utf-8"))
-        if match:
-            versions["CHANGELOG.md top entry"] = match.group(1)
-        else:
-            errors.append("CHANGELOG.md: no '## [x.y.z]' entry found")
-    else:
-        errors.append("CHANGELOG.md: missing")
-
-    return errors, versions
-
-
-def check_versions(manifests: dict) -> list[str]:
-    errors, versions = collect_versions(manifests)
-    for label, value in sorted(versions.items()):
-        if not SEMVER_RE.match(value):
-            errors.append(f'{label}: "{value}" is not semver x.y.z')
-    if len(set(versions.values())) > 1:
-        detail = "\n    ".join(
-            f"{label} = {value}" for label, value in sorted(versions.items())
-        )
-        errors.append(f"version mismatch across manifests/skills/CHANGELOG:\n    {detail}")
-    return errors
-
-
-# --- Check 3: manifest coverage ----------------------------------------------
-
-
-def expand_skills_field(value, where: str, actual: set[str], errors: list[str]) -> set[str]:
-    covered: set[str] = set()
-    if isinstance(value, str):
-        items = [value]
-    elif isinstance(value, list):
-        items = value
-    else:
-        errors.append(f"{where}: skills must be a string or an array of strings")
-        return covered
-    for item in items:
-        if not isinstance(item, str):
-            errors.append(f"{where}: skills entries must be strings")
-            continue
-        normalized = item.strip().lstrip("./").rstrip("/")
-        if normalized == "skills":
-            covered |= actual
-        elif normalized.startswith("skills/"):
-            name = normalized[len("skills/"):]
-            if name in actual:
-                covered.add(name)
-            else:
-                errors.append(
-                    f"{where}: skills entry '{item}' matches no skills/<dir> "
-                    f"containing a SKILL.md"
-                )
-        else:
-            errors.append(f"{where}: skills entry '{item}' is not under skills/")
-    return covered
-
-
-def check_manifest_coverage(manifests: dict, load_errors: list[str]) -> list[str]:
-    errors = list(load_errors)
-    actual = {d.name for d in skill_dirs()}
-
-    for path, data in manifests.items():
-        if data is None:
-            continue
-        name = data.get("name")
-        if not (isinstance(name, str) and name.strip()):
-            errors.append(f"{rel(path)}: name missing or empty")
-
-    marketplace = manifests.get(MARKETPLACE)
-    if marketplace is not None:
-        owner = marketplace.get("owner")
-        if not (
-            isinstance(owner, dict)
-            and isinstance(owner.get("name"), str)
-            and owner["name"].strip()
-        ):
-            errors.append(f"{rel(MARKETPLACE)}: owner.name missing")
-        entries = marketplace.get("plugins")
-        if not isinstance(entries, list) or not entries:
-            errors.append(f"{rel(MARKETPLACE)}: plugins[] missing or empty")
-        else:
-            covered: set[str] = set()
-            for entry in entries:
-                if not isinstance(entry, dict):
-                    errors.append(f"{rel(MARKETPLACE)}: plugin entry is not an object")
-                    continue
-                entry_name = entry.get("name")
-                if not (isinstance(entry_name, str) and entry_name.strip()):
-                    errors.append(f"{rel(MARKETPLACE)}: plugin entry missing name")
-                    entry_name = "?"
-                source = entry.get("source")
-                where = f"{rel(MARKETPLACE)} entry '{entry_name}'"
-                if isinstance(source, str):
-                    resolved = (ROOT / source).resolve()
-                    if not resolved.is_dir():
-                        errors.append(f"{where}: source '{source}' is not a directory")
-                    elif not (resolved / ".claude-plugin" / "plugin.json").is_file():
-                        errors.append(
-                            f"{where}: source '{source}' has no "
-                            f".claude-plugin/plugin.json (required with strict "
-                            f"marketplace entries)"
-                        )
-                elif not isinstance(source, dict):
-                    errors.append(f"{where}: missing source")
-                covered |= expand_skills_field(
-                    entry.get("skills", []), where, actual, errors
-                )
-            if covered != actual:
-                errors.append(
-                    f"{rel(MARKETPLACE)}: entries cover {sorted(covered)} but "
-                    f"skills/ contains {sorted(actual)}"
-                )
-
-    # If the claude/cursor root plugin.json ever gains an explicit skills
-    # list, it must cover every skill directory too (auto-discovery does the
-    # right thing when the field is absent).
-    for path in (CLAUDE_PLUGIN, CURSOR_PLUGIN):
-        data = manifests.get(path)
-        if data is not None and "skills" in data:
-            covered = expand_skills_field(data["skills"], rel(path), actual, errors)
-            if covered != actual:
-                errors.append(
-                    f"{rel(path)}: explicit skills list covers {sorted(covered)} "
-                    f"but skills/ contains {sorted(actual)}"
-                )
-
-    return errors
-
-
-# --- Check 4: reference bidirectionality --------------------------------------
-
-
-def check_references() -> list[str]:
-    errors = []
-    for directory in skill_dirs():
-        root = directory.resolve()
-        md_files = {p.resolve() for p in directory.rglob("*.md")}
-        graph: dict[Path, set[Path]] = {p: set() for p in md_files}
-        for path in md_files:
-            for target in md_link_targets(path.read_text(encoding="utf-8")):
-                if is_external(target):
-                    continue
-                target = target.split("#", 1)[0]
-                if not target:
-                    continue
-                resolved = (path.parent / target).resolve()
-                try:
-                    resolved.relative_to(root)
-                except ValueError:
-                    continue  # escapes the skill dir; check 5 reports '..' cases
-                if not resolved.exists():
-                    errors.append(f"{rel(path)}: linked file '{target}' does not exist")
-                elif resolved in md_files:
-                    graph[path].add(resolved)
-        start = (directory / "SKILL.md").resolve()
-        seen: set[Path] = set()
-        stack = [start]
-        while stack:
-            current = stack.pop()
-            if current in seen:
+def validate_skill(folder):
+    entry = folder / "SKILL.md"
+    text = entry.read_text()
+    match = re.match(r"\A---\n(.*?)\n---", text, re.S)
+    require(match, f"{entry}: missing frontmatter")
+    meta = yaml.safe_load(match.group(1))
+    require(meta.get("name") == folder.name, f"{entry}: name mismatch")
+    require(bool(meta.get("description")), f"{entry}: missing description")
+    require("metadata" not in meta and "interface" not in meta, f"{entry}: SKILL.md carries no metadata/interface block; the release version lives in the plugin manifests")
+    require("0.3.0" in text, f"{entry}: missing supported CLI version")
+    require(len(text.splitlines()) <= 300, f"{entry}: move detail into references")
+    markdown = set()
+    for file in folder.rglob("*"):
+        require(not file.is_symlink(), f"{file}: symlink in skill")
+        require("scripts" not in file.relative_to(folder).parts and file.suffix not in (".py", ".sh", ".js", ".mjs", ".pyc"), f"{file}: bundled runtime")
+        if file.suffix == ".md":
+            markdown.add(file.resolve())
+    graph = {}
+    for file in markdown:
+        content = file.read_text()
+        require(not re.search(r"\b(?:meshy_task\.py|fix_obj\.py|slicers\.py|pip install requests)\b", content), f"{file}: old runtime instruction")
+        links = set()
+        for target in LINK.findall(content):
+            if re.match(r"[a-z]+://|#", target):
                 continue
-            seen.add(current)
-            stack.extend(graph.get(current, set()) - seen)
-        for path in sorted(md_files - {start}):
-            if path not in seen:
-                errors.append(
-                    f"{rel(path)}: not referenced by any markdown link chain "
-                    f"from {rel(directory / 'SKILL.md')}"
-                )
-    return errors
+            target = target.split("#")[0]
+            resolved = (file.parent / target).resolve()
+            require(resolved.is_relative_to(folder.resolve()) and resolved.is_file(), f"{file}: invalid/local escaping link {target}")
+            if resolved.suffix == ".md":
+                links.add(resolved)
+        graph[file] = links
+        for argv in commands(content):
+            if argv[: len(RUNNER)] == RUNNER:
+                argv = argv[len(RUNNER) :]  # same contract through the pinned temporary package
+            if argv[0] != "meshy":
+                require(argv[0] not in ("curl", "python", "python3", "jq"), f"{file}: non-CLI runtime command")
+                continue
+            if "--help" in argv or "--version" in argv:
+                continue
+            require("--format" in argv and argv[argv.index("--format") + 1] == "json", f"{file}: missing JSON output")
+            require("--no-update-check" in argv, f"{file}: unexpected update check")
+            if argv[1] != "auth":
+                require("--output-schema" in argv and argv[argv.index("--output-schema") + 1] == "v1", f"{file}: missing v1 schema")
+            require(not any("meshy_output" in arg for arg in argv[1:]), f"{file}: hardcoded output root instead of a resolved placeholder")
+            writes = any(flag in argv for flag in ("--save-json", "--output", "--output-dir", "--project")) or argv[1:3] in (["project", "init"], ["project", "record"], ["mesh", "prepare-print"])
+            if writes and argv[1] != "auth":
+                require("--workspace" in argv, f"{file}: output write without workspace")
+                require(argv[argv.index("--workspace") + 1] == WORKSPACE_FLAGS[1], f"{file}: workspace must be the resolved WORKSPACE placeholder")
+            if argv[1:3] == ["project", "init"]:
+                require("--root" in argv and argv[argv.index("--root") + 1] == "PROJECT_ROOT", f"{file}: project init must use the resolved PROJECT_ROOT")
+    reachable, queue = set(), [entry.resolve()]
+    while queue:
+        file = queue.pop()
+        if file not in reachable:
+            reachable.add(file)
+            queue.extend(graph.get(file, ()))
+    require(markdown <= reachable, f"{folder}: unreachable documents {markdown - reachable}")
+    # The first-run contract each skill must be able to answer on its own.
+    setup = (folder / "references" / "setup.md").read_text()
+    for needle in ("npm exec --yes --package=meshy-cli@0.3.0 -- meshy", "auth login --device", "./meshy_output", "WORKSPACE", "PROJECT_ROOT"):
+        require(needle in setup, f"{folder}: setup.md does not document {needle!r}")
+    require("--no-wait" not in re.sub(r"Do not use `--no-wait`[^.]*\.", "", setup), f"{folder}: setup.md must not use the device-secret login mode")
+    delivery = (folder / "references" / "delivery.md").read_text()
+    for needle in ("thumbnail.primary", "docs.meshy.ai/en/api/pricing", "--dry-run", "project list"):
+        require(needle in delivery, f"{folder}: delivery.md does not document {needle!r}")
 
+def safe_paths(value, root):
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if isinstance(child, str) and (key in ("composerIcon", "logo", "skills", "icon_small", "icon_large") or child.startswith("./assets/")):
+                path = (root / child).resolve()
+                require(path.is_relative_to(root.resolve()) and path.exists(), f"Missing/escaping package path: {child}")
+            else:
+                safe_paths(child, root)
+    elif isinstance(value, list):
+        for child in value:
+            safe_paths(child, root)
 
-# --- Check 5: no parent-directory references ----------------------------------
-
-
-def iter_strings(obj, prefix=""):
-    if isinstance(obj, dict):
-        for key, value in obj.items():
-            yield from iter_strings(value, f"{prefix}.{key}" if prefix else key)
-    elif isinstance(obj, list):
-        for index, value in enumerate(obj):
-            yield from iter_strings(value, f"{prefix}[{index}]")
-    elif isinstance(obj, str):
-        yield prefix, obj
-
-
-def has_parent_segment(value: str) -> bool:
-    return ".." in value.replace("\\", "/").split("/")
-
-
-def check_no_parent_refs(manifests: dict) -> list[str]:
-    errors = []
-    for path, data in manifests.items():
-        if data is None:
-            continue
-        for json_path, value in iter_strings(data):
-            if has_parent_segment(value):
-                errors.append(
-                    f"{rel(path)}: '{json_path}' contains a '..' path segment: "
-                    f"{value!r}"
-                )
-    for directory in skill_dirs():
-        root = directory.resolve()
-        for path in directory.rglob("*.md"):
-            for target in md_link_targets(path.read_text(encoding="utf-8")):
-                if is_external(target):
-                    continue
-                bare = target.split("#", 1)[0]
-                if not has_parent_segment(bare):
-                    continue
-                # A '..' that still lands inside the skill directory is fine —
-                # references/pipelines.md reaching its own skill's
-                # ../reference.md travels with the directory. Only a link that
-                # resolves outside the skill directory breaks independent
-                # installation.
-                if not bare:
-                    continue
-                resolved = (path.parent / bare).resolve()
-                try:
-                    resolved.relative_to(root)
-                except ValueError:
-                    errors.append(
-                        f"{rel(path)}: link '{target}' escapes the skill "
-                        f"directory (skill directories must be independently "
-                        f"installable)"
-                    )
-    return errors
-
-
-# --- Runner --------------------------------------------------------------------
-
-
-def main() -> int:
-    manifests: dict = {}
-    load_errors: list[str] = []
-    for path in MANIFEST_PATHS:
-        manifests[path] = load_json(path, load_errors)
-
-    checks = [
-        ("Check 1/5: SKILL.md frontmatter", check_frontmatter()),
-        ("Check 2/5: version sync", check_versions(manifests)),
-        (
-            "Check 3/5: manifest coverage",
-            check_manifest_coverage(manifests, load_errors),
-        ),
-        ("Check 4/5: reference bidirectionality", check_references()),
-        ("Check 5/5: no parent-directory references", check_no_parent_refs(manifests)),
-    ]
-
-    failed = 0
-    for title, errors in checks:
-        if errors:
-            failed += 1
-            print(f"FAIL {title}")
-            for error in errors:
-                print(f"    {error}")
-                if IN_CI:
-                    annotation = str(error).replace("\n", " -- ")
-                    print(f"::error ::{annotation}")
-        else:
-            print(f"ok   {title}")
-
-    if failed:
-        print(f"\n{failed} of {len(checks)} checks FAILED")
-        return 1
-    print(f"\nAll {len(checks)} checks passed")
-    return 0
-
+def validate(root):
+    for name in SKILLS:
+        validate_skill(root / "skills" / name)
+    for name in (".claude-plugin/plugin.json", ".cursor-plugin/plugin.json"):
+        manifest = json.loads((root / name).read_text())
+        require(manifest.get("version") == VERSION, f"{name}: version mismatch")
+        require(manifest.get("name"), f"{name}: missing name")
+        safe_paths(manifest, root)
+    market = json.loads((root / ".claude-plugin" / "marketplace.json").read_text())
+    listed = {s for plugin in market["plugins"] for s in plugin.get("skills", [])}
+    require(all(f"./skills/{name}" in listed for name in SKILLS), "Marketplace does not expose both CLI skills")
+    print(f"Validated CLI skills: {root}")
 
 if __name__ == "__main__":
-    sys.exit(main())
+    argparse.ArgumentParser(description=__doc__).parse_args()
+    try:
+        validate(ROOT)
+    except (ValueError, OSError, KeyError, yaml.YAMLError) as exc:
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(1)

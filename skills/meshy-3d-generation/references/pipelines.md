@@ -1,4 +1,4 @@
-# Digital asset pipelines — CLI 0.3.0
+# Digital asset pipelines — CLI 0.4.0
 
 Contents: route choice; shared lifecycle; text/image models; texture/topology/size; rigging and
 animation; 2D images and motion; downloads and recovery. Cost, previews, hand-over and

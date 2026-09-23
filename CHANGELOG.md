@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.1] - Development candidate
+
+### Changed
+
+- Generation and printing now pin **Meshy CLI 0.4.0** (runner, setup, troubleshooting, validator,
+  CI and contract tests). Every command still passes `--output-schema v1 --format json
+  --no-update-check` and reads only stdout JSON and the `Enter code … at …` stderr line; 0.4.0
+  changes the terminal view only, and the auth shapes, `auth status` ignoring `--api-key-file`,
+  and the exit codes are unchanged (verified against the published package).
+- The Node.js floor is **22.12**, not 24 — the CLI's own `engines` since 0.3.2. Agents on Node 22
+  no longer stop and ask the user to upgrade. CI now runs the suite on Node 22.12.
+
 ## [0.5.0] - Development candidate
 
 ### Added (first-run and delivery experience)

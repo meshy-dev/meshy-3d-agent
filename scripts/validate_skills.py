@@ -10,10 +10,10 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 SKILLS = ("meshy-3d-generation", "meshy-3d-printing")
-VERSION = "0.5.0"
+VERSION = "0.5.1"
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 # The pinned temporary-package runner documented in setup.md; recipes stay written as `meshy ...`.
-RUNNER = ["npm", "exec", "--yes", "--package=meshy-cli@0.3.0", "--"]
+RUNNER = ["npm", "exec", "--yes", "--package=meshy-cli@0.4.0", "--"]
 # Written paths are placeholders resolved from the user's request, never a hardcoded directory.
 WORKSPACE_FLAGS = ("--workspace", "WORKSPACE")
 
@@ -38,7 +38,7 @@ def validate_skill(folder):
     require(meta.get("name") == folder.name, f"{entry}: name mismatch")
     require(bool(meta.get("description")), f"{entry}: missing description")
     require("metadata" not in meta and "interface" not in meta, f"{entry}: SKILL.md carries no metadata/interface block; the release version lives in the plugin manifests")
-    require("0.3.0" in text, f"{entry}: missing supported CLI version")
+    require("0.4.0" in text, f"{entry}: missing supported CLI version")
     require(len(text.splitlines()) <= 300, f"{entry}: move detail into references")
     markdown = set()
     for file in folder.rglob("*"):
@@ -88,7 +88,7 @@ def validate_skill(folder):
     require(markdown <= reachable, f"{folder}: unreachable documents {markdown - reachable}")
     # The first-run contract each skill must be able to answer on its own.
     setup = (folder / "references" / "setup.md").read_text()
-    for needle in ("npm exec --yes --package=meshy-cli@0.3.0 -- meshy", "auth login --device", "./meshy_output", "WORKSPACE", "PROJECT_ROOT"):
+    for needle in ("npm exec --yes --package=meshy-cli@0.4.0 -- meshy", "auth login --device", "./meshy_output", "WORKSPACE", "PROJECT_ROOT"):
         require(needle in setup, f"{folder}: setup.md does not document {needle!r}")
     require("--no-wait" not in re.sub(r"Do not use `--no-wait`[^.]*\.", "", setup), f"{folder}: setup.md must not use the device-secret login mode")
     delivery = (folder / "references" / "delivery.md").read_text()

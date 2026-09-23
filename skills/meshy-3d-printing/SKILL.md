@@ -6,7 +6,7 @@ license: MIT
 
 # Meshy 3D Printing
 
-Use Meshy CLI **0.3.0** to deliver the requested print files at the intended size, with
+Use Meshy CLI **0.4.0** to deliver the requested print files at the intended size, with
 analysis/repair results where applicable and a slicer handoff when requested. This skill is
 self-contained. Ordinary digital assets belong to meshy-3d-generation.
 
@@ -38,7 +38,7 @@ local dimension check cannot establish full printability.
 ## Cloud authorization
 
 Resolve the runner automatically using Setup (compatible `meshy` or
-`npm exec --yes --package=meshy-cli@0.3.0 -- meshy …`). Local-only work stops at runner setup.
+`npm exec --yes --package=meshy-cli@0.4.0 -- meshy …`). Local-only work stops at runner setup.
 Cloud work reuses a verified session. If login is needed, keep `auth login --device` running,
 show its URL and user code in **commentary/progress, never a final answer**, and await the
 same tool session in this turn. After it exits, verify `auth status` and resume the print job.

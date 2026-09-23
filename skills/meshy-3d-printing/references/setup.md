@@ -2,7 +2,7 @@
 
 Everything here is shared by both Meshy skills. Three things are settled before any job
 starts: **how to run the CLI**, **whether a session already exists**, and **where files go**.
-The supported CLI is **0.3.0** on **Node.js 24 or newer**. No Python, request wrapper or
+The supported CLI is **0.4.0** on **Node.js 22.12 or newer**. No Python, request wrapper or
 separate token store is involved.
 
 ## 1. Resolve the runner
@@ -14,21 +14,21 @@ meshy --version
 
 | Observation | Runner to use for every command below |
 |---|---|
-| `meshy --version` prints `0.3.0` | `meshy` |
-| no `meshy` command, or another version | `npm exec --yes --package=meshy-cli@0.3.0 -- meshy` |
-| no Node.js, or Node older than 24 | stop and report it: the user installs Node.js 24+ |
+| `meshy --version` prints `0.4.0` | `meshy` |
+| no `meshy` command, or another version | `npm exec --yes --package=meshy-cli@0.4.0 -- meshy` |
+| no Node.js, or Node older than 22.12 | stop and report it: the user installs Node.js 22.12+ |
 
 Recipes are written as `meshy …`. When the pinned temporary package is the runner, put
-`npm exec --yes --package=meshy-cli@0.3.0 --` in front of the same arguments; the exit code
+`npm exec --yes --package=meshy-cli@0.4.0 --` in front of the same arguments; the exit code
 and the JSON on stdout are forwarded unchanged. Example:
 
 ```bash
-npm exec --yes --package=meshy-cli@0.3.0 -- meshy auth status --format json --no-update-check
+npm exec --yes --package=meshy-cli@0.4.0 -- meshy auth status --format json --no-update-check
 ```
 
 The first such call downloads the package into the npm cache; later calls reuse it, in any
 working directory. Nothing is installed globally and no existing installation is touched.
-A global `npm install -g meshy-cli@0.3.0` is optional and only worth proposing when the user
+A global `npm install -g meshy-cli@0.4.0` is optional and only worth proposing when the user
 wants faster startup — never as a precondition for the first job, and never as a silent
 downgrade of a newer global CLI. Do not install with `sudo` or change system policy; if a
 global install is refused by the host, keep using the temporary package. On Windows the
@@ -53,7 +53,7 @@ Preserve a user-authorized custom environment, and investigate an unexpected ove
 meshy auth status --format json --no-update-check
 ```
 
-In 0.3.0 the auth commands emit **bare JSON**, even with `--output-schema v1`. Read
+In 0.4.0 the auth commands emit **bare JSON**, even with `--output-schema v1`. Read
 `authenticated`, `verified`, `source` and `hint` at the top level, together with the exit code:
 
 - `authenticated: true`, `verified: true`, exit 0: continue with this account. **No new login.**
@@ -193,7 +193,7 @@ active profile. An existing environment key overrides browser login; report `sou
 diagnosing account selection, and do not change the user's environment or account implicitly.
 
 There is no automatic `.env` discovery. If the user chooses a project key file, pass its
-explicit path on authenticated commands. In 0.3.0 **`auth status` ignores `--api-key-file`**,
+explicit path on authenticated commands. In 0.4.0 **`auth status` ignores `--api-key-file`**,
 so verify that branch with a free balance call instead:
 
 ```bash

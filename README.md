@@ -6,7 +6,7 @@ no bundled runtime scripts. This is the **0.6.0 development candidate**.
 
 ## Let your agent install it
 
-Paste this into Claude Code, Codex, Cursor, OpenClaw, Hermes Agent or any other coding agent:
+Paste this into Claude Code, Codex, Cursor, OpenClaw, Hermes Agent, Meta Muse or another agent:
 
 > Help me install Meshy CLI and the meshy-3d-agent skills:
 > https://raw.githubusercontent.com/meshy-dev/meshy-3d-agent/main/INSTALL.md

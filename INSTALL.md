@@ -52,6 +52,15 @@ Hermes Agent can also install the skills from its own hub:
 `hermes skills install meshy-dev/meshy-3d-agent/skills/meshy-3d-generation` (and
 `…/meshy-3d-printing`).
 
+On **Meta Muse**, which runs in its own cloud machine, do Step 1 on that machine. Then save these
+two skills as Muse skills, each together with the files in its `references/` folder:
+
+- <https://github.com/meshy-dev/meshy-3d-agent/tree/main/skills/meshy-3d-generation>
+- <https://github.com/meshy-dev/meshy-3d-agent/tree/main/skills/meshy-3d-printing>
+
+The sign-in in Step 3 works from there too: the user approves on any device where they can open
+the link.
+
 ## Step 3: Sign in
 
 ```bash

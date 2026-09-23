@@ -5,7 +5,7 @@
 ### Added
 
 - `INSTALL.md`: install steps written for an agent. The CLI, the skills for its host (OpenClaw,
-  or any agent through `npx skills add`, including Hermes Agent), one browser sign-in and a
+  any agent through `npx skills add`, including Hermes Agent, or Meta Muse), one browser sign-in and a
   verification. The website points agents at it:
   "Help me install Meshy CLI and the meshy-3d-agent skills: <raw INSTALL.md URL>".
 

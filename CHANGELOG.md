@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.6.0] - Development candidate
+## [0.6.0] - 2026-09-23
 
 ### Added
 
@@ -32,7 +32,7 @@
 - The Node.js floor is **22.12**, not 24 — the CLI's own `engines` since 0.3.2. Agents on Node 22
   no longer stop and ask the user to upgrade. CI now runs the suite on Node 22.12.
 
-## [0.5.0] - Development candidate
+## [0.5.0] - Not released separately (shipped in 0.6.0)
 
 ### Added (first-run and delivery experience)
 

@@ -2,7 +2,7 @@
 
 Meshy skills for creating digital assets and preparing 3D prints. All three skills drive
 **Meshy CLI 0.4.0** (`meshy`) on **Node.js 22.12+**. They are instructions and references only —
-no bundled runtime scripts. This is the **0.6.0 development candidate**.
+no bundled runtime scripts. Current release: **0.6.0**.
 
 ## Let your agent install it
 

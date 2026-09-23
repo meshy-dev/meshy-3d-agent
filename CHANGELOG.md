@@ -1,6 +1,26 @@
 # Changelog
 
-## [0.5.1] - Development candidate
+## [0.6.0] - Development candidate
+
+### Added
+
+- `INSTALL.md`: install steps written for an agent. The CLI, the skills for its host (OpenClaw,
+  or any agent through `npx skills add`, including Hermes Agent), one browser sign-in and a
+  verification. The website points agents at it:
+  "Help me install Meshy CLI and the meshy-3d-agent skills: <raw INSTALL.md URL>".
+
+### Changed (OpenClaw)
+
+- `meshy-openclaw` is rebuilt on the Meshy CLI. The 0.4.1 Python client (`scripts/*.py`,
+  `reference.md`, the legacy `reference/source.md` and `scripts/src/meshy_task.py`) is removed.
+  The skill now carries the generation and printing references verbatim, synced by
+  `scripts/build.py`, and is checked by `validate_skills.py` like the other two.
+- Its OpenClaw gate was `requires.env: [MESHY_API_KEY]`, which hid the skill from anyone without
+  a key. That also made its own key-setup step unreachable, and keys need a Pro plan. It is now
+  eligible when `meshy` or `npm` is on `PATH` and offers `npm` installation of `meshy-cli`. Sign-in
+  is the CLI's browser device flow, and an existing `MESHY_API_KEY` still works.
+- The security manifest describes what the CLI actually touches, and the skill says how to wait
+  on a login or task with OpenClaw's `exec` / `process` tools.
 
 ### Changed
 

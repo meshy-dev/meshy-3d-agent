@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the two independently installable CLI skills and the plugin manifests that list them."""
+"""Validate the three independently installable CLI skills and the plugin manifests that list them."""
 import argparse
 import json
 from pathlib import Path
@@ -9,8 +9,8 @@ import sys
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
-SKILLS = ("meshy-3d-generation", "meshy-3d-printing")
-VERSION = "0.5.1"
+SKILLS = ("meshy-3d-generation", "meshy-3d-printing", "meshy-openclaw")
+VERSION = "0.6.0"
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 # The pinned temporary-package runner documented in setup.md; recipes stay written as `meshy ...`.
 RUNNER = ["npm", "exec", "--yes", "--package=meshy-cli@0.4.0", "--"]
@@ -37,7 +37,10 @@ def validate_skill(folder):
     meta = yaml.safe_load(match.group(1))
     require(meta.get("name") == folder.name, f"{entry}: name mismatch")
     require(bool(meta.get("description")), f"{entry}: missing description")
-    require("metadata" not in meta and "interface" not in meta, f"{entry}: SKILL.md carries no metadata/interface block; the release version lives in the plugin manifests")
+    # OpenClaw gates and installs skills from metadata.openclaw; nothing else carries metadata.
+    allowed = {"openclaw"} if folder.name == "meshy-openclaw" else set()
+    require(set(meta.get("metadata") or {}) == allowed and "interface" not in meta, f"{entry}: unexpected metadata/interface block; the release version lives in the plugin manifests")
+    require("env" not in ((meta.get("metadata") or {}).get("openclaw", {}).get("requires") or {}), f"{entry}: an env gate hides the skill from users who sign in through the browser")
     require("0.4.0" in text, f"{entry}: missing supported CLI version")
     require(len(text.splitlines()) <= 300, f"{entry}: move detail into references")
     markdown = set()
@@ -117,7 +120,7 @@ def validate(root):
         safe_paths(manifest, root)
     market = json.loads((root / ".claude-plugin" / "marketplace.json").read_text())
     listed = {s for plugin in market["plugins"] for s in plugin.get("skills", [])}
-    require(all(f"./skills/{name}" in listed for name in SKILLS), "Marketplace does not expose both CLI skills")
+    require(all(f"./skills/{name}" in listed for name in SKILLS), "Marketplace does not expose every CLI skill")
     print(f"Validated CLI skills: {root}")
 
 if __name__ == "__main__":

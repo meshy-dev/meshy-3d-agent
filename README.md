@@ -1,12 +1,22 @@
 # Meshy 3D Agent
 
-Meshy skills for creating digital assets and preparing 3D prints. The generation and printing
-skills drive **Meshy CLI 0.4.0** (`meshy`) on **Node.js 22.12+**. They are instructions and
-references only — no bundled runtime scripts. This is the **0.5.1 development candidate**.
+Meshy skills for creating digital assets and preparing 3D prints. All three skills drive
+**Meshy CLI 0.4.0** (`meshy`) on **Node.js 22.12+**. They are instructions and references only —
+no bundled runtime scripts. This is the **0.6.0 development candidate**.
+
+## Let your agent install it
+
+Paste this into Claude Code, Codex, Cursor, OpenClaw, Hermes Agent or any other coding agent:
+
+> Help me install Meshy CLI and the meshy-3d-agent skills:
+> https://raw.githubusercontent.com/meshy-dev/meshy-3d-agent/main/INSTALL.md
+
+[INSTALL.md](INSTALL.md) walks the agent through the CLI, the skills for its host and one
+browser sign-in.
 
 ## Start by asking for what you want
 
-Install the skills (below), then say the thing, in your own words:
+Once installed, say the thing, in your own words:
 
 > Turn this photo into a textured GLB and save it to `./assets/chest.glb`. Set it up if it
 > isn't yet.
@@ -52,6 +62,7 @@ version, path and error handling in full.
 |---|---|
 | [meshy-3d-generation](skills/meshy-3d-generation/SKILL.md) | Text/image/2D/motion, textures, remesh, conversion, sizing, UV, rigging and animation |
 | [meshy-3d-printing](skills/meshy-3d-printing/SKILL.md) | White models, multi-color 3MF, analysis/repair, Creative Lab products and slicers |
+| [meshy-openclaw](skills/meshy-openclaw/SKILL.md) | Both workflows in one skill for OpenClaw, with its security manifest and install hint |
 
 Printing installs independently and controls its generation parameters from the start.
 Requested formats and already-approved budgets are preserved. Cost estimates come from
@@ -69,13 +80,20 @@ removed. Back up personal edits before replacement. Do not remove model projects
 Host discovery and browser interaction require a real host smoke test; local contract tests
 alone do not certify a host or operating system.
 
-### OpenClaw compatibility boundary
+### OpenClaw and Hermes Agent
 
-`skills/meshy-openclaw` remains the separate **0.4.1 legacy Python skill**, unchanged by this
-migration of the two named skills. Its own prerequisites and API-key setup still apply; it
-does not gain CLI browser-session sharing. Do not install all skills expecting all three to
-use the CLI. Legacy `reference/source.md` and
-`scripts/src/meshy_task.py` belong to that older skill, not the two CLI skills.
+OpenClaw installs one skill per listing, so `meshy-openclaw` carries both workflows and the same
+references as the other two (kept byte-identical by `scripts/build.py`). It is published on
+ClawHub as [Meshy 3D Agent](https://clawhub.ai/arlieeee/skills/meshy-3d-agent):
+`openclaw skills install @arlieeee/meshy-3d-agent`. It is eligible whenever `meshy` or `npm` is on
+`PATH` and offers the npm install of the CLI; `MESHY_API_KEY` is optional, not a gate.
+
+Hermes Agent reads the same skills from skills.sh, ClawHub or GitHub:
+`hermes skills install meshy-dev/meshy-3d-agent/skills/meshy-3d-generation`, or
+`npx skills add … -a hermes-agent` as in [INSTALL.md](INSTALL.md).
+
+Until 0.6.0 the OpenClaw skill was a separate Python client that called the REST API with an API
+key. It is gone; its task IDs remain usable from the CLI.
 
 ## Data and local effects
 
@@ -114,7 +132,7 @@ MESHY_CLI_BIN=/absolute/path/to/meshy node --test tests/*.test.mjs
 printing so each skill directory installs on its own; `--check` fails when a copy is stale.
 `validate_skills.py` checks frontmatter, link closure, the absence of bundled runtime files, the
 JSON envelope and resolved workspace placeholder on every documented CLI command, and the plugin
-manifests. Neither touches OpenClaw.
+manifests, for all three skills.
 
 Tests use a loopback API, synthetic credentials and temporary config/workspace directories.
 `tests/runner-contract.test.mjs` additionally runs the documented `npm exec` entry point, so it

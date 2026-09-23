@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the two independently installable CLI skills and the plugin manifests that list them."""
+"""Validate the three independently installable CLI skills and the plugin manifests that list them."""
 import argparse
 import json
 from pathlib import Path
@@ -9,11 +9,11 @@ import sys
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
-SKILLS = ("meshy-3d-generation", "meshy-3d-printing")
-VERSION = "0.5.0"
+SKILLS = ("meshy-3d-generation", "meshy-3d-printing", "meshy-openclaw")
+VERSION = "0.6.0"
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 # The pinned temporary-package runner documented in setup.md; recipes stay written as `meshy ...`.
-RUNNER = ["npm", "exec", "--yes", "--package=meshy-cli@0.3.0", "--"]
+RUNNER = ["npm", "exec", "--yes", "--package=meshy-cli@0.4.0", "--"]
 # Written paths are placeholders resolved from the user's request, never a hardcoded directory.
 WORKSPACE_FLAGS = ("--workspace", "WORKSPACE")
 
@@ -37,8 +37,11 @@ def validate_skill(folder):
     meta = yaml.safe_load(match.group(1))
     require(meta.get("name") == folder.name, f"{entry}: name mismatch")
     require(bool(meta.get("description")), f"{entry}: missing description")
-    require("metadata" not in meta and "interface" not in meta, f"{entry}: SKILL.md carries no metadata/interface block; the release version lives in the plugin manifests")
-    require("0.3.0" in text, f"{entry}: missing supported CLI version")
+    # OpenClaw gates and installs skills from metadata.openclaw; nothing else carries metadata.
+    allowed = {"openclaw"} if folder.name == "meshy-openclaw" else set()
+    require(set(meta.get("metadata") or {}) == allowed and "interface" not in meta, f"{entry}: unexpected metadata/interface block; the release version lives in the plugin manifests")
+    require("env" not in ((meta.get("metadata") or {}).get("openclaw", {}).get("requires") or {}), f"{entry}: an env gate hides the skill from users who sign in through the browser")
+    require("0.4.0" in text, f"{entry}: missing supported CLI version")
     require(len(text.splitlines()) <= 300, f"{entry}: move detail into references")
     markdown = set()
     for file in folder.rglob("*"):
@@ -88,7 +91,7 @@ def validate_skill(folder):
     require(markdown <= reachable, f"{folder}: unreachable documents {markdown - reachable}")
     # The first-run contract each skill must be able to answer on its own.
     setup = (folder / "references" / "setup.md").read_text()
-    for needle in ("npm exec --yes --package=meshy-cli@0.3.0 -- meshy", "auth login --device", "./meshy_output", "WORKSPACE", "PROJECT_ROOT"):
+    for needle in ("npm exec --yes --package=meshy-cli@0.4.0 -- meshy", "auth login --device", "./meshy_output", "WORKSPACE", "PROJECT_ROOT"):
         require(needle in setup, f"{folder}: setup.md does not document {needle!r}")
     require("--no-wait" not in re.sub(r"Do not use `--no-wait`[^.]*\.", "", setup), f"{folder}: setup.md must not use the device-secret login mode")
     delivery = (folder / "references" / "delivery.md").read_text()
@@ -117,7 +120,7 @@ def validate(root):
         safe_paths(manifest, root)
     market = json.loads((root / ".claude-plugin" / "marketplace.json").read_text())
     listed = {s for plugin in market["plugins"] for s in plugin.get("skills", [])}
-    require(all(f"./skills/{name}" in listed for name in SKILLS), "Marketplace does not expose both CLI skills")
+    require(all(f"./skills/{name}" in listed for name in SKILLS), "Marketplace does not expose every CLI skill")
     print(f"Validated CLI skills: {root}")
 
 if __name__ == "__main__":

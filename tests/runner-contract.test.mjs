@@ -17,7 +17,7 @@ const documented = [...setupDoc.matchAll(/```bash\n([\s\S]*?)```/g)]
   .filter(line => line.startsWith('npm exec '));
 assert.equal(documented.length, 1, 'setup.md documents exactly one temporary-package invocation');
 const RUNNER = documented[0].split(' ').slice(0, 5);
-assert.deepEqual(RUNNER, ['npm', 'exec', '--yes', '--package=meshy-cli@0.3.0', '--'], RUNNER.join(' '));
+assert.deepEqual(RUNNER, ['npm', 'exec', '--yes', '--package=meshy-cli@0.4.0', '--'], RUNNER.join(' '));
 const DOCUMENTED_ARGS = documented[0].split(' ').slice(5);
 // Shared between runs so only the first execution on a machine downloads the package.
 const NPM_CACHE = join(tmpdir(), 'meshy-skill-runner-npm-cache');
@@ -65,7 +65,7 @@ test('the pinned temporary package is the CLI, forwards flags and exit codes, an
 
   const version = await f.run([...RUNNER.slice(1), 'meshy', '--version'], f.generation);
   assert.equal(version.code, 0, version.stderr);
-  assert.equal(version.stdout.trim(), '0.3.0', 'the temporary package is the supported CLI version');
+  assert.equal(version.stdout.trim(), '0.4.0', 'the temporary package is the supported CLI version');
 
   // Documented command, verbatim, with no credential anywhere: the CLI's own exit code survives npm.
   const missing = await f.run([...RUNNER.slice(1), ...DOCUMENTED_ARGS], f.generation);

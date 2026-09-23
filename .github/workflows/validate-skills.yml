@@ -28,7 +28,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: "22.12"
 
       - name: Validate skills and shared references
         run: |
@@ -37,11 +37,11 @@ jobs:
 
       - name: Install supported CLI into isolated prefix
         run: |
-          npm install --prefix "$RUNNER_TEMP/meshy-cli" meshy-cli@0.3.0 --no-audit --no-fund
+          npm install --prefix "$RUNNER_TEMP/meshy-cli" meshy-cli@0.4.0 --no-audit --no-fund
           echo "MESHY_CLI_BIN=$RUNNER_TEMP/meshy-cli/node_modules/meshy-cli/dist/index.js" >> "$GITHUB_ENV"
 
       # Covers auth, runner, generation and printing contracts. The runner test runs the
-      # documented `npm exec --package=meshy-cli@0.3.0` entry point, so it reaches the npm
+      # documented `npm exec --package=meshy-cli@0.4.0` entry point, so it reaches the npm
       # registry; every API call in the suite stays on loopback with synthetic credentials.
       - name: Isolated CLI contract tests (no live API)
         run: node --test tests/*.test.mjs

@@ -8,10 +8,10 @@ bare JSON shape; see [setup.md](setup.md).
 ## Runner problems
 
 - **`meshy: command not found`** is not a dead end: switch to the pinned temporary package
-  (`npm exec --yes --package=meshy-cli@0.3.0 -- meshy …`) and carry on with the same job.
+  (`npm exec --yes --package=meshy-cli@0.4.0 -- meshy …`) and carry on with the same job.
 - **A different global version** answers `--version`. Do not uninstall or downgrade it; use the
   pinned temporary package for this work and mention the mismatch once.
-- **Node older than 24** fails the CLI's own runtime gate. Report the required version and the
+- **Node older than 22.12** fails the CLI's own runtime gate. Report the required version and the
   installed one; do not try to relax it or run an older CLI.
 - **`npm exec` cannot reach the registry**: report the network/proxy error. A cached package
   still runs offline; an uncached one cannot be conjured.
@@ -22,7 +22,7 @@ bare JSON shape; see [setup.md](setup.md).
 resolved, while `authenticated: true, verified: false` also covers network and server failures.
 For the latter, use the hint or a free `meshy balance --output-schema v1 --format json
 --no-update-check` to obtain a typed error. Keep the same explicit `--api-key-file` if that is
-the selected source; status does not honor it in 0.3.0.
+the selected source; status does not honor it in 0.4.0.
 
 - **Network failure during verification**: say it is a connectivity problem, keep the stored
   credential, and retry the check when the network is back. Do not start a new authorization.
@@ -37,7 +37,7 @@ the selected source; status does not honor it in 0.3.0.
 - **`device_flow_not_supported`**: this API host has no device endpoint yet — the user logs in
   from their own desktop terminal, or supplies their own key privately.
 
-## CLI 0.3.0 exit codes
+## CLI 0.4.0 exit codes
 
 | Exit | Meaning | Recovery |
 |---|---|---|
@@ -55,7 +55,7 @@ the selected source; status does not honor it in 0.3.0.
 | 12 / 13 | Check failed / unknown | Inspect check details; do not present an unknown result as a pass. |
 | 130 | Interrupted | Preserve task/operation context and reconcile before continuing. |
 
-These are 0.3.0 codes, not HTTP status codes. Some OAuth errors use generic exit 1; inspect
+These are 0.4.0 codes, not HTTP status codes. Some OAuth errors use generic exit 1; inspect
 their message and hint as well.
 
 ## Unknown submission, failure and timeout

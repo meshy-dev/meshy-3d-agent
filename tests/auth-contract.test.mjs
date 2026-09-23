@@ -9,7 +9,7 @@ import { test } from 'node:test';
 // Set MESHY_CLI_BIN to a built CLI entrypoint (.js/.mjs/.cjs) or executable.
 // No install, real account, browser, paid endpoint, or personal config is used.
 const cli = process.env.MESHY_CLI_BIN;
-const skip = cli ? false : 'Set MESHY_CLI_BIN to test the real Meshy CLI 0.3.0';
+const skip = cli ? false : 'Set MESHY_CLI_BIN to test the real Meshy CLI 0.4.0';
 
 async function fixture(t, handler) {
   const root = await mkdtemp(join(tmpdir(), 'meshy-skill-auth-'));
@@ -79,7 +79,7 @@ async function fixture(t, handler) {
   }
   const version = await run(['--version']);
   assert.equal(version.code, 0);
-  assert.equal(version.data, '0.3.0', 'these contracts target the supported Meshy CLI version');
+  assert.equal(version.data, '0.4.0', 'these contracts target the supported Meshy CLI version');
   async function storeOauth(expiresAt = Date.now() + 3600000) {
     await writeFile(env.MESHY_CREDENTIALS_PATH, JSON.stringify({
       auth_version: 1, active_profile: 'shared', profiles: {
@@ -114,7 +114,7 @@ test('an existing OAuth profile is reused across generation and printing working
     assert.equal(output.data.verified, true);
     assert.equal(output.data.source, 'file');
     assert.equal(output.data.profile, 'shared');
-    assert.equal(output.data.schema_version, undefined, 'auth status is bare JSON in 0.3.0');
+    assert.equal(output.data.schema_version, undefined, 'auth status is bare JSON in 0.4.0');
     assert.ok(!output.stdout.includes('synthetic-access-token'));
     assert.ok(!output.stdout.includes('synthetic-refresh-token'));
   }

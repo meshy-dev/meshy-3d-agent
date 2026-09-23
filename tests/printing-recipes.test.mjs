@@ -11,7 +11,7 @@ import { test } from 'node:test';
 // Exercises commands extracted from shipped documentation, not handwritten recipe copies.
 // CLI under test is supplied by the maintainer; no npm install or real account is used.
 const cli = process.env.MESHY_CLI_BIN;
-const skip = cli ? false : 'Set MESHY_CLI_BIN to a Meshy CLI 0.3.0 executable or JS entrypoint';
+const skip = cli ? false : 'Set MESHY_CLI_BIN to a Meshy CLI 0.4.0 executable or JS entrypoint';
 const doc = await readFile(new URL('../skills/meshy-3d-printing/references/printing.md', import.meta.url), 'utf8');
 const lines = doc.split('\n').filter(line => line.startsWith('meshy '));
 function words(line) {
@@ -104,7 +104,7 @@ async function fixture(t) {
     });
   }
   async function ok(args) { const r = await run(args); assert.equal(r.code, 0, r.stdout + r.stderr); return r.json; }
-  const version = await run(['--version']); assert.equal(version.stdout.trim(), '0.3.0'); assert.equal(version.code, 0);
+  const version = await run(['--version']); assert.equal(version.stdout.trim(), '0.4.0'); assert.equal(version.code, 0);
   // The documented default job location, resolved the same way a user-named directory would be.
   const workspace = join(root, 'job output');
   await mkdir(workspace);

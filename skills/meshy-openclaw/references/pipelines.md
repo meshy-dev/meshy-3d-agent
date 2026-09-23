@@ -1,311 +1,222 @@
-# Generation Pipelines (meshy-openclaw)
+# Digital asset pipelines — CLI 0.4.0
 
-Per-endpoint recipes built from the bundled CLI `scripts/meshy_task.py`. All paths are relative to this skill's directory (the parent of `references/`).
+Contents: route choice; shared lifecycle; text/image models; texture/topology/size; rigging and
+animation; 2D images and motion; downloads and recovery. Cost, previews, hand-over and
+follow-up requests are in [delivery](delivery.md); the runner, login and the meaning of
+`WORKSPACE`/`PROJECT_ROOT` are in [setup](setup.md).
 
-Conventions used below:
+Commands are templates: replace uppercase placeholders with values from the user's inputs or
+the preceding JSON, quoting paths and text as individual shell arguments. Each command is a
+separate step whose output must be read before continuing. Do not run alternative recipes as one
+batch. `PROJECT_DIR` is the actual `result.project_dir`, never a literal directory. All business
+commands use the v1 envelope; never scrape task IDs from human-readable progress text.
 
-- `SKILL_DIR` = this skill's directory; examples write `scripts/meshy_task.py` for brevity — run them from the skill directory or prefix with `$SKILL_DIR/`.
-- Payloads can be passed inline (`--payload '{"mode":"preview",...}'`) or written to a file and passed with `--payload-file payload.json` (preferred for large payloads).
-- `create` prints the new task ID as its last stdout line → capture it with `TASK_ID=$(...)`.
-- `poll --project-dir D` saves the full task JSON to `D/task_<id>.json` and prints a summary (`TASK_SUCCEEDED`, `MODEL_URLS: glb, fbx, ...`, `CONSUMED_CREDITS`).
-- For the complete parameter lists, defaults, and response schemas, read [../reference.md](../reference.md).
+## Pick the route from the intent
 
----
+| What the user wants | Route | Notes |
+|---|---|---|
+| A model to look at / a digital prop | text-to-3d preview, then refine when texture is wanted | GLB unless they name a format |
+| A model of a specific object in a photo | image-to-3d, `--should-texture true` for colour | one clean reference, whole subject visible |
+| A low-poly / game-ready asset on a budget | image-to-3d `--model-type smart-topology --target-polycount N`, or remesh after a standard model | 100–15000 triangles for smart topology; mobile/web budgets sit at the low end |
+| An LOD chain from a model that exists | remesh the **existing** task, once per level | never regenerate for a second LOD |
+| A character that must move | textured humanoid in A/T pose → rigging → bundled clips or `animate` | see the rigging preconditions below |
+| A different format / size of an existing asset | convert / resize on that task | one step, no regeneration |
+| A concept image, or a style reference before committing to 3D | text-to-image / image-to-image | optional, and only when offered and accepted |
+| A printable physical object | hand the whole job to the printing skill | it sets geometry, format and texture from the start |
 
-## Text to 3D (Preview + Refine)
+Prefer the shortest chain that satisfies the request. An untextured mesh does not need refine;
+a GLB does not need a convert step; a plain preview does not need a 2D concept first.
 
-```bash
-PROMPT="USER_PROMPT"  # max 600 chars
+## Shared lifecycle
 
-# --- Preview ---
-PREVIEW_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v2/text-to-3d --payload '{
-  "mode": "preview",
-  "prompt": "'"$PROMPT"'",
-  "ai_model": "latest"
-}')
-
-PROJECT_DIR=$(python3 scripts/meshy_task.py project-dir --task-id "$PREVIEW_ID" --prompt "$PROMPT")
-python3 scripts/meshy_task.py poll --endpoint /openapi/v2/text-to-3d --task-id "$PREVIEW_ID" --project-dir "$PROJECT_DIR"
-python3 scripts/meshy_task.py download --task-json "$PROJECT_DIR/task_$PREVIEW_ID.json" --format glb --output "$PROJECT_DIR/preview.glb"
-python3 scripts/meshy_task.py record --project-dir "$PROJECT_DIR" --task-id "$PREVIEW_ID" --task-type text-to-3d --stage preview --prompt "$PROMPT" --files preview.glb
-python3 scripts/meshy_task.py thumbnail --project-dir "$PROJECT_DIR" --task-json "$PROJECT_DIR/task_$PREVIEW_ID.json"
-
-# --- Refine ---
-REFINE_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v2/text-to-3d --payload '{
-  "mode": "refine",
-  "preview_task_id": "'"$PREVIEW_ID"'",
-  "enable_pbr": true,
-  "ai_model": "latest"
-}')
-python3 scripts/meshy_task.py poll --endpoint /openapi/v2/text-to-3d --task-id "$REFINE_ID" --project-dir "$PROJECT_DIR"
-python3 scripts/meshy_task.py download --task-json "$PROJECT_DIR/task_$REFINE_ID.json" --format glb --output "$PROJECT_DIR/refined.glb"
-python3 scripts/meshy_task.py record --project-dir "$PROJECT_DIR" --task-id "$REFINE_ID" --task-type text-to-3d --stage refined --prompt "$PROMPT" --files refined.glb
-```
-
-Common **preview** options (add to the payload):
-
-- `"model_type": "standard" | "lowpoly"` — with `lowpoly`, `ai_model` / `topology` / `target_polycount` / `should_remesh` are ignored. Text to 3D has **no** `smart-topology`; for clean low-poly output route through image-to-3d (see below) or remesh down afterwards
-- `"topology": "triangle"` (default) or `"quad"`
-- `"target_polycount": 30000` — 100–300000
-- `"should_remesh": false` — default false for Meshy 6, true for others
-- `"pose_mode": "" | "a-pose" | "t-pose"` — use `"t-pose"` if rigging/animating later
-- `"target_formats": ["glb", "3mf"]` — 3mf must be explicitly requested
-- NOTE: `symmetry_mode` / `art_style` / `is_a_t_pose` are deprecated (symmetry_mode & art_style ignored; use pose_mode)
-
-Common **refine** options:
-
-- `"texture_prompt": ""` — extra guidance for texturing
-- `"texture_resolution": "2k" | "4k" | "8k"` — base color resolution, default `2k`; `4k`/`8k` need meshy-6/latest, and `8k` produces no emission map. (`hd_texture` is **deprecated** — it just means `"4k"`; don't send it)
-- `"remove_lighting": true` — remove baked lighting (meshy-6/latest only, default true)
-
-> **Refine compatibility**: Refine works with `meshy-5`, `meshy-6`, or `latest` (= Meshy 6) — pick the same family as your preview for consistency. Refine costs 10 credits regardless of model. (`meshy-4` is retired and returns 400.)
-
----
-
-## 2D Optimization Pre-Step (text-only request → design image → image-to-3d)
+Choose one `create` recipe below. For the **first** task, omit `--project` until the project
+exists; this avoids a local bookkeeping failure after a paid submission. Read its
+`result.submission.task_id` as `TASK_ID`, then:
 
 ```bash
-# 1. Generate a design image
-IMG_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v1/text-to-image --payload '{
-  "ai_model": "nano-banana-pro",
-  "prompt": "studio render of a sci-fi helmet, neutral background, even lighting",
-  "aspect_ratio": "1:1"
-}')
-# For character meshes add: "generate_multi_view": true and "pose_mode": "a-pose" (or "t-pose")
-
-python3 scripts/meshy_task.py poll --endpoint /openapi/v1/text-to-image --task-id "$IMG_ID" --project-dir "$PROJECT_DIR"
-IMG_URL=$(python3 -c "import json;print(json.load(open('$PROJECT_DIR/task_$IMG_ID.json'))['image_urls'][0])")
-
-# 2. Feed IMG_URL into the Image to 3D recipe below as "image_url"
+meshy project init --root "PROJECT_ROOT" --name "JOB_NAME" --task-id TASK_ID --task-type RESOURCE --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy RESOURCE wait TASK_ID --timeout 600 --project "PROJECT_DIR" --stage STAGE --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
 ```
 
----
-
-## Image to 3D
+Read the init result before replacing `PROJECT_DIR`. `RESOURCE` is the command that created that
+task, e.g. `image-to-3d` or `rigging`, not the parent task's resource. Every later create uses
+the same project and a meaningful stage; for example:
 
 ```bash
-# Local file? Convert to a data URI first:
-# IMG_URL=$(python3 -c "import base64;print('data:image/jpeg;base64,'+base64.b64encode(open('photo.jpg','rb').read()).decode())")
-
-TASK_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v1/image-to-3d --payload '{
-  "image_url": "'"$IMG_URL"'",
-  "should_texture": true,
-  "enable_pbr": true,
-  "ai_model": "latest"
-}')
-PROJECT_DIR=$(python3 scripts/meshy_task.py project-dir --task-id "$TASK_ID" --prompt "image-to-3d")
-python3 scripts/meshy_task.py poll --endpoint /openapi/v1/image-to-3d --task-id "$TASK_ID" --project-dir "$PROJECT_DIR"
-python3 scripts/meshy_task.py download --task-json "$PROJECT_DIR/task_$TASK_ID.json" --format glb --output "$PROJECT_DIR/model.glb"
-python3 scripts/meshy_task.py record --project-dir "$PROJECT_DIR" --task-id "$TASK_ID" --task-type image-to-3d --stage complete --files model.glb
+meshy text-to-3d create --mode refine --preview-task-id PREVIEW_ID --enable-pbr true --texture-resolution 4k --target-formats glb --async --project "PROJECT_DIR" --stage refine --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
 ```
 
-- `enable_pbr` default is **false** — set `true` for metallic/roughness/normal maps
-- `"image_enhancement": true` — optimize input image (meshy-6/latest only, default true)
-- `"remove_lighting": true` — remove baked lighting from texture (meshy-6/latest only, default true)
-- `"texture_resolution": "2k" | "4k" | "8k"` — default `2k`; `4k`/`8k` are unavailable on meshy-5. `hd_texture` is **deprecated**, don't send it
-- `"multi_view_thumbnails": true` — adds `thumbnail_urls` (front / right / back / left, 512×512 PNG) to the result, ~3s extra latency. **Inspect these instead of downloading a 50–200 MB GLB just to look at the model**
+Read the **new** ID, then wait through `text-to-3d` with stage `refine`. A successful project
+wait saves `task_TASK_ID.json`. Use that snapshot for asset selection and face checks. A job
+that starts from an existing task initializes its project with that task ID and its resource;
+it needs no new generation step.
 
-**Low-poly / clean topology — use Smart Topology, not `lowpoly`:**
+## Text and image models
+
+**Text:** preview makes geometry; only a SUCCEEDED text-to-3d preview can feed `--mode refine`.
+Uploaded, image-derived and remeshed models use retexture instead. Skip refine when the user
+asked for an untextured mesh.
 
 ```bash
-TASK_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v1/image-to-3d --payload '{
-  "image_url": "'"$IMG_URL"'",
-  "model_type": "smart-topology",
-  "ai_model": "meshy-t2",
-  "target_polycount": 10000,
-  "should_texture": true
-}')
+meshy text-to-3d create --mode preview --prompt "MODEL_DESCRIPTION" --target-formats glb --async --output-schema v1 --format json --no-update-check
 ```
 
-- `model_type: "lowpoly"` is **deprecated**; the docs recommend `smart-topology` instead
-- `meshy-t2` (default for this model type, recommended) honours `target_polycount`; `meshy-t1` is the old low-poly model and does **not**
-- `smart-topology` ignores `topology` / `should_remesh` / `save_pre_remeshed_model`
-- Image to 3D only — Text to 3D and Multi-Image to 3D have no `smart-topology`
+Run init/wait, then the refine example above when texturing is in scope. For a humanoid intended
+for rigging, add `--pose-mode a-pose` or `t-pose` to the preview.
 
----
-
-## Multi-Image to 3D
+**Single image:** use a clean reference with the whole subject visible. Choose explicitly whether
+to texture; the CLI defaults to an untextured draft. Texture settings require
+`--should-texture true`.
 
 ```bash
-TASK_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v1/multi-image-to-3d --payload '{
-  "image_urls": ["URL_1", "URL_2", "URL_3"],
-  "should_texture": true,
-  "enable_pbr": true,
-  "ai_model": "latest"
-}')
-python3 scripts/meshy_task.py poll --endpoint /openapi/v1/multi-image-to-3d --task-id "$TASK_ID" --project-dir "$PROJECT_DIR"
-python3 scripts/meshy_task.py download --task-json "$PROJECT_DIR/task_$TASK_ID.json" --format glb --output "$PROJECT_DIR/model.glb"
+meshy image-to-3d create --image-url "PHOTO_PATH" --model-type standard --should-texture true --enable-pbr true --texture-resolution 4k --target-formats glb --async --output-schema v1 --format json --no-update-check
 ```
 
-- `image_urls`: 1–4 images of the same object from different angles
-- Same `image_enhancement` / `remove_lighting` options as Image to 3D
-
----
-
-## Retexture
-
-**IMPORTANT**: Before calling, ask the user to provide a texture style:
-- **Text prompt**: e.g. "rusty metal", "cartoon style" → `text_style_prompt`
-- **Reference image**: URL of style image → `image_style_url`
-One of these is **required**. If both provided, `image_style_url` takes precedence.
+For a draft use `--should-texture false` and omit `--enable-pbr`/`--texture-resolution`. For
+controllable low-poly output, smart topology supports 100–15000 target triangles; standard mode
+needs a later remesh for polygon control. Do not pass ultra mode with smart topology.
 
 ```bash
-TASK_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v1/retexture --payload '{
-  "input_task_id": "PREVIOUS_TASK_ID",
-  "text_style_prompt": "wooden texture",
-  "enable_pbr": true
-}')
-python3 scripts/meshy_task.py poll --endpoint /openapi/v1/retexture --task-id "$TASK_ID" --project-dir "$PROJECT_DIR"
-python3 scripts/meshy_task.py download --task-json "$PROJECT_DIR/task_$TASK_ID.json" --format glb --output "$PROJECT_DIR/retextured.glb"
+meshy image-to-3d create --image-url "PHOTO_PATH" --model-type smart-topology --target-polycount 10000 --should-texture false --target-formats glb --async --output-schema v1 --format json --no-update-check
 ```
 
-- Model source: `"input_task_id"` OR `"model_url": "URL"`
-- Style: `"text_style_prompt"` (required if no image_style_url) OR `"image_style_url": "URL"` (takes precedence)
-- Options: `"remove_lighting": true` (meshy-6/latest, default true), `"target_formats": ["glb", "3mf"]`, `"auto_size": true`
-
----
-
-## Remesh / Format Conversion
+**Multiple views:** supply consistent views of the same object. Use `--data` with an
+`image_urls` JSON array for paths containing commas.
 
 ```bash
-TASK_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v1/remesh --payload '{
-  "input_task_id": "TASK_ID",
-  "target_formats": ["glb", "fbx", "obj"],
-  "topology": "quad",
-  "target_polycount": 10000
-}')
-python3 scripts/meshy_task.py poll --endpoint /openapi/v1/remesh --task-id "$TASK_ID" --project-dir "$PROJECT_DIR"
-# poll prints the available MODEL_URLS keys — download each requested format:
-python3 scripts/meshy_task.py download --task-json "$PROJECT_DIR/task_$TASK_ID.json" --format glb --output "$PROJECT_DIR/remeshed.glb"
-python3 scripts/meshy_task.py download --task-json "$PROJECT_DIR/task_$TASK_ID.json" --format fbx --output "$PROJECT_DIR/remeshed.fbx"
-python3 scripts/meshy_task.py download --task-json "$PROJECT_DIR/task_$TASK_ID.json" --format obj --output "$PROJECT_DIR/remeshed.obj"
+meshy multi-image-to-3d create --image-urls "FRONT_PATH,SIDE_PATH,BACK_PATH" --should-texture true --enable-pbr true --texture-resolution 4k --target-formats glb --async --output-schema v1 --format json --no-update-check
 ```
 
----
-
-## Mesh Utilities (Convert / Resize / UV Unwrap)
-
-Lightweight post-processing on a finished model (via `input_task_id` or `model_url`):
+A completed text-to-image or image-to-image task can supply the reference without downloading
+and re-uploading it:
 
 ```bash
-# Convert to other formats without remeshing (1 credit). Cheapest way to get 3MF/STL.
-CONV_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v1/convert --payload '{
-  "input_task_id": "TASK_ID",
-  "target_formats": ["stl", "3mf"]
-}')
-python3 scripts/meshy_task.py poll --endpoint /openapi/v1/convert --task-id "$CONV_ID" --project-dir "$PROJECT_DIR"
-# target_formats required; values: glb/fbx/obj/usdz/blend/stl/3mf
-
-# Resize to a real-world size (1 credit). Give EXACTLY ONE resize mode.
-RESIZE_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v1/resize --payload '{
-  "input_task_id": "TASK_ID",
-  "resize_height": 0.15
-}')
-python3 scripts/meshy_task.py poll --endpoint /openapi/v1/resize --task-id "$RESIZE_ID" --project-dir "$PROJECT_DIR"
-# Exactly one of: "resize_height": 0.15 (meters) | "resize_longest_side": 0.2 | "auto_size": true
-# Optional: "origin_at": "bottom" | "center"
-
-# UV Unwrap a GLB (5 credits). GLB only, ≤ 40,000 faces (else 400 → remesh down first).
-# Output: a GLB "UV white model" (fresh UVs + placeholder grey material) for external texturing.
-UV_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v1/uv-unwrap --payload '{
-  "input_task_id": "TASK_ID"
-}')
-python3 scripts/meshy_task.py poll --endpoint /openapi/v1/uv-unwrap --task-id "$UV_ID" --project-dir "$PROJECT_DIR"
+meshy image-to-3d create --input-task-id IMAGE_TASK_ID --should-texture false --target-formats glb --async --project "PROJECT_DIR" --stage geometry --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
 ```
 
----
+Use the resulting image-to-3d task for retexture, not the 2D task. Multi-image-to-3d also
+exposes `--input-task-id`; inspect its help when consuming generated multiview references. For
+single-image humanoids, `--pose-mode a-pose` is available.
 
-## Auto-Rigging + Animation
+## Texture, topology, formats and scale
 
-**IMPORTANT: When the user explicitly asks to rig or animate, the generation step (text-to-3d / image-to-3d) MUST use `pose_mode: "t-pose"` for best rigging results.** If the model was already generated without t-pose, recommend regenerating with `pose_mode: "t-pose"` first.
-
-**IMPORTANT: rigging requires a TEXTURED humanoid model.** The docs are explicit — "We currently support textured humanoid models", and untextured meshes are listed as unsupported. So the task ID you rig must be a **textured** one:
-
-| Source | Rig this task ID |
-|---|---|
-| Text to 3D | the **refine** task (`mode: "refine"`) — **never the preview task**, it is mesh-only |
-| Image to 3D / Multi-Image to 3D | the generation task, created with `should_texture: true` (the default) |
-| An untextured mesh you already have | run Retexture first, then rig the retexture task |
-
-Other preconditions: standard humanoid (bipedal) with clear limbs (otherwise `422`); ≤ 300,000 faces when rigging by `input_task_id` (otherwise `400`); and if you pass `model_url` instead, the character must face **+Z**.
-
-**Before rigging, verify the model's polygon count is under 300,000** — the bundled `check-faces` subcommand blocks and prints a remesh hint when exceeded:
+These examples assume a project containing the source task. When the source is a local model,
+replace `--input-task-id SOURCE_ID` with `--model-url "MODEL_PATH"`; use only one source. If this
+is the first submitted task of a new job, omit project/stage, then initialize the project with
+its accepted ID.
 
 ```bash
-SOURCE_ENDPOINT="/openapi/v2/text-to-3d"  # adjust to match the source task's endpoint
-SOURCE_TASK_ID="$REFINE_ID"               # a TEXTURED task — refine, not preview
-
-# Pre-rig check: face count MUST be ≤ 300,000 (exits 1 with a remesh hint otherwise)
-python3 scripts/meshy_task.py check-faces --endpoint "$SOURCE_ENDPOINT" --task-id "$SOURCE_TASK_ID" || exit 1
-
-# Rig (textured humanoid bipedal characters only)
-RIG_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v1/rigging --payload '{
-  "input_task_id": "'"$SOURCE_TASK_ID"'",
-  "height_meters": 1.7
-}')
-python3 scripts/meshy_task.py poll --endpoint /openapi/v1/rigging --task-id "$RIG_ID" --project-dir "$PROJECT_DIR"
-
-# Rigging automatically includes basic walking + running animations — download all three:
-TJ="$PROJECT_DIR/task_$RIG_ID.json"
-python3 scripts/meshy_task.py download --url "$(python3 -c "import json;print(json.load(open('$TJ'))['result']['rigged_character_glb_url'])")" --output "$PROJECT_DIR/rigged.glb"
-python3 scripts/meshy_task.py download --url "$(python3 -c "import json;print(json.load(open('$TJ'))['result']['basic_animations']['walking_glb_url'])")" --output "$PROJECT_DIR/walking.glb"
-python3 scripts/meshy_task.py download --url "$(python3 -c "import json;print(json.load(open('$TJ'))['result']['basic_animations']['running_glb_url'])")" --output "$PROJECT_DIR/running.glb"
-python3 scripts/meshy_task.py record --project-dir "$PROJECT_DIR" --task-id "$RIG_ID" --task-type rigging --stage rigged --files rigged.glb,walking.glb,running.glb
-
-# Only create an Animation task if you need a CUSTOM animation beyond walking/running.
-# Look up a real action_id FIRST (see below) — never hardcode one.
-# ANIM_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v1/animations --payload '{
-#   "rig_task_id": "'"$RIG_ID"'",
-#   "action_id": '"$ACTION_ID"'
-# }')
-# python3 scripts/meshy_task.py poll --endpoint /openapi/v1/animations --task-id "$ANIM_ID" --project-dir "$PROJECT_DIR"
-# python3 scripts/meshy_task.py download --url "$(python3 -c "import json;print(json.load(open('$PROJECT_DIR/task_$ANIM_ID.json'))['result']['animation_glb_url'])")" --output "$PROJECT_DIR/animated.glb"
+meshy retexture create --input-task-id SOURCE_ID --text-style-prompt "TEXTURE_DESCRIPTION" --enable-original-uv true --enable-pbr true --texture-resolution 4k --target-formats glb --async --project "PROJECT_DIR" --stage retexture --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy remesh create --input-task-id SOURCE_ID --topology triangle --target-polycount 30000 --target-formats glb --async --project "PROJECT_DIR" --stage remesh --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy convert create --input-task-id SOURCE_ID --target-formats fbx,obj --async --project "PROJECT_DIR" --stage convert --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy resize create --input-task-id SOURCE_ID --resize-height 0.15 --origin-at bottom --async --project "PROJECT_DIR" --stage resize --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
 ```
 
-### Finding `action_id`
+These are alternatives, not an automatic four-step chain. Each is the answer to exactly one
+follow-up: a polygon budget or an LOD level (remesh), a format (convert), a physical size
+(resize), a new look (retexture). Retexture can use `--image-style-url "STYLE_PATH"` instead of
+the text-style prompt; do not combine both style selectors. Remesh supports quad topology and an
+adaptive `--decimation-mode` instead of a fixed polygon count. Convert only changes formats.
+Resize uses **metres**: 0.15 is 15 cm; choose one of height, longest-side or auto-size. Consult
+each resource's `create --help` for further options.
 
-The Animation Library catalog is public JSON — **no API key needed**, and it is the only way to get a valid `action_id`:
+**UV unwrap:** outputs an untextured UV white model for external texturing; requires GLB and at
+most 40,000 faces. Inspect the source snapshot first:
 
 ```bash
-# Whole catalog, or one category to keep it small.
-# Categories: WalkAndRun | BodyMovements | DailyActions | Fighting | Dancing
-curl -s "https://api.meshy.ai/web/public/animations/resources?category=DailyActions" \
-  | python3 -c "
-import json, sys
-KEYWORD = 'wave'   # match against the user's intent
-for a in json.load(sys.stdin)['result']['list']:
-    if KEYWORD in a['name'].lower():
-        print(a['id'], '|', a['name'], '|', a['subCategory'], '|', a['previewUrl'])
-"
-# 290 | Wave One Hand | Interacting | https://cdn.meshy.ai/.../Wave_One_Hand.gif
+meshy inspect faces --task-json "PROJECT_DIR/task_SOURCE_ID.json" --max-faces 40000 --output-schema v1 --format json --no-update-check
+meshy uv-unwrap create --input-task-id SOURCE_ID --async --project "PROJECT_DIR" --stage uv-unwrap --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
 ```
 
-Each entry has `id` (**= `action_id`**), `name`, `key`, `category`, `subCategory`, `previewUrl` (GIF), `rigType`, `isDefault`, `isFree`.
-
-- **Never guess an ID.** They are not a `1..N` range — the catalog contains `-2`, `-1`, and `0`, so a hardcoded `1` is not "the first animation".
-- Drop `?category=` only when you need to search the whole catalog; the filtered payload is much smaller.
-- When several actions match, show the user the `previewUrl` GIFs and let them choose before spending the 3 credits.
-
----
-
-## Text to Image / Image to Image
+Proceed only after a passing check (exit 0); 12 means too dense, 13 means unknown. A remesh is an
+additional paid stage when needed, followed by a new face check. If the snapshot is missing,
+retrieve it through its actual owning resource:
 
 ```bash
-# Text to Image
-IMG_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v1/text-to-image --payload '{
-  "ai_model": "nano-banana-pro",
-  "prompt": "a futuristic spaceship"
-}')
-python3 scripts/meshy_task.py poll --endpoint /openapi/v1/text-to-image --task-id "$IMG_ID" --project-dir "$PROJECT_DIR"
-# Result: "image_url" in the saved task JSON
-
-# Image to Image
-IMG2_ID=$(python3 scripts/meshy_task.py create --endpoint /openapi/v1/image-to-image --payload '{
-  "ai_model": "nano-banana-pro",
-  "prompt": "make it look cyberpunk",
-  "reference_image_urls": ["URL"]
-}')
-python3 scripts/meshy_task.py poll --endpoint /openapi/v1/image-to-image --task-id "$IMG2_ID" --project-dir "$PROJECT_DIR"
+meshy RESOURCE get SOURCE_ID --save-json "PROJECT_DIR/task_SOURCE_ID.json" --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
 ```
 
-Models: `nano-banana` (3 cr) / `nano-banana-2` (6) / `nano-banana-pro` (9) / `gpt-image-2` (9 for text-to-image, 12 for image-to-image). Aspect-ratio support is model-specific — see [../reference.md](../reference.md).
+For an external GLB with unknown faces, establish the count with an available local modeling tool
+or user-provided evidence. This CLI has no local face counter, so unknown stays unknown: do not
+treat it as a pass and do not submit a speculative remesh to make it go away.
+
+## Rigging and animation
+
+Rig a **textured humanoid** with clear limbs, preferably in an A/T pose, at most 300,000 faces.
+Use the refined, retextured or textured image task, not an untextured preview. Verify geometry
+and texture suitability from the task and its preview; a face check alone cannot establish them.
+
+```bash
+meshy inspect faces --task-json "PROJECT_DIR/task_TEXTURED_ID.json" --max-faces 300000 --output-schema v1 --format json --no-update-check
+meshy rigging create --input-task-id TEXTURED_ID --height-meters 1.7 --async --project "PROJECT_DIR" --stage rigging --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+```
+
+Apply the same pass/fail/unknown rule as UV. Wait through `rigging` using the newly accepted ID.
+For external input the rigging CLI accepts a textured GLB via `--model-url`; it still needs the
+same suitability and face evidence. Rigging already provides walking and running clips — take
+them before paying for a custom animation. Select the rig or bundled clips individually:
+
+```bash
+meshy download --task-json "PROJECT_DIR/task_RIG_ID.json" --asset result.rigged_character_glb_url --output "PROJECT_DIR/rigged.glb" --project "PROJECT_DIR" --stage rigging --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy download --task-json "PROJECT_DIR/task_RIG_ID.json" --asset result.basic_animations.walking_glb_url --output "PROJECT_DIR/walking.glb" --project "PROJECT_DIR" --stage rigging --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+```
+
+For running, use `result.basic_animations.running_glb_url`; list the assets for FBX and armature
+variants. A custom animation is a separate task. Get the action ID from the public catalog rather
+than guessing it:
+
+```bash
+meshy animation-catalog list --search wave --output-schema v1 --format json --no-update-check
+meshy animate create --rig-task-id RIG_ID --action-id ACTION_ID --async --project "PROJECT_DIR" --stage animation --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+```
+
+Wait through `animate`, then download `--asset result.animation_glb_url`. Further post-processing
+options (FPS, USDZ, armature) are exposed by `meshy animate create --help`; include them only
+when requested.
+
+## 2D images and standalone motion
+
+Text-to-image makes a design or reference image. Image-to-image edits an existing reference; keep
+the edit prompt specific. These may be final deliverables, or approved pre-steps to 3D — offer
+them, never insert them silently into a 3D request. Choose a model supported by `create --help`,
+not an invented identifier.
+
+```bash
+meshy text-to-image create --ai-model nano-banana-pro --prompt "DESIGN_DESCRIPTION" --aspect-ratio 1:1 --async --output-schema v1 --format json --no-update-check
+meshy image-to-image create --ai-model nano-banana-pro --prompt "EDIT_DESCRIPTION" --reference-image-urls "IMAGE_PATH" --async --output-schema v1 --format json --no-update-check
+meshy text-to-motion create --prompt "MOTION_DESCRIPTION" --mode prime --duration 3 --async --output-schema v1 --format json --no-update-check
+```
+
+Apply init/wait to the selected resource, or add the existing project's flags for a chained step.
+Character concept generation can use `--generate-multi-view true --pose-mode a-pose` where the
+selected image model supports it. Text-to-motion is a standalone skeleton clip: prime returns
+FBX, swift BVH; duration is 2–10 seconds in 0.5-second increments. It does not animate the
+user's rigged character. Download image tasks with `--kind image` and motion with `--kind motion`,
+using `--output-dir`.
+
+## Asset delivery and recovery
+
+```bash
+meshy download --task-json "PROJECT_DIR/task_TASK_ID.json" --list --output-schema v1 --format json --no-update-check
+meshy download --task-json "PROJECT_DIR/task_TASK_ID.json" --model-format glb --output "OUTPUT_FILE" --project "PROJECT_DIR" --stage delivered --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy download --task-json "PROJECT_DIR/task_TASK_ID.json" --model-format obj --output-dir "OUTPUT_DIR" --project "PROJECT_DIR" --stage delivered --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+```
+
+`OUTPUT_FILE` is the exact path the user asked for, resolved as in [setup](setup.md); with no
+requested path it is a named file inside `PROJECT_DIR`. Use `--output-dir` when a selection
+yields several files (OBJ with its MTL and textures, a `--kind`), and `--output` for a single
+file. Choose only the applicable download. OBJ includes available MTL and textures; inspect
+material-link warnings. For one thumbnail use `--asset thumbnail.primary`; signed URLs and asset
+keys come from the task, never from guesswork.
+
+A task-json file preserves a snapshot, not a forever-valid download URL. If it expires, use
+`meshy download --resource RESOURCE --task-id TASK_ID` with the same selection, output, project
+and workspace flags to obtain refreshed URLs; do not regenerate the model. Existing files are
+protected: successful files survive a partial failure, and overwriting happens only within the
+user's authorization.
+
+Use `meshy project show --project "PROJECT_DIR" --output-schema v1 --format json
+--no-update-check` to recover lineage. The CLI reads legacy metadata and backs it up when
+migrating on a later write. Task failures, interrupted waits and unknown submissions follow
+[troubleshooting](troubleshooting.md); a failed local save does not erase a remote task. Report
+null or unknown charges as unknown rather than assuming zero.

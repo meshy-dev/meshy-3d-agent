@@ -30,7 +30,7 @@
       "name": "meshy-openclaw",
       "source": "./",
       "skills": ["./skills/meshy-openclaw"],
-      "description": "Meshy 3D generation and printing for the OpenClaw runtime, with its security manifest and env requirements.",
+      "description": "Meshy 3D generation and printing in one skill for OpenClaw, with its security manifest and CLI install hint.",
       "author": {
         "name": "Meshy",
         "url": "https://github.com/meshy-dev"

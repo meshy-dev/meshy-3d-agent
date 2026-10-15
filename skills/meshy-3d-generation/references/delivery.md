@@ -21,16 +21,19 @@ meshy make "MODEL_DESCRIPTION" --dry-run --output-schema v1 --format json --no-u
 
 2. **The published price list**, <https://docs.meshy.ai/en/api/pricing>, for everything else —
    retexture, remesh, convert, resize, UV, rigging, animation, 2D, motion, print analysis and
-   repair, multicolor, Creative Lab. Quote it with the date you read it and call it an estimate.
+   repair, multicolor, auto split, Creative Lab. Quote it with the date you read it and call it an estimate.
 
 Nothing else is a quote. `meshy balance` reports the **balance**, not a price. Do not invent a
 cost command, reuse a `make` estimate for an unrelated chain, or state a precise figure for a
 stage neither source covers — say that the exact price is unknown and give the source to check.
 
 The real number arrives afterwards: `consumed_credits` on the finished task. Report it when it
-is present, and report it as unknown when it is not. Never assume zero.
+is present, and report it as unknown when it is not. Never assume zero. Studio and Enterprise
+teams can also list finished tasks with their charges through the free `meshy usage tasks`; any
+other account gets a permission error there, which says nothing about the job.
 
-Before starting, know whether the balance can cover the plan:
+Before starting, know whether the balance can cover the plan. The balance result also splits
+it into monthly credits, which reset on the date it gives, and permanent credits:
 
 ```bash
 meshy balance --output-schema v1 --format json --no-update-check
@@ -132,7 +135,9 @@ meshy project show --project "PROJECT_DIR" --workspace "WORKSPACE" --output-sche
 meshy text-to-3d list --page-size 10 --output-schema v1 --format json --no-update-check
 ```
 
-4. A local model file the user points at — pass it to the step's `--model-url` input.
+4. A local model file the user points at — pass it to the step's `--model-url` input. A local
+   file must be GLB or glTF (rigging and multicolor: GLB); an STL, OBJ or FBX needs an http(s)
+   URL or the task it came from.
 
 Then run the one step that is actually missing: `remesh` for a polygon budget, `convert` for a
 format, `resize` for a physical size, `retexture` for a new look, `rigging`/`animate` for motion,

@@ -22,7 +22,7 @@ metadata:
 
 # Meshy 3D — Generation + Printing
 
-Use Meshy CLI **0.4.0** to turn the user's request into a delivered asset: the requested files
+Use Meshy CLI **0.4.3** to turn the user's request into a delivered asset: the requested files
 in the requested location, an inspected preview when one exists, and — for prints — the
 intended size, analysis/repair results and a slicer handoff when asked. Login or task
 submission alone is not completion. Choose the shortest suitable pipeline and reuse existing
@@ -31,7 +31,7 @@ assets for follow-ups.
 ## SECURITY MANIFEST
 
 **Executables:** only the Meshy CLI — `meshy`, or the pinned temporary package
-`npm exec --yes --package=meshy-cli@0.4.0 -- meshy`. No Python, no `curl`, no bundled scripts.
+`npm exec --yes --package=meshy-cli@0.4.3 -- meshy`. No Python, no `curl`, no bundled scripts.
 
 **Credentials:** the CLI's own browser sign-in (OAuth device flow) stores and refreshes a
 session in `~/.config/meshy/credentials.json` (mode 0600). An existing `MESHY_API_KEY`, or an
@@ -76,7 +76,9 @@ first command**, so generation parameters fit the print. Everything else follows
 | Open an existing STL or 3MF | Local `slicer detect` and `slicer open`; no sign-in or balance |
 | White model from text or photo | Geometry without textures; analyze/repair as needed; prepare the file |
 | Multicolor model | Generate/reuse geometry; analyze/repair as needed; texture; multi-color-print |
-| Creative Lab lamp, keychain, fridge magnet or figure template | Prototype → review → build → select product artifacts |
+| Print in separate parts (build plate, colours per part, fewer supports) | Generate/reuse geometry; auto-split; slice the parts |
+| Creative Lab figure, vinyl figure, brick figure, lamp, keychain, fridge magnet, keycap or pixel fidget board | Prototype → review → build → select product artifacts |
+| Creative Lab collapsible fidget | One create from the photo → STL |
 
 A figurine alone does not imply Creative Lab. Ask about size, color or style only when the
 missing choice materially changes the result.
@@ -107,7 +109,8 @@ than re-submitting or looping on `sleep`.
 ## Execution boundaries
 
 - Run API, upload, download and mesh operations through the CLI. Local inputs have a 50 MiB
-  limit; use the supported URL input route where appropriate.
+  limit, and a local model must be GLB or glTF (rigging and multicolor: GLB); use the supported
+  URL input route for anything else.
 - Business commands use `--output-schema v1 --format json --no-update-check`; auth has its own
   JSON shape. Resolve `WORKSPACE` from the user's output path and pass it to every write.
 - Submit once with `create --async`, keep the owning resource and task ID, then `wait` on that

@@ -1,5 +1,48 @@
 # Changelog
 
+## [0.7.0] - 2026-10-15
+
+### Changed
+
+- All three skills now pin **Meshy CLI 0.4.3** (setup, SKILL.md, INSTALL.md, README, validator,
+  CI and contract tests). The auth JSON shapes and the runner contract are unchanged; the
+  contract suite passes against the published 0.4.3 package.
+- Animation follows the order the API offers: rigging's bundled walking/running clips first,
+  then the preset animation library (`animation-catalog list` with `--search`, `--category` and
+  `--sub-category`; one action with `animate --action-id`, or 1–10 actions in one file with
+  `--action-ids`), and only when no preset fits, a text-to-motion clip applied to the rig with
+  `animate --motion-task-id` (biped rigs, within 3 days). The skills no longer say a
+  text-to-motion clip cannot animate the user's character.
+- Exit code 14 (`conflict`) is documented: a running task cannot be deleted, keeps running and
+  keeps its charge. The skills tell the agent to wait for the result instead, and describe a
+  Creative Lab delete as a cancel.
+- A local `--model-url` must be GLB or glTF (a local GLB for multicolor); STL, OBJ and FBX go in
+  as an http(s) URL. The CLI refuses a local one before sending it, and the skills no longer
+  suggest it.
+- Refine without `--texture-resolution` now uses the server's 2k; the recipes still pass 4k and
+  note that a meshy-6-lite preview refuses 4k/8k.
+- A rate limit, server error or slow response on a status check no longer ends `wait`;
+  troubleshooting says to keep waiting on the same task.
+- Analysis accepts a repair result by ID, and repair accepts the analysis by ID (except an
+  analysis of an STL, FBX or glTF URL); re-analysis no longer goes through the repaired model URL.
+- Creative Lab cancel semantics and its own `delete` command are spelled out; `meshy delete` does
+  not reach Creative Lab tasks.
+
+### Added
+
+- Printing: Auto Split (`auto-split`: automatic, by named parts or by colour, on-plate layout,
+  connectors); wall-thickness checks and thickening with `--printer-type` and the intended print
+  size; multicolor `--style realistic|cartoon` and `--printer-brand`.
+- Creative Lab: vinyl figure, brick figure, keycap (`--candidate-id`), pixel fidget board
+  (`--type person|other`, 3MF) and the single-stage collapsible fidget (STL); keychain engraving
+  with `--name-text`.
+- Generation: Smart Topology on text-to-3d preview, and `--ai-model meshy-t2.5` for up to 30,000
+  triangles, currently priced like meshy-t2; `--geometry-resolution` for the paid high-detail pass;
+  `--remove-background` on images; image-to-image from a finished image task with
+  `--input-task-id`.
+- Delivery: the balance's monthly/permanent split and `meshy usage tasks` for Studio and
+  Enterprise teams.
+
 ## [0.6.0] - 2026-09-23
 
 ### Added

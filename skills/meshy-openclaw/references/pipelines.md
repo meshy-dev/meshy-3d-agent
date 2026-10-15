@@ -1,4 +1,4 @@
-# Digital asset pipelines — CLI 0.4.0
+# Digital asset pipelines — CLI 0.4.3
 
 Contents: route choice; shared lifecycle; text/image models; texture/topology/size; rigging and
 animation; 2D images and motion; downloads and recovery. Cost, previews, hand-over and
@@ -17,9 +17,9 @@ commands use the v1 envelope; never scrape task IDs from human-readable progress
 |---|---|---|
 | A model to look at / a digital prop | text-to-3d preview, then refine when texture is wanted | GLB unless they name a format |
 | A model of a specific object in a photo | image-to-3d, `--should-texture true` for colour | one clean reference, whole subject visible |
-| A low-poly / game-ready asset on a budget | image-to-3d `--model-type smart-topology --target-polycount N`, or remesh after a standard model | 100–15000 triangles for smart topology; mobile/web budgets sit at the low end |
+| A low-poly / game-ready asset on a budget | image-to-3d or text-to-3d preview with `--model-type smart-topology --target-polycount N`, or remesh after a standard model | meshy-t2 (default) 100–15,000 triangles, `--ai-model meshy-t2.5` up to 30,000; mobile/web budgets sit at the low end |
 | An LOD chain from a model that exists | remesh the **existing** task, once per level | never regenerate for a second LOD |
-| A character that must move | textured humanoid in A/T pose → rigging → bundled clips or `animate` | see the rigging preconditions below |
+| A character that must move | textured humanoid in A/T pose → rigging → bundled walk/run, a library action, or a generated motion | see rigging and animation below |
 | A different format / size of an existing asset | convert / resize on that task | one step, no regeneration |
 | A concept image, or a style reference before committing to 3D | text-to-image / image-to-image | optional, and only when offered and accepted |
 | A printable physical object | hand the whole job to the printing skill | it sets geometry, format and texture from the start |
@@ -46,7 +46,10 @@ the same project and a meaningful stage; for example:
 meshy text-to-3d create --mode refine --preview-task-id PREVIEW_ID --enable-pbr true --texture-resolution 4k --target-formats glb --async --project "PROJECT_DIR" --stage refine --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
 ```
 
-Read the **new** ID, then wait through `text-to-3d` with stage `refine`. A successful project
+Read the **new** ID, then wait through `text-to-3d` with stage `refine`. Without
+`--texture-resolution` refine uses the server's 2k; 4k and 8k need a meshy-6, meshy-7.1,
+`latest` or Smart Topology preview, and a meshy-6-lite preview refuses them, so drop the flag for
+one. A successful project
 wait saves `task_TASK_ID.json`. Use that snapshot for asset selection and face checks. A job
 that starts from an existing task initializes its project with that task ID and its resource;
 it needs no new generation step.
@@ -62,7 +65,8 @@ meshy text-to-3d create --mode preview --prompt "MODEL_DESCRIPTION" --target-for
 ```
 
 Run init/wait, then the refine example above when texturing is in scope. For a humanoid intended
-for rigging, add `--pose-mode a-pose` or `t-pose` to the preview.
+for rigging, add `--pose-mode a-pose` or `t-pose` to the preview. The preview also takes
+`--model-type smart-topology` with the polygon rules described for images below.
 
 **Single image:** use a clean reference with the whole subject visible. Choose explicitly whether
 to texture; the CLI defaults to an untextured draft. Texture settings require
@@ -73,15 +77,19 @@ meshy image-to-3d create --image-url "PHOTO_PATH" --model-type standard --should
 ```
 
 For a draft use `--should-texture false` and omit `--enable-pbr`/`--texture-resolution`. For
-controllable low-poly output, smart topology supports 100–15000 target triangles; standard mode
-needs a later remesh for polygon control. Do not pass ultra mode with smart topology.
+controllable low-poly output use smart topology: its default model, meshy-t2, takes 100–15,000
+target triangles (default 10,000); `--ai-model meshy-t2.5` takes 100–30,000 (default 15,000) and
+is currently priced like meshy-t2. Standard mode needs a later remesh for polygon control. `--geometry-resolution
+2k|4k` adds a paid high-detail geometry pass to standard mode only; never combine it with smart
+topology.
 
 ```bash
 meshy image-to-3d create --image-url "PHOTO_PATH" --model-type smart-topology --target-polycount 10000 --should-texture false --target-formats glb --async --output-schema v1 --format json --no-update-check
 ```
 
 **Multiple views:** supply consistent views of the same object. Use `--data` with an
-`image_urls` JSON array for paths containing commas.
+`image_urls` JSON array for paths containing commas. `--geometry-resolution 2k` is the paid
+high-detail pass here (no 4k).
 
 ```bash
 meshy multi-image-to-3d create --image-urls "FRONT_PATH,SIDE_PATH,BACK_PATH" --should-texture true --enable-pbr true --texture-resolution 4k --target-formats glb --async --output-schema v1 --format json --no-update-check
@@ -100,10 +108,12 @@ single-image humanoids, `--pose-mode a-pose` is available.
 
 ## Texture, topology, formats and scale
 
-These examples assume a project containing the source task. When the source is a local model,
-replace `--input-task-id SOURCE_ID` with `--model-url "MODEL_PATH"`; use only one source. If this
-is the first submitted task of a new job, omit project/stage, then initialize the project with
-its accepted ID.
+These examples assume a project containing the source task. When the source is a model from
+outside Meshy, replace `--input-task-id SOURCE_ID` with `--model-url`; use only one source. A
+local file must be GLB or glTF. An STL, OBJ or FBX goes in only as an http(s) URL: the CLI
+refuses a local one (exit 2) before anything is sent, so do not retry it, and do not convert it
+with a paid task just to get it in. If this is the first submitted task of a new job, omit
+project/stage, then initialize the project with its accepted ID.
 
 ```bash
 meshy retexture create --input-task-id SOURCE_ID --text-style-prompt "TEXTURE_DESCRIPTION" --enable-original-uv true --enable-pbr true --texture-resolution 4k --target-formats glb --async --project "PROJECT_DIR" --stage retexture --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
@@ -153,8 +163,20 @@ meshy rigging create --input-task-id TEXTURED_ID --height-meters 1.7 --async --p
 
 Apply the same pass/fail/unknown rule as UV. Wait through `rigging` using the newly accepted ID.
 For external input the rigging CLI accepts a textured GLB via `--model-url`; it still needs the
-same suitability and face evidence. Rigging already provides walking and running clips — take
-them before paying for a custom animation. Select the rig or bundled clips individually:
+same suitability and face evidence.
+
+Choose the motion source in this order; stop at the first that gives the requested action:
+
+1. **Walking or running.** The rig task already carries both clips. Download them; no new task.
+2. **Any other action: the preset animation library.** Look the action up, then apply it to the
+   rig. Several actions for one character (idle, walk and attack for a game's state machine) go
+   into one task with `--action-ids` (1–10 unique IDs): one file with one clip per action, in
+   the order given, charged per action.
+3. **An action the library does not have: text-to-motion.** Generate the clip with the recipe in
+   the next section, wait for it, then apply it with `--motion-task-id`. Biped rigs only, and
+   apply it within 3 days of the motion task.
+
+Select the rig or bundled clips individually:
 
 ```bash
 meshy download --task-json "PROJECT_DIR/task_RIG_ID.json" --asset result.rigged_character_glb_url --output "PROJECT_DIR/rigged.glb" --project "PROJECT_DIR" --stage rigging --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
@@ -162,17 +184,25 @@ meshy download --task-json "PROJECT_DIR/task_RIG_ID.json" --asset result.basic_a
 ```
 
 For running, use `result.basic_animations.running_glb_url`; list the assets for FBX and armature
-variants. A custom animation is a separate task. Get the action ID from the public catalog rather
-than guessing it:
+variants. Take library IDs from the library, never from memory: IDs have gaps and retired actions
+disappear. The lookup is free but needs the same sign-in as any other command. `--search` matches the name or key;
+`--category` narrows to `WalkAndRun`, `BodyMovements`, `DailyActions`, `Fighting` or `Dancing`,
+and `--sub-category` narrows further. Each item carries a `preview_url` GIF to show the user
+when the choice is not obvious.
 
 ```bash
 meshy animation-catalog list --search wave --output-schema v1 --format json --no-update-check
 meshy animate create --rig-task-id RIG_ID --action-id ACTION_ID --async --project "PROJECT_DIR" --stage animation --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy animate create --rig-task-id RIG_ID --action-ids ACTION_IDS --async --project "PROJECT_DIR" --stage animation --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy animate create --rig-task-id RIG_ID --motion-task-id MOTION_ID --async --project "PROJECT_DIR" --stage animation --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
 ```
 
-Wait through `animate`, then download `--asset result.animation_glb_url`. Further post-processing
-options (FPS, USDZ, armature) are exposed by `meshy animate create --help`; include them only
-when requested.
+These are alternatives: one action, several actions in one file, or a generated motion. Wait
+through `animate`, then download `--asset result.animation_glb_url` (or
+`result.animation_fbx_url`). A generated motion may come back GLB-only, with an empty FBX URL.
+Post-processing (FPS, USDZ, armature) is `--post-process-operation`; include it only when
+requested. On a generated motion it needs that FBX: when the retarget yields none, the task
+fails and its credits are refunded.
 
 ## 2D images and standalone motion
 
@@ -189,10 +219,13 @@ meshy text-to-motion create --prompt "MOTION_DESCRIPTION" --mode prime --duratio
 
 Apply init/wait to the selected resource, or add the existing project's flags for a chained step.
 Character concept generation can use `--generate-multi-view true --pose-mode a-pose` where the
-selected image model supports it. Text-to-motion is a standalone skeleton clip: prime returns
-FBX, swift BVH; duration is 2–10 seconds in 0.5-second increments. It does not animate the
-user's rigged character. Download image tasks with `--kind image` and motion with `--kind motion`,
-using `--output-dir`.
+selected image model supports it. `--remove-background true` returns a transparent PNG. A
+finished image task can feed image-to-image with `--input-task-id IMAGE_TASK_ID` instead of
+re-uploading its output. Text-to-motion makes a standalone skeleton clip from a prompt of up to
+400 characters: prime returns FBX, swift BVH; duration is 2–10 seconds in 0.5-second steps.
+Delivered as is, it is a raw clip for the user's own DCC tool; to put it on a rigged character,
+apply it with `animate --motion-task-id` (above). Download image tasks with `--kind image` and
+motion with `--kind motion`, using `--output-dir`.
 
 ## Asset delivery and recovery
 

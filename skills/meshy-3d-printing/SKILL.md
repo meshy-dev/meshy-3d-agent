@@ -6,7 +6,7 @@ license: MIT
 
 # Meshy 3D Printing
 
-Use Meshy CLI **0.4.0** to deliver the requested print files at the intended size, with
+Use Meshy CLI **0.4.3** to deliver the requested print files at the intended size, with
 analysis/repair results where applicable and a slicer handoff when requested. This skill is
 self-contained. Ordinary digital assets belong to meshy-3d-generation.
 
@@ -28,7 +28,9 @@ needed for the user's output.
 | Open an existing STL or 3MF | Local `slicer detect` and `slicer open`; no auth or balance |
 | White model from text or photo | Generate geometry without textures; analyze/repair as needed; prepare the file |
 | Multicolor model | Generate/reuse geometry; analyze/repair as needed; texture; multi-color-print |
-| Creative Lab lamp, keychain, fridge magnet or figure template | Prototype → review → build → select product artifacts |
+| Print in separate parts (build plate, colours per part, fewer supports) | Generate/reuse geometry; auto-split; slice the parts |
+| Creative Lab figure, vinyl figure, brick figure, lamp, keychain, fridge magnet, keycap or pixel fidget board | Prototype → review → build → select product artifacts |
+| Creative Lab collapsible fidget | One create from the photo → STL |
 
 A figurine does not by itself require Creative Lab. Infer the route from the intended product;
 ask about size, color or style only when the missing choice materially changes the result.
@@ -38,7 +40,7 @@ local dimension check cannot establish full printability.
 ## Cloud authorization
 
 Resolve the runner automatically using Setup (compatible `meshy` or
-`npm exec --yes --package=meshy-cli@0.4.0 -- meshy …`). Local-only work stops at runner setup.
+`npm exec --yes --package=meshy-cli@0.4.3 -- meshy …`). Local-only work stops at runner setup.
 Cloud work reuses a verified session. If login is needed, keep `auth login --device` running,
 show its URL and user code in **commentary/progress, never a final answer**, and await the
 same tool session in this turn. After it exits, verify `auth status` and resume the print job.
@@ -48,12 +50,15 @@ Do not ask for a "done" message or credentials in chat; Setup has the host wait 
 
 - Repair changes geometry and drops textures. Use repaired geometry downstream and retexture
   before multicolor output. Use analysis when functional parts, thin features or other
-  requirements make it relevant; its report does not establish material suitability.
+  requirements make it relevant, with the printer type and print size when known so wall
+  thickness is checked too; its report does not establish material suitability.
 - Prepare a Y-up OBJ as a new Z-up file at the requested height, centered and grounded. Do not
   repeat the transform or apply it to STL, 3MF, or relief product output. A multicolor 3MF
   requires no OBJ conversion. Product ZIPs and optional lamp bases have distinct handling in
   Printing recipes.
-- API, downloads and geometry operations use the CLI. Local inputs have a 50 MiB limit.
+- API, downloads and geometry operations use the CLI. Local inputs have a 50 MiB limit, and a
+  local model must be GLB or glTF (multicolor: GLB); an STL, OBJ or FBX goes to Meshy only as an
+  http(s) URL.
   Business commands use `--output-schema v1 --format json --no-update-check`; writes carry
   the resolved `--workspace WORKSPACE`. Read returned paths and IDs rather than guessing.
 - Submit cloud tasks once with `create --async`, retain their resource and lineage, and `wait`

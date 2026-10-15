@@ -21,15 +21,15 @@ If Node.js is missing or older, stop and ask the user to install a current Node.
 meshy --version
 ```
 
-- It prints `0.4.0` or newer: keep it. Never downgrade a newer CLI.
+- It prints `0.4.3` or newer: keep it. Never downgrade a newer CLI.
 - Otherwise, install it:
 
 ```bash
-npm install -g meshy-cli@0.4.0
+npm install -g meshy-cli@0.4.3
 ```
 
 If the global install is refused (permissions, a managed machine), leave it: the skills can
-fall back to `npm exec --yes --package=meshy-cli@0.4.0 -- meshy …`. Use that as `meshy` in the
+fall back to `npm exec --yes --package=meshy-cli@0.4.3 -- meshy …`. Use that as `meshy` in the
 steps below.
 
 ## Step 2: Install the skills

@@ -10,7 +10,7 @@ import { test } from 'node:test';
 // Run with MESHY_CLI_BIN=/absolute/path/to/meshy-or-dist/index.js node --test tests/generation-recipes.test.mjs
 // No install or production requests. The command text comes from the shipped recipe.
 const cli = process.env.MESHY_CLI_BIN;
-const skip = cli ? false : 'Set MESHY_CLI_BIN to the Meshy CLI 0.4.0 executable or JS entrypoint';
+const skip = cli ? false : 'Set MESHY_CLI_BIN to the Meshy CLI 0.4.3 executable or JS entrypoint';
 const markdown = readFileSync(new URL('../skills/meshy-3d-generation/references/pipelines.md', import.meta.url), 'utf8');
 const deliveryDoc = readFileSync(new URL('../skills/meshy-3d-generation/references/delivery.md', import.meta.url), 'utf8');
 const shellLines = doc => [...doc.matchAll(/```bash\n([\s\S]*?)```/g)]
@@ -109,13 +109,13 @@ async function fixture(t, respond) {
   }
   const version = await run(['--version']);
   assert.equal(version.code, 0, version.stderr);
-  assert.equal(version.stdout.trim(), '0.4.0', 'these recipes require the exact supported CLI version');
+  assert.equal(version.stdout.trim(), '0.4.3', 'these recipes require the exact supported CLI version');
   const image = join(cwd, 'reference photo.png');
   const png = Buffer.from('89504e470d0a1a0a0000000000000000', 'hex');
   await writeFile(image, png);
   const replacements = {
     PHOTO_PATH: image, IMAGE_PATH: image, FRONT_PATH: image, SIDE_PATH: image, BACK_PATH: image,
-    RESOURCE: 'text-to-3d', ACTION_ID: '1', TASK_ID: 'source', SOURCE_ID: 'source', STAGE: 'preview',
+    RESOURCE: 'text-to-3d', ACTION_ID: '1', ACTION_IDS: '10,25,92', TASK_ID: 'source', SOURCE_ID: 'source', STAGE: 'preview',
     WORKSPACE: workspace, PROJECT_ROOT: workspace,
   };
   // The documented workspace/project-root pair for a location the user named themselves.
@@ -152,7 +152,7 @@ test('every documented generation create submits once with the intended payload 
   const f = await fixture(t, (req, res, count) => json(res, req.method === 'POST' ? 200 : 500, { result: `accepted-${count}` }));
   const projectDir = await f.project();
   const creates = commands.filter(line => /^meshy \S+ create /.test(line));
-  assert.equal(creates.length, 16, 'review workflow coverage when adding/removing a recipe');
+  assert.equal(creates.length, 18, 'review workflow coverage when adding/removing a recipe');
   for (const line of creates) {
     const args = argv(line, { ...f.replacements, PROJECT_DIR: projectDir });
     const count = f.requests.length;
@@ -187,14 +187,19 @@ test('every documented generation create submits once with the intended payload 
       case 'resize': assert.equal(p.input_task_id, 'source'); assert.equal(p.resize_height, 0.15); assert.equal(p.origin_at, 'bottom'); break;
       case 'uv-unwrap': assert.equal(p.input_task_id, 'source'); break;
       case 'rigging': assert.equal(p.input_task_id, 'TEXTURED_ID'); assert.equal(p.height_meters, 1.7); break;
-      case 'animate': assert.equal(p.rig_task_id, 'RIG_ID'); assert.equal(p.action_id, 1); break;
+      case 'animate':
+        assert.equal(p.rig_task_id, 'RIG_ID');
+        if (p.action_ids) { assert.deepEqual(p.action_ids, [10, 25, 92]); assert.equal(p.action_id, undefined); }
+        else if (p.motion_task_id) { assert.equal(p.motion_task_id, 'MOTION_ID'); assert.equal(p.action_id, undefined); }
+        else assert.equal(p.action_id, 1);
+        break;
       case 'text-to-image': assert.equal(p.ai_model, 'nano-banana-pro'); assert.equal(p.aspect_ratio, '1:1'); assert.equal(p.prompt, 'DESIGN_DESCRIPTION'); break;
       case 'image-to-image': assert.equal(p.ai_model, 'nano-banana-pro'); assert.deepEqual(p.reference_image_urls, [f.imageUri]); assert.equal(p.prompt, 'EDIT_DESCRIPTION'); break;
       case 'text-to-motion': assert.equal(p.mode, 'prime'); assert.equal(p.duration, 3); assert.equal(p.prompt, 'MOTION_DESCRIPTION'); break;
       default: assert.fail(`unreviewed recipe resource: ${args[0]}`);
     }
   }
-  assert.equal(f.requests.filter(req => req.method === 'POST').length, 16);
+  assert.equal(f.requests.filter(req => req.method === 'POST').length, 18);
 });
 
 test('documented snapshot recipe refuses an output outside its explicit workspace', { skip }, async t => {

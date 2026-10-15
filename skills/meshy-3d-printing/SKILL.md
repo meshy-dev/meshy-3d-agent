@@ -57,7 +57,8 @@ Do not ask for a "done" message or credentials in chat; Setup has the host wait 
   requires no OBJ conversion. Product ZIPs and optional lamp bases have distinct handling in
   Printing recipes.
 - API, downloads and geometry operations use the CLI. Local inputs have a 50 MiB limit, and a
-  local model must be GLB or glTF; an STL, OBJ or FBX goes to Meshy only as an http(s) URL.
+  local model must be GLB or glTF (multicolor: GLB); an STL, OBJ or FBX goes to Meshy only as an
+  http(s) URL.
   Business commands use `--output-schema v1 --format json --no-update-check`; writes carry
   the resolved `--workspace WORKSPACE`. Read returned paths and IDs rather than guessing.
 - Submit cloud tasks once with `create --async`, retain their resource and lineage, and `wait`

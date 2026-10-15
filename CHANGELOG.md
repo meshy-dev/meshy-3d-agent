@@ -23,8 +23,10 @@
   note that a meshy-6-lite preview refuses 4k/8k.
 - A rate limit, server error or slow response on a status check no longer ends `wait`;
   troubleshooting says to keep waiting on the same task.
-- Analysis accepts a repair result by ID, and repair accepts the analysis by ID; re-analysis no
-  longer goes through the repaired model URL.
+- Analysis accepts a repair result by ID, and repair accepts the analysis by ID (except an
+  analysis of an STL, FBX or glTF URL); re-analysis no longer goes through the repaired model URL.
+- Creative Lab cancel semantics and its own `delete` command are spelled out; `meshy delete` does
+  not reach Creative Lab tasks.
 
 ### Added
 
@@ -35,7 +37,7 @@
   (`--type person|other`, 3MF) and the single-stage collapsible fidget (STL); keychain engraving
   with `--name-text`.
 - Generation: Smart Topology on text-to-3d preview, and `--ai-model meshy-t2.5` for up to 30,000
-  triangles at the meshy-t2 price; `--geometry-resolution` for the paid high-detail pass;
+  triangles, currently priced like meshy-t2; `--geometry-resolution` for the paid high-detail pass;
   `--remove-background` on images; image-to-image from a finished image task with
   `--input-task-id`.
 - Delivery: the balance's monthly/permanent split and `meshy usage tasks` for Studio and

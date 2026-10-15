@@ -37,8 +37,8 @@ Browser approval stays with the user; credentials never belong in chat.
 ## Execution boundaries
 
 - Run API, upload, download and mesh operations through the CLI. Local inputs have a 50 MiB
-  limit, and a local model must be GLB or glTF; use the supported URL input route for anything
-  else.
+  limit, and a local model must be GLB or glTF (rigging and multicolor: GLB); use the supported
+  URL input route for anything else.
 - Use `--output-schema v1 --format json --no-update-check` for business commands; auth has
   its own JSON shape. Resolve `WORKSPACE` from the user's output path and pass it to writes.
 - Submit once with `create --async`, retain the owning resource and ID, then `wait` on that

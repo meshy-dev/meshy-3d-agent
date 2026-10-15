@@ -101,7 +101,9 @@ When the printer or the print size is known, add `--printer-type fdm|sla|full_co
 planned size, `--intended-print-height-mm N` (GLB input only) or `--intended-print-longest-side-mm
 N`, to the analysis create. It then also checks wall thickness at that size against the
 printer's minimum (FDM 1.0 mm, SLA 0.8 mm, full colour 2.0 mm) and reports it in
-`printability.thin_walls`; this takes longer. Without them, wall thickness is not checked.
+`printability.thin_walls`; this takes longer. Either one alone is enough: a printer alone is
+checked at 150 mm tall (an STL at its own size), a size alone assumes FDM. Use the user's real
+size rather than inventing one. Without either, wall thickness is not checked.
 
 Read `result.task.printability`, distinguish task completion from report
 `healthy`/`warning`/`error`, and describe holes, non-manifold or degenerate geometry and volume
@@ -115,7 +117,8 @@ meshy repair-printability wait REPAIR_ID --timeout 600 --project "PROJECT_DIR" -
 meshy project record --project "PROJECT_DIR" --task-id REPAIR_ID --resource repair-printability --parent-task-id SOURCE_ID --stage repaired --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
 ```
 
-Repair also takes ANALYSIS_ID as its `--input-task-id`. An analysis that checked wall thickness
+Repair also takes ANALYSIS_ID as its `--input-task-id`, unless that analysis was made from an
+STL, FBX or glTF URL; repair those with the same `--model-url`. An analysis that checked wall thickness
 hands over its printer and size, so that repair also thickens walls that are too thin (only when
 more than 5% of the surface is); `--printer-type` and a print size on the repair set or override
 them. A repair keeps the model's scale and, from a task ID, returns GLB. Pass ANALYSIS_ID to
@@ -184,8 +187,11 @@ Merely converting GLB to 3MF does not substitute for multicolor segmentation.
 
 Use Auto Split when the user wants the model printed in pieces: to fit the build plate, to print
 parts in different colours, or to avoid supports. It takes a successful image-to-3d,
-multi-image-to-3d, text-to-3d preview, remesh, convert or resize task made with Meshy 6 or 7
-(see help); an outside model first needs one of those tasks.
+multi-image-to-3d, text-to-3d preview, remesh, convert or resize task whose model was generated
+with Meshy 6 or 7 (see help). It refuses Smart Topology (meshy-t2/t2.5) models, repair and
+retexture results, and any model from outside Meshy, even after a remesh, convert or resize; do
+not pay for one of those steps to get a model in. Split the generation task, or its
+remesh/convert/resize, before any repair.
 
 ```bash
 meshy auto-split create --input-task-id SOURCE_ID --mode by_parts --prompt "head, body, base" --target-formats glb,3mf --layout on_plate --async --project "PROJECT_DIR" --stage split --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
@@ -195,7 +201,8 @@ meshy download --resource auto-split --task-id SPLIT_ID --model-format 3mf --out
 
 `--mode auto` (the default) lets Meshy choose the cuts and needs no prompt. `by_parts` cuts along
 the 1–10 parts named in `--prompt`, in any language; name the pieces rather than describing the
-model. `by_color` cuts along named colour regions and needs an image-to-3d or multi-image-to-3d
+model. When Meshy reads no part names from the prompt, it splits along parts of its own choosing,
+still charges, and marks the task `prompt_ignored: true`: check that field and tell the user. `by_color` cuts along named colour regions and needs an image-to-3d or multi-image-to-3d
 source. GLB always comes back; every other format except STL keeps each part as its own object,
 and STL fuses them into one solid, so do not deliver STL for separate parts. `--layout on_plate`
 lays the parts out ready to slice, `assembled` keeps them in place. `--connectors true` adds
@@ -216,7 +223,9 @@ this API with the matching credential are accepted as build inputs; web-app prot
 interchangeable.
 
 Create the project using the initial recipe before any commands below. Substitute PRODUCT with
-exactly `figure`, `vinyl-figure`, `brick-figure`, `lamp`, `keychain`, `fridge-magnet` or `keycap`:
+exactly `figure`, `vinyl-figure`, `brick-figure`, `lamp`, `keychain`, `fridge-magnet` or `keycap`.
+`fidget-pixel` uses the same wait, download and record commands; only its prototype create below
+adds `--type`:
 
 ```bash
 meshy creative-lab PRODUCT prototype create --image-url INPUT_IMAGE --name "print product" --async --project "PROJECT_DIR" --stage prototype --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
@@ -250,7 +259,9 @@ Figure, vinyl figure and brick figure have **no** build `--options` or `--model-
 latter two exactly like the figure, with their own product name. The keycap build needs
 CANDIDATE_ID from the finished prototype's `candidate_ids` (it holds one entry); its `--options`
 take `head_size_mm` and `vertical_offset_mm`. The fidget board builds one 3MF; its `--options`
-(shape, 16 or 32 grid, piece size and height, colour count) are in its build help. Lamp `--image-subject
+(shape, 16 or 32 grid, piece size and height, colour count) are in its build help. The default
+32 × 8 mm board is about 26 cm per side: set `grid_size` and `piece_size_mm` from the size the
+user wants. Lamp `--image-subject
 character|landscape` belongs on prototype create. Lamp STL returns the shade and optionally a
 fixture base when the selected light-source preset provides one: `none` must not be assumed to
 yield `base_stl`; `bambu_mh001_60mm` is a supported preset. Use the user's actual dimensions and

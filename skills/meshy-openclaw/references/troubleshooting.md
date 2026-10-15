@@ -84,9 +84,13 @@ generic HTTP retry loops to creates, repairs, conversions or whole multi-step pi
 Delete only what the user asked to remove. A `PENDING` task is deleted and refunded. A task
 that is already running cannot be stopped: delete exits 14 (`conflict`), the task keeps
 running and its credits are already spent. Wait for its result instead; delete it afterwards
-only if the user still wants it gone, which is permanent and refunds nothing. A Creative Lab
-delete is a cancel: `PENDING` is refunded, a running one is not, and the task stays listed as
-`CANCELED` (`canceled: true, deleted: false`).
+only if the user still wants it gone, which is permanent and refunds nothing.
+
+Creative Lab tasks are not reached by `meshy delete`; use `meshy creative-lab PRODUCT STAGE
+delete` (`meshy creative-lab fidget-collapsible delete` for the single-stage product), and it is
+a cancel, not a delete. `PENDING` is refunded. A running task is stopped, losing both its result
+and its credits. A finished one cannot be cancelled (exit 4) or deleted at all. The task stays
+listed as `CANCELED` (`canceled: true, deleted: false`).
 
 ## Local files
 

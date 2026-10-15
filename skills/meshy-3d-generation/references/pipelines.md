@@ -47,8 +47,9 @@ meshy text-to-3d create --mode refine --preview-task-id PREVIEW_ID --enable-pbr 
 ```
 
 Read the **new** ID, then wait through `text-to-3d` with stage `refine`. Without
-`--texture-resolution` refine uses the server's 2k; 4k and 8k need a meshy-6, meshy-7.1 or
-`latest` preview, and a meshy-6-lite preview refuses them, so drop the flag for one. A successful project
+`--texture-resolution` refine uses the server's 2k; 4k and 8k need a meshy-6, meshy-7.1,
+`latest` or Smart Topology preview, and a meshy-6-lite preview refuses them, so drop the flag for
+one. A successful project
 wait saves `task_TASK_ID.json`. Use that snapshot for asset selection and face checks. A job
 that starts from an existing task initializes its project with that task ID and its resource;
 it needs no new generation step.
@@ -77,8 +78,8 @@ meshy image-to-3d create --image-url "PHOTO_PATH" --model-type standard --should
 
 For a draft use `--should-texture false` and omit `--enable-pbr`/`--texture-resolution`. For
 controllable low-poly output use smart topology: its default model, meshy-t2, takes 100–15,000
-target triangles (default 10,000); `--ai-model meshy-t2.5` takes 100–30,000 (default 15,000) at
-the same price. Standard mode needs a later remesh for polygon control. `--geometry-resolution
+target triangles (default 10,000); `--ai-model meshy-t2.5` takes 100–30,000 (default 15,000) and
+is currently priced like meshy-t2. Standard mode needs a later remesh for polygon control. `--geometry-resolution
 2k|4k` adds a paid high-detail geometry pass to standard mode only; never combine it with smart
 topology.
 

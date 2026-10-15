@@ -21,7 +21,7 @@ meshy make "MODEL_DESCRIPTION" --dry-run --output-schema v1 --format json --no-u
 
 2. **The published price list**, <https://docs.meshy.ai/en/api/pricing>, for everything else —
    retexture, remesh, convert, resize, UV, rigging, animation, 2D, motion, print analysis and
-   repair, multicolor, Creative Lab. Quote it with the date you read it and call it an estimate.
+   repair, multicolor, auto split, Creative Lab. Quote it with the date you read it and call it an estimate.
 
 Nothing else is a quote. `meshy balance` reports the **balance**, not a price. Do not invent a
 cost command, reuse a `make` estimate for an unrelated chain, or state a precise figure for a
@@ -136,7 +136,8 @@ meshy text-to-3d list --page-size 10 --output-schema v1 --format json --no-updat
 ```
 
 4. A local model file the user points at — pass it to the step's `--model-url` input. A local
-   file must be GLB or glTF; an STL, OBJ or FBX needs an http(s) URL or the task it came from.
+   file must be GLB or glTF (rigging and multicolor: GLB); an STL, OBJ or FBX needs an http(s)
+   URL or the task it came from.
 
 Then run the one step that is actually missing: `remesh` for a polygon budget, `convert` for a
 format, `resize` for a physical size, `retexture` for a new look, `rigging`/`animate` for motion,

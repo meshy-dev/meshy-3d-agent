@@ -11,7 +11,7 @@ import { test } from 'node:test';
 // Exercises commands extracted from shipped documentation, not handwritten recipe copies.
 // CLI under test is supplied by the maintainer; no npm install or real account is used.
 const cli = process.env.MESHY_CLI_BIN;
-const skip = cli ? false : 'Set MESHY_CLI_BIN to a Meshy CLI 0.4.0 executable or JS entrypoint';
+const skip = cli ? false : 'Set MESHY_CLI_BIN to a Meshy CLI 0.4.3 executable or JS entrypoint';
 const doc = await readFile(new URL('../skills/meshy-3d-printing/references/printing.md', import.meta.url), 'utf8');
 const lines = doc.split('\n').filter(line => line.startsWith('meshy '));
 function words(line) {
@@ -104,7 +104,7 @@ async function fixture(t) {
     });
   }
   async function ok(args) { const r = await run(args); assert.equal(r.code, 0, r.stdout + r.stderr); return r.json; }
-  const version = await run(['--version']); assert.equal(version.stdout.trim(), '0.4.0'); assert.equal(version.code, 0);
+  const version = await run(['--version']); assert.equal(version.stdout.trim(), '0.4.3'); assert.equal(version.code, 0);
   // The documented default job location, resolved the same way a user-named directory would be.
   const workspace = join(root, 'job output');
   await mkdir(workspace);
@@ -134,12 +134,12 @@ test('printing recipes carry stable JSON flags and explicit workspace on writes'
   assert.match(doc, /model\.obj\.zip/);
 });
 
-test('actual documented create commands submit the expected white/multicolor/repair and four-product payloads', { skip }, async t => {
+test('actual documented create commands submit the expected white/multicolor/repair/split and Creative Lab payloads', { skip }, async t => {
   const f = await fixture(t);
   const creates = lines.filter(line => words(line).includes('create'));
   let count = 0;
   for (const line of creates) {
-    for (const product of line.includes('PRODUCT') ? ['figure', 'lamp', 'keychain', 'fridge-magnet'] : [null]) {
+    for (const product of line.includes('PRODUCT') ? ['figure', 'vinyl-figure', 'brick-figure', 'lamp', 'keychain', 'fridge-magnet', 'keycap'] : [null]) {
       const before = f.requests.filter(r => r.method === 'POST').length;
       const result = await f.ok(argv(line, { ...f.tokens, PRODUCT: product }));
       assert.equal(result.result.submission.state, 'accepted'); assert.ok(result.result.submission.task_id);
@@ -147,22 +147,29 @@ test('actual documented create commands submit the expected white/multicolor/rep
       assert.equal(posts.length, before + 1, 'one documented create is exactly one submission');
       const request = posts.at(-1), args = words(line);
       assert.equal(request.auth, 'Bearer synthetic-printing-test-key');
-      if (args[1] === 'creative-lab') {
+      if (args[1] === 'creative-lab' && args[2] === 'fidget-collapsible') {
+        assert.equal(request.path, '/openapi/creative-lab/fidget-collapsible/v1');
+        assert.match(request.body.image_url, /^data:image\/png;base64,/);
+      } else if (args[1] === 'creative-lab') {
         const p = product ?? args[2], stage = args[3];
         assert.equal(request.path, `/openapi/creative-lab/${p}/v1/${stage}`);
-        if (stage === 'prototype') assert.match(request.body.image_url, /^data:image\/png;base64,/);
-        else {
+        if (stage === 'prototype') {
+          assert.match(request.body.image_url, /^data:image\/png;base64,/);
+          if (p === 'fidget-pixel') assert.equal(request.body.type, 'person');
+        } else {
           assert.equal(request.body.input_task_id, 'prototype-task');
           if (p === 'figure') { assert.equal(request.body.output, undefined); assert.equal(request.body.options, undefined); }
           if (p === 'lamp') assert.deepEqual(request.body.options, { diameter_mm: 180, light_source_preset: 'none' });
           if (p === 'keychain') assert.equal(request.body.options.size_mm, 50);
           if (p === 'fridge-magnet') assert.equal(request.body.options.size_mm, 60);
-          if (p !== 'figure') assert.equal(request.body.output.format, p === 'lamp' ? 'stl' : 'obj');
+          if (p === 'keycap') assert.equal(request.body.candidate_id, 'CANDIDATE_ID');
+          if (['lamp', 'keychain', 'fridge-magnet'].includes(p)) assert.equal(request.body.output.format, p === 'lamp' ? 'stl' : 'obj');
         }
       } else {
         const paths = { 'text-to-3d': '/openapi/v2/text-to-3d', 'image-to-3d': '/openapi/v1/image-to-3d',
           'analyze-printability': '/openapi/v1/print/analyze', 'repair-printability': '/openapi/v1/print/repair',
-          retexture: '/openapi/v1/retexture', 'multi-color-print': '/openapi/v1/print/multi-color' };
+          retexture: '/openapi/v1/retexture', 'multi-color-print': '/openapi/v1/print/multi-color',
+          'auto-split': '/openapi/v1/print/split' };
         assert.equal(request.path, paths[args[1]]);
         if (args[1] === 'image-to-3d') { assert.equal(request.body.should_texture, false); assert.deepEqual(request.body.target_formats, ['glb', 'obj']); }
         if (args[1] === 'text-to-3d') {
@@ -173,11 +180,15 @@ test('actual documented create commands submit the expected white/multicolor/rep
         if (args[1] === 'retexture') { assert.equal(request.body.model_url, f.tokens.CURRENT_MODEL_URL); assert.equal(request.body.input_task_id, undefined); }
         if (args[1] === 'multi-color-print') { assert.equal(request.body.max_colors, 4); assert.equal(request.body.max_depth, 4); assert.equal(request.body.input_task_id, 'textured-task'); }
         if (args[1].includes('printability')) assert.equal(request.body.input_task_id, 'source-task');
+        if (args[1] === 'auto-split') {
+          assert.equal(request.body.input_task_id, 'source-task'); assert.equal(request.body.mode, 'by_parts');
+          assert.equal(request.body.layout, 'on_plate'); assert.deepEqual(request.body.target_formats, ['glb', '3mf']);
+        }
       }
       count++;
     }
   }
-  assert.equal(count, 15, 'all current documented create variants were exercised');
+  assert.equal(count, 23, 'all current documented create variants were exercised');
 });
 
 test('Creative Lab downloads distinguish optional lamp base, bundles and relief OBJ archives', { skip }, async t => {

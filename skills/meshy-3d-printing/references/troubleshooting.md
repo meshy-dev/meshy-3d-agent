@@ -8,7 +8,7 @@ bare JSON shape; see [setup.md](setup.md).
 ## Runner problems
 
 - **`meshy: command not found`** is not a dead end: switch to the pinned temporary package
-  (`npm exec --yes --package=meshy-cli@0.4.0 -- meshy …`) and carry on with the same job.
+  (`npm exec --yes --package=meshy-cli@0.4.3 -- meshy …`) and carry on with the same job.
 - **A different global version** answers `--version`. Do not uninstall or downgrade it; use the
   pinned temporary package for this work and mention the mismatch once.
 - **Node older than 22.12** fails the CLI's own runtime gate. Report the required version and the
@@ -22,7 +22,7 @@ bare JSON shape; see [setup.md](setup.md).
 resolved, while `authenticated: true, verified: false` also covers network and server failures.
 For the latter, use the hint or a free `meshy balance --output-schema v1 --format json
 --no-update-check` to obtain a typed error. Keep the same explicit `--api-key-file` if that is
-the selected source; status does not honor it in 0.4.0.
+the selected source; status does not honor it in 0.4.3.
 
 - **Network failure during verification**: say it is a connectivity problem, keep the stored
   credential, and retry the check when the network is back. Do not start a new authorization.
@@ -37,12 +37,12 @@ the selected source; status does not honor it in 0.4.0.
 - **`device_flow_not_supported`**: this API host has no device endpoint yet — the user logs in
   from their own desktop terminal, or supplies their own key privately.
 
-## CLI 0.4.0 exit codes
+## CLI 0.4.3 exit codes
 
 | Exit | Meaning | Recovery |
 |---|---|---|
 | 1 | Generic/server/protocol error or failed task | Inspect the error and any known task before deciding next steps. |
-| 2 | Usage or operation conflict | Correct arguments/account/payload mismatch; do not invent a fresh operation ID to bypass a conflict. |
+| 2 | Usage or operation conflict | Correct arguments/account/payload mismatch; do not invent a fresh operation ID to bypass a conflict. A local STL/OBJ/FBX `--model-url` lands here: pass it as an http(s) URL instead. |
 | 3 | Authentication | Use the source-aware checks above; status also uses this for failed network verification. |
 | 4 | Validation | Correct the rejected input or explain the unsupported request. |
 | 5 | Not found | Check the resource, task ID and account. |
@@ -53,9 +53,10 @@ the selected source; status does not honor it in 0.4.0.
 | 10 | Submission outcome unknown | Reconcile first; never automatically resubmit. |
 | 11 | Local I/O | Fix the output path/permissions, then resume from the known task or landed files. |
 | 12 / 13 | Check failed / unknown | Inspect check details; do not present an unknown result as a pass. |
+| 14 | Conflict: the task is running | A delete of an `IN_PROGRESS` task; see *Deleting a task* below. |
 | 130 | Interrupted | Preserve task/operation context and reconcile before continuing. |
 
-These are 0.4.0 codes, not HTTP status codes. Some OAuth errors use generic exit 1; inspect
+These are 0.4.3 codes, not HTTP status codes. Some OAuth errors use generic exit 1; inspect
 their message and hint as well.
 
 ## Unknown submission, failure and timeout
@@ -69,12 +70,23 @@ operation conflict.
 
 If a task ID is already known, retrieve or wait on **that same task** with its resource's
 `get`/`wait`. A polling timeout, or a task paused at 99%, does not cancel the remote task.
-Resume waiting; do not create a replacement.
+Resume waiting; do not create a replacement. `wait` already rides out a rate limit, a server
+error or a slow response on a status check and polls again, so one of those is not a reason to
+stop either.
 
 A terminal `FAILED` task is different from a failed poll. Explain the server's reason. A
 replacement generation is another potentially billable operation: retry only within the user's
 existing retry/budget authorization, otherwise present that concrete choice. Do not apply
 generic HTTP retry loops to creates, repairs, conversions or whole multi-step pipelines.
+
+## Deleting a task
+
+Delete only what the user asked to remove. A `PENDING` task is deleted and refunded. A task
+that is already running cannot be stopped: delete exits 14 (`conflict`), the task keeps
+running and its credits are already spent. Wait for its result instead; delete it afterwards
+only if the user still wants it gone, which is permanent and refunds nothing. A Creative Lab
+delete is a cancel: `PENDING` is refunded, a running one is not, and the task stays listed as
+`CANCELED` (`canceled: true, deleted: false`).
 
 ## Local files
 

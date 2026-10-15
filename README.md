@@ -1,8 +1,8 @@
 # Meshy 3D Agent
 
 Meshy skills for creating digital assets and preparing 3D prints. All three skills drive
-**Meshy CLI 0.4.0** (`meshy`) on **Node.js 22.12+**. They are instructions and references only —
-no bundled runtime scripts. Current release: **0.6.0**.
+**Meshy CLI 0.4.3** (`meshy`) on **Node.js 22.12+**. They are instructions and references only —
+no bundled runtime scripts. Current release: **0.7.0**.
 
 ## Let your agent install it
 
@@ -31,15 +31,15 @@ name none — with a rendered preview alongside it and the task IDs for whatever
 Two more things worth knowing:
 
 - **No global CLI needed.** With Node 22.12+ the agent runs the pinned package temporarily
-  (`npm exec --yes --package=meshy-cli@0.4.0 -- meshy …`). A global
-  `npm install -g meshy-cli@0.4.0` only makes startup faster.
+  (`npm exec --yes --package=meshy-cli@0.4.3 -- meshy …`). A global
+  `npm install -g meshy-cli@0.4.3` only makes startup faster.
 - **Local print work needs no account.** Rescaling an OBJ or opening a 3MF in a slicer runs
   entirely on your machine — no login, no balance check, no credits.
 
 ### Doing it by hand instead
 
 ```bash
-npm install -g meshy-cli@0.4.0
+npm install -g meshy-cli@0.4.3
 meshy --version
 meshy auth login
 meshy auth status --format json --no-update-check

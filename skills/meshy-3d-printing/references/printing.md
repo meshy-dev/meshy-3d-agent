@@ -2,7 +2,7 @@
 
 Use [Setup](setup.md) for the runner, login and path rules, [Delivery](delivery.md) for cost,
 previews and hand-over, and [Troubleshooting](troubleshooting.md) for recovery. These recipes
-target **meshy-cli@0.4.0** on Node.js 22.12+. Parameter details come from each command's `--help`;
+target **meshy-cli@0.4.3** on Node.js 22.12+. Parameter details come from each command's `--help`;
 the skill carries no API client.
 
 ## 0. Local-only work needs no account
@@ -87,15 +87,21 @@ instead be delivered for a slicer that supports it. Replace 75 mm with the reque
 
 ## 2. Analyze, optionally repair, preserve lineage
 
-Analysis is free and returns a report, not model assets. Its accepted task inputs are successful
-image-to-3d, multi-image-to-3d, text-to-3d, remesh or retexture tasks using supported models
-(see help). Other sources, including a repair result or Creative Lab build, use a supported
+Analysis is free and returns a report, not model assets. By ID it takes a successful
+image-to-3d, multi-image-to-3d, text-to-3d, remesh or retexture task made with Meshy 6 or newer,
+or a repair result (see help). Other sources, such as a Creative Lab build, use a supported
 **model URL** instead of assuming their IDs are accepted.
 
 ```bash
 meshy analyze-printability create --input-task-id SOURCE_ID --async --project "PROJECT_DIR" --stage analysis --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
 meshy analyze-printability wait ANALYSIS_ID --timeout 600 --project "PROJECT_DIR" --stage analysis --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
 ```
+
+When the printer or the print size is known, add `--printer-type fdm|sla|full_color` and the
+planned size, `--intended-print-height-mm N` (GLB input only) or `--intended-print-longest-side-mm
+N`, to the analysis create. It then also checks wall thickness at that size against the
+printer's minimum (FDM 1.0 mm, SLA 0.8 mm, full colour 2.0 mm) and reports it in
+`printability.thin_walls`; this takes longer. Without them, wall thickness is not checked.
 
 Read `result.task.printability`, distinguish task completion from report
 `healthy`/`warning`/`error`, and describe holes, non-manifold or degenerate geometry and volume
@@ -109,15 +115,22 @@ meshy repair-printability wait REPAIR_ID --timeout 600 --project "PROJECT_DIR" -
 meshy project record --project "PROJECT_DIR" --task-id REPAIR_ID --resource repair-printability --parent-task-id SOURCE_ID --stage repaired --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
 ```
 
+Repair also takes ANALYSIS_ID as its `--input-task-id`. An analysis that checked wall thickness
+hands over its printer and size, so that repair also thickens walls that are too thin (only when
+more than 5% of the surface is); `--printer-type` and a print size on the repair set or override
+them. A repair keeps the model's scale and, from a task ID, returns GLB. Pass ANALYSIS_ID to
+repair only, never to another model endpoint.
+
 For uploaded models replace `--input-task-id SOURCE_ID` with `--model-url MODEL_SOURCE` in
-create. Analyze accepts GLB/GLTF/OBJ/FBX/STL; repair accepts GLB/OBJ/STL and outputs the same
-format as its input. Local input and base64 data URIs have a **50 MiB CLI limit**; this is
-stricter than the API's advertised model limit and is not raised by passing a file to `--data`.
+create. Both accept GLB, glTF, OBJ, FBX or STL from an http(s) URL, and repair returns the
+input's format; a **local** file must be GLB or glTF, and the CLI refuses a local STL/OBJ/FBX
+(exit 2) before sending it. Local input and base64 data URIs have a **50 MiB CLI limit**; this
+is stricter than the API's advertised model limit and is not raised by passing a file to `--data`.
 
 Set CURRENT_RESOURCE=`repair-printability`, CURRENT_ID=REPAIR_ID. Inspect its model assets.
-Re-analyze via the repaired model URL, and use that repaired model for printing, conversion and
-texturing. Do not pass ANALYSIS_ID to a model endpoint. Repair discards textures; a previously
-textured source cannot stand in for the repaired mesh.
+Re-analyze with `--input-task-id REPAIR_ID`, and use that repaired model for printing,
+conversion and texturing. Repair discards textures; a previously textured source cannot stand
+in for the repaired mesh.
 
 ## 3. Multicolor 3MF
 
@@ -156,16 +169,45 @@ meshy download --resource multi-color-print --task-id MULTICOLOR_ID --model-form
 meshy slicer open --slicer SLICER_ID --file DOWNLOADED_3MF_PATH --output-schema v1 --format json --no-update-check
 ```
 
+`--style realistic` (the default) samples colours from the texture and is the only style that
+uses `--max-depth`; `--style cartoon` makes flat colour regions and a smaller file. Set
+`--printer-brand` to the user's printer family (`bambu` by default; also `anycubic`, `creality`,
+`elegoo`, `flashforge`, `prusa`, `qidi`, `snapmaker`, `ankermake`) so the 3MF carries that
+slicer's preset.
+
 For a textured Creative Lab build or external model, replace the create source with
-`--model-url TEXTURED_GLB_URL` (GLB/FBX supported). Do not pass a Creative Lab build ID as
-`--input-task-id`. 3MF is already a print format; do not run OBJ coordinate preparation on it.
+`--model-url TEXTURED_GLB_URL`: an http(s) GLB or FBX URL, or a local GLB. Do not pass a
+Creative Lab build ID as `--input-task-id`. 3MF is already a print format; do not run OBJ coordinate preparation on it.
 Merely converting GLB to 3MF does not substitute for multicolor segmentation.
 
-## 4. Creative Lab: four product-specific pipelines
+## 4. Split a model into printable parts
 
-Choose this route only when the user asks for the styled product itself — a lamp, a keychain, a
-fridge magnet, or the Creative Lab figure template. An ordinary printable model of a person,
-animal or character is section 1, not this.
+Use Auto Split when the user wants the model printed in pieces: to fit the build plate, to print
+parts in different colours, or to avoid supports. It takes a successful image-to-3d,
+multi-image-to-3d, text-to-3d preview, remesh, convert or resize task made with Meshy 6 or 7
+(see help); an outside model first needs one of those tasks.
+
+```bash
+meshy auto-split create --input-task-id SOURCE_ID --mode by_parts --prompt "head, body, base" --target-formats glb,3mf --layout on_plate --async --project "PROJECT_DIR" --stage split --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy auto-split wait SPLIT_ID --timeout 600 --project "PROJECT_DIR" --stage split --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy download --resource auto-split --task-id SPLIT_ID --model-format 3mf --output-dir "PROJECT_DIR/parts" --project "PROJECT_DIR" --stage split --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+```
+
+`--mode auto` (the default) lets Meshy choose the cuts and needs no prompt. `by_parts` cuts along
+the 1–10 parts named in `--prompt`, in any language; name the pieces rather than describing the
+model. `by_color` cuts along named colour regions and needs an image-to-3d or multi-image-to-3d
+source. GLB always comes back; every other format except STL keeps each part as its own object,
+and STL fuses them into one solid, so do not deliver STL for separate parts. `--layout on_plate`
+lays the parts out ready to slice, `assembled` keeps them in place. `--connectors true` adds
+mortise-and-tenon joints at each cut. The parts get flat colours and the input texture is not
+carried over: for a print in several colours, assign a filament per part in the slicer.
+
+## 5. Creative Lab: product-specific pipelines
+
+Choose this route only when the user asks for the styled product itself: a figure, a big-head
+vinyl figure, a brick minifigure, a lamp, a keychain, a fridge magnet, a keycap, a pixel-bead
+fidget board or a collapsible fidget. An ordinary printable model of a person, animal or
+character is section 1, not this.
 
 Each product requires a photo-driven prototype, then a build of that **same product**. A
 text-only request first needs a generated or selected image using the CLI image commands, adding
@@ -174,7 +216,7 @@ this API with the matching credential are accepted as build inputs; web-app prot
 interchangeable.
 
 Create the project using the initial recipe before any commands below. Substitute PRODUCT with
-exactly `figure`, `lamp`, `keychain` or `fridge-magnet`:
+exactly `figure`, `vinyl-figure`, `brick-figure`, `lamp`, `keychain`, `fridge-magnet` or `keycap`:
 
 ```bash
 meshy creative-lab PRODUCT prototype create --image-url INPUT_IMAGE --name "print product" --async --project "PROJECT_DIR" --stage prototype --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
@@ -182,19 +224,33 @@ meshy creative-lab PRODUCT prototype wait PROTOTYPE_ID --timeout 600 --project "
 meshy download --resource creative-lab.PRODUCT.prototype --task-id PROTOTYPE_ID --list --output-schema v1 --format json --no-update-check
 ```
 
+A keychain can carry engraved text: add `--name-text "TEXT"` (up to 10 characters) to its
+prototype; the build inherits it, while `--name` only labels the task. The fidget board's
+prototype needs the subject type, `person` (a chibi sprite) or `other` (a bead-art icon):
+
+```bash
+meshy creative-lab fidget-pixel prototype create --image-url INPUT_IMAGE --type person --name "print product" --async --project "PROJECT_DIR" --stage prototype --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+```
+
 Review the returned concept image (lamp also supplies a lampshade GLB). Select the image's actual
 asset key from the list if downloading a preview; do not guess a key. Continue to the intended
 build if already authorized; ask only for a needed design choice or new cost outside the agreed
-scope. Each create below is an **alternative**, not four builds to run in sequence:
+scope. Each create below is an **alternative**, not builds to run in sequence:
 
 ```bash
 meshy creative-lab figure build create --input-task-id PROTOTYPE_ID --async --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
 meshy creative-lab lamp build create --input-task-id PROTOTYPE_ID --model-format stl --options '{"diameter_mm":180,"light_source_preset":"none"}' --async --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
 meshy creative-lab keychain build create --input-task-id PROTOTYPE_ID --model-format obj --options '{"size_mm":50}' --async --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
 meshy creative-lab fridge-magnet build create --input-task-id PROTOTYPE_ID --model-format obj --options '{"size_mm":60}' --async --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy creative-lab keycap build create --input-task-id PROTOTYPE_ID --candidate-id CANDIDATE_ID --async --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy creative-lab fidget-pixel build create --input-task-id PROTOTYPE_ID --async --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
 ```
 
-Figure has **no** build `--options` or `--model-format`. Lamp `--image-subject
+Figure, vinyl figure and brick figure have **no** build `--options` or `--model-format`; build the
+latter two exactly like the figure, with their own product name. The keycap build needs
+CANDIDATE_ID from the finished prototype's `candidate_ids` (it holds one entry); its `--options`
+take `head_size_mm` and `vertical_offset_mm`. The fidget board builds one 3MF; its `--options`
+(shape, 16 or 32 grid, piece size and height, colour count) are in its build help. Lamp `--image-subject
 character|landscape` belongs on prototype create. Lamp STL returns the shade and optionally a
 fixture base when the selected light-source preset provides one: `none` must not be assumed to
 yield `base_stl`; `bambu_mh001_60mm` is a supported preset. Use the user's actual dimensions and
@@ -202,7 +258,15 @@ fixture. `--model-format zip --include-result-json` is the lamp bundle alternati
 cannot be requested with STL. Keychain and fridge-magnet accept GLB/OBJ/ZIP and relief options;
 inspect their build help before setting shape, backing or thickness.
 
-Read BUILD_ID from the chosen create; wait and record its parent:
+The collapsible fidget has a single stage, straight from the photo, with no prototype to review:
+
+```bash
+meshy creative-lab fidget-collapsible create --image-url INPUT_IMAGE --async --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy creative-lab fidget-collapsible wait BUILD_ID --timeout 600 --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+```
+
+Download it with `--resource creative-lab.fidget-collapsible --model-format stl`. For every
+two-stage product, read BUILD_ID from the chosen create; wait and record its parent:
 
 ```bash
 meshy creative-lab PRODUCT build wait BUILD_ID --timeout 600 --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
@@ -221,6 +285,11 @@ Choose the actual delivered asset, not a guessed filename:
 | Keychain / fridge-magnet GLB | `--model-format glb` | GLB |
 | Keychain / fridge-magnet OBJ | `--asset model.obj` | **model.obj.zip**, containing OBJ/MTL/texture |
 | Keychain / fridge-magnet ZIP | `--asset model.bundle_zip` | ZIP bundle |
+| Vinyl / brick figure | as Figure | as Figure |
+| Keycap GLB | `--model-format glb` | GLB, real-world millimetres |
+| Keycap OBJ | `--asset model.obj_zip` | ZIP bundle with OBJ/MTL/texture |
+| Fidget board | `--model-format 3mf` | one 3MF, one object per piece |
+| Collapsible fidget | `--model-format stl` (resource `creative-lab.fidget-collapsible`) | STL; a preview GLB when listed |
 
 A concrete lamp-shade download (only for the STL build):
 
@@ -241,12 +310,12 @@ builds when that is the intended route), then use `multi-color-print --model-url
 above. Never feed an OBJ ZIP or lamp STL into the GLB/FBX multicolor input. A second build is a
 separate paid operation, so choose the intended output up front.
 
-## 5. Cost and recovery
+## 6. Cost and recovery
 
 Estimate sources, spend rules, progress reporting and hand-over are in [Delivery](delivery.md):
 `meshy make --dry-run` covers only the text/image-to-3D chains it runs, and everything else is
 quoted from the dated published price list. Explain the selected stages — generation, optional
-repair, texturing, multicolor, or Creative Lab prototype/build — and honour an already approved
+repair, texturing, multicolor, splitting, or Creative Lab prototype/build — and honour an already approved
 scope without re-asking between its stages. A new design variant or a previously unapproved
 repair or build is its own decision.
 

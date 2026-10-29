@@ -1,7 +1,7 @@
 # Cost, waiting, previews, delivery and follow-ups
 
 Shared by both Meshy skills. [setup.md](setup.md) decides the runner, the session and
-`WORKSPACE`/`PROJECT_ROOT`; this file covers what happens around a job: what it costs, what the
+`WORKSPACE`/`JOB_DIR`; this file covers what happens around a job: what it costs, what the
 user sees while it runs, what is handed over at the end, and how the next sentence
 ("make it 1500 faces", "now as FBX") reuses what already exists.
 
@@ -13,7 +13,7 @@ Two sources are legitimate. Use them, and say which one you used.
    to textured model). It calls nothing and spends nothing:
 
 ```bash
-meshy make "MODEL_DESCRIPTION" --dry-run --output-schema v1 --format json --no-update-check
+meshy make "MODEL_DESCRIPTION" --dry-run --format json --no-update-check
 ```
 
    Read `steps[]` and `estimated_credits`. The same per-step numbers apply when you run those
@@ -36,7 +36,7 @@ Before starting, know whether the balance can cover the plan. The balance result
 it into monthly credits, which reset on the date it gives, and permanent credits:
 
 ```bash
-meshy balance --output-schema v1 --format json --no-update-check
+meshy balance --format json --no-update-check
 ```
 
 Spend rules: work already authorized by the user proceeds without asking again, stage by stage,
@@ -62,8 +62,8 @@ A finished 3D task normally carries a rendered thumbnail. It is free to fetch, a
 only cheap way to check the result actually matches the request.
 
 ```bash
-meshy download --task-json "PROJECT_DIR/task_TASK_ID.json" --list --output-schema v1 --format json --no-update-check
-meshy download --task-json "PROJECT_DIR/task_TASK_ID.json" --asset thumbnail.primary --output "PROJECT_DIR/preview.png" --project "PROJECT_DIR" --stage preview --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy download --resource RESOURCE --task-id TASK_ID --list --format json --no-update-check
+meshy download --resource RESOURCE --task-id TASK_ID --asset thumbnail.primary --output "JOB_DIR/preview-TASK_ID.png" --workspace "WORKSPACE" --format json --no-update-check
 ```
 
 `--list` shows the asset keys this task really has; `--kind thumbnail` takes every thumbnail it
@@ -75,16 +75,9 @@ it obviously untextured when texture was requested. A thumbnail says nothing abo
 topology, watertightness, print reliability or polygon count — do not imply otherwise.
 
 Post-processing tasks (convert, resize, repair, multicolor, some builds) often have **no**
-thumbnail of their own. Walk back along the lineage the project already recorded and use the
-generation stage's preview instead:
-
-```bash
-meshy project show --project "PROJECT_DIR" --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-```
-
-Take the `parent_task_id` chain from `tasks[]`, then fetch that earlier task's thumbnail with
-`download --resource RESOURCE --task-id TASK_ID --asset thumbnail.primary`. Never pay for a
-conversion or a regeneration just to obtain a picture.
+thumbnail of their own. Walk back along the parent chain you kept (a convert's or repair's
+`--input-task-id`) and run the recipe above on the generation stage's task, with its own
+`RESOURCE` and `TASK_ID`. Never pay for a conversion or a regeneration just to obtain a picture.
 
 When no preview exists anywhere in the chain, say so plainly: the model was produced and
 downloaded, and it has not been visually checked. Missing previews never block the model
@@ -102,11 +95,10 @@ Deliver four things, every time:
 2. **The preview**, shown inline when one exists, or an explicit note that none does.
    A PNG render is not an interactive 3D viewer; this CLI has no local viewer command, so say
    "rendered preview", never "3D preview".
-3. **The task trail**: the producing task ID(s), the resource each belongs to, and the project
-   folder. That is what makes the next request cheap. When the deliverable sits at the user's own
-   path rather than inside the project folder, the project records the **task and stage** and the
-   CLI adds a `files_outside_project` warning — that is the expected shape of an honoured path,
-   not a failure; the file's own location comes from `result.downloads.files`.
+3. **The task trail**: the producing task ID(s) and the resource each belongs to. That is what
+   makes the next request cheap. The sidecar the CLI wrote beside the model (`chest_meta.json`
+   next to `chest.glb`, or `meta.json` in a directory) records the same resource and task ID; the
+   file's own location comes from `result.downloads.files`.
 4. **What it cost**: `consumed_credits` when reported, otherwise stated as unknown, plus any
    warnings that affect use.
 
@@ -121,18 +113,14 @@ wrong answer and a second charge.
 
 Look in this order and stop at the first confident match:
 
-1. This conversation: the task IDs, resource names and project folder from the job you just ran.
-2. The workspace's own history:
+1. This conversation: the task IDs and resource names from the job you just ran.
+2. The sidecar next to an earlier delivery: `<name>_meta.json`, or `meta.json` in a delivery
+   directory, holds its `resource` and task `id`. Find it with the host's file tools; there is no
+   CLI command for it.
+3. The account's recent tasks for one resource, when no sidecar is left:
 
 ```bash
-meshy project list --root "PROJECT_ROOT" --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy project show --project "PROJECT_DIR" --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-```
-
-3. The account's recent tasks for one resource, when the project record is gone:
-
-```bash
-meshy text-to-3d list --page-size 10 --output-schema v1 --format json --no-update-check
+meshy text-to-3d list --page-size 10 --format json --no-update-check
 ```
 
 4. A local model file the user points at — pass it to the step's `--model-url` input. A local

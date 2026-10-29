@@ -1,23 +1,23 @@
-# Digital asset pipelines — CLI 0.4.3
+# Digital asset pipelines — CLI 0.7.0
 
 Contents: route choice; shared lifecycle; text/image models; texture/topology/size; rigging and
 animation; 2D images and motion; downloads and recovery. Cost, previews, hand-over and
 follow-up requests are in [delivery](delivery.md); the runner, login and the meaning of
-`WORKSPACE`/`PROJECT_ROOT` are in [setup](setup.md).
+`WORKSPACE`/`JOB_DIR` are in [setup](setup.md).
 
 Commands are templates: replace uppercase placeholders with values from the user's inputs or
 the preceding JSON, quoting paths and text as individual shell arguments. Each command is a
 separate step whose output must be read before continuing. Do not run alternative recipes as one
-batch. `PROJECT_DIR` is the actual `result.project_dir`, never a literal directory. All business
-commands use the v1 envelope; never scrape task IDs from human-readable progress text.
+batch. Every command prints the v1 envelope; never scrape task IDs from human-readable progress
+text.
 
 ## Pick the route from the intent
 
 | What the user wants | Route | Notes |
 |---|---|---|
 | A model to look at / a digital prop | text-to-3d preview, then refine when texture is wanted | GLB unless they name a format |
-| A model of a specific object in a photo | image-to-3d, `--should-texture true` for colour | one clean reference, whole subject visible |
-| A low-poly / game-ready asset on a budget | image-to-3d or text-to-3d preview with `--model-type smart-topology --target-polycount N`, or remesh after a standard model | meshy-t2 (default) 100–15,000 triangles, `--ai-model meshy-t2.5` up to 30,000; mobile/web budgets sit at the low end |
+| A model of a specific object in a photo | image-to-3d, textured by default (`--should-texture false` for a draft) | one clean reference, whole subject visible |
+| A low-poly / game-ready asset on a budget | image-to-3d or text-to-3d preview with `--model-type smart-topology --target-polycount N`, or remesh after a standard model | meshy-t2.5 (default) 100–30,000 triangles, `--ai-model meshy-t2` up to 15,000; mobile/web budgets sit at the low end |
 | An LOD chain from a model that exists | remesh the **existing** task, once per level | never regenerate for a second LOD |
 | A character that must move | textured humanoid in A/T pose → rigging → bundled walk/run, a library action, or a generated motion | see rigging and animation below |
 | A different format / size of an existing asset | convert / resize on that task | one step, no regeneration |
@@ -29,30 +29,26 @@ a GLB does not need a convert step; a plain preview does not need a 2D concept f
 
 ## Shared lifecycle
 
-Choose one `create` recipe below. For the **first** task, omit `--project` until the project
-exists; this avoids a local bookkeeping failure after a paid submission. Read its
-`result.submission.task_id` as `TASK_ID`, then:
+Choose one `create` recipe below. Read its `result.submission.task_id` as `TASK_ID` and keep
+`{resource, task_id, parent_task_id}` for every stage: the lineage lives in your notes, and in the
+sidecar of each delivered file (see the last section). Then:
 
 ```bash
-meshy project init --root "PROJECT_ROOT" --name "JOB_NAME" --task-id TASK_ID --task-type RESOURCE --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy RESOURCE wait TASK_ID --timeout 600 --project "PROJECT_DIR" --stage STAGE --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy RESOURCE wait TASK_ID --timeout 600 --format json --no-update-check
 ```
 
-Read the init result before replacing `PROJECT_DIR`. `RESOURCE` is the command that created that
-task, e.g. `image-to-3d` or `rigging`, not the parent task's resource. Every later create uses
-the same project and a meaningful stage; for example:
+`RESOURCE` is the command that created that task, e.g. `image-to-3d` or `rigging`, not the parent
+task's resource. Every later create chains by ID (`--input-task-id`, `--preview-task-id`,
+`--rig-task-id`); for example:
 
 ```bash
-meshy text-to-3d create --mode refine --preview-task-id PREVIEW_ID --enable-pbr true --texture-resolution 4k --target-formats glb --async --project "PROJECT_DIR" --stage refine --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy text-to-3d create --mode refine --preview-task-id PREVIEW_ID --enable-pbr true --texture-resolution 4k --target-formats glb --async --format json --no-update-check
 ```
 
-Read the **new** ID, then wait through `text-to-3d` with stage `refine`. Without
-`--texture-resolution` refine uses the server's 2k; 4k and 8k need a meshy-6, meshy-7.1,
-`latest` or Smart Topology preview, and a meshy-6-lite preview refuses them, so drop the flag for
-one. A successful project
-wait saves `task_TASK_ID.json`. Use that snapshot for asset selection and face checks. A job
-that starts from an existing task initializes its project with that task ID and its resource;
-it needs no new generation step.
+Read the **new** ID, then wait through `text-to-3d`. Without `--texture-resolution` refine uses
+the server's 2k; 4k and 8k need a meshy-6, meshy-7.1, `latest` or Smart Topology preview, and a
+meshy-6-lite preview refuses them, so drop the flag for one. A job that starts from an existing
+task needs no new generation step: `get` or `wait` on that task by its ID and resource.
 
 ## Text and image models
 
@@ -61,45 +57,46 @@ Uploaded, image-derived and remeshed models use retexture instead. Skip refine w
 asked for an untextured mesh.
 
 ```bash
-meshy text-to-3d create --mode preview --prompt "MODEL_DESCRIPTION" --target-formats glb --async --output-schema v1 --format json --no-update-check
+meshy text-to-3d create --mode preview --prompt "MODEL_DESCRIPTION" --target-formats glb --async --format json --no-update-check
 ```
 
 Run init/wait, then the refine example above when texturing is in scope. For a humanoid intended
 for rigging, add `--pose-mode a-pose` or `t-pose` to the preview. The preview also takes
 `--model-type smart-topology` with the polygon rules described for images below.
 
-**Single image:** use a clean reference with the whole subject visible. Choose explicitly whether
-to texture; the CLI defaults to an untextured draft. Texture settings require
-`--should-texture true`.
+**Single image:** use a clean reference with the whole subject visible. The CLI textures by
+default, like the API (full PBR maps, 4k base colour), and bills for it, so say which you want:
+`--should-texture false` gives the untextured draft. Texture settings (`--enable-pbr`,
+`--texture-resolution`, `--texture-prompt`) are refused together with `--should-texture false`.
 
 ```bash
-meshy image-to-3d create --image-url "PHOTO_PATH" --model-type standard --should-texture true --enable-pbr true --texture-resolution 4k --target-formats glb --async --output-schema v1 --format json --no-update-check
+meshy image-to-3d create --image-url "PHOTO_PATH" --model-type standard --should-texture true --enable-pbr true --texture-resolution 4k --target-formats glb --async --format json --no-update-check
 ```
 
 For a draft use `--should-texture false` and omit `--enable-pbr`/`--texture-resolution`. For
-controllable low-poly output use smart topology: its default model, meshy-t2, takes 100–15,000
-target triangles (default 10,000); `--ai-model meshy-t2.5` takes 100–30,000 (default 15,000) and
-is currently priced like meshy-t2. Standard mode needs a later remesh for polygon control. `--geometry-resolution
-2k|4k` adds a paid high-detail geometry pass to standard mode only; never combine it with smart
-topology.
+controllable low-poly output use smart topology: its default model, meshy-t2.5, takes 100–30,000
+target triangles (default 15,000) and is currently priced like meshy-t2; `--ai-model meshy-t2`
+takes 100–15,000 (default 10,000). Standard mode needs a later remesh for polygon control.
+`--geometry-resolution 2k|4k` adds a paid high-detail geometry pass to standard mode only; never
+combine it with smart topology.
 
 ```bash
-meshy image-to-3d create --image-url "PHOTO_PATH" --model-type smart-topology --target-polycount 10000 --should-texture false --target-formats glb --async --output-schema v1 --format json --no-update-check
+meshy image-to-3d create --image-url "PHOTO_PATH" --model-type smart-topology --target-polycount 10000 --should-texture false --target-formats glb --async --format json --no-update-check
 ```
 
-**Multiple views:** supply consistent views of the same object. Use `--data` with an
-`image_urls` JSON array for paths containing commas. `--geometry-resolution 2k` is the paid
-high-detail pass here (no 4k).
+**Multiple views:** supply consistent views of the same object; it is textured by default like a
+single image. Use `--data` with an `image_urls` JSON array for paths containing commas.
+`--geometry-resolution 2k` is the paid high-detail pass here (no 4k).
 
 ```bash
-meshy multi-image-to-3d create --image-urls "FRONT_PATH,SIDE_PATH,BACK_PATH" --should-texture true --enable-pbr true --texture-resolution 4k --target-formats glb --async --output-schema v1 --format json --no-update-check
+meshy multi-image-to-3d create --image-urls "FRONT_PATH,SIDE_PATH,BACK_PATH" --should-texture true --enable-pbr true --texture-resolution 4k --target-formats glb --async --format json --no-update-check
 ```
 
 A completed text-to-image or image-to-image task can supply the reference without downloading
 and re-uploading it:
 
 ```bash
-meshy image-to-3d create --input-task-id IMAGE_TASK_ID --should-texture false --target-formats glb --async --project "PROJECT_DIR" --stage geometry --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy image-to-3d create --input-task-id IMAGE_TASK_ID --should-texture false --target-formats glb --async --format json --no-update-check
 ```
 
 Use the resulting image-to-3d task for retexture, not the 2D task. Multi-image-to-3d also
@@ -108,18 +105,17 @@ single-image humanoids, `--pose-mode a-pose` is available.
 
 ## Texture, topology, formats and scale
 
-These examples assume a project containing the source task. When the source is a model from
-outside Meshy, replace `--input-task-id SOURCE_ID` with `--model-url`; use only one source. A
-local file must be GLB or glTF. An STL, OBJ or FBX goes in only as an http(s) URL: the CLI
-refuses a local one (exit 2) before anything is sent, so do not retry it, and do not convert it
-with a paid task just to get it in. If this is the first submitted task of a new job, omit
-project/stage, then initialize the project with its accepted ID.
+These examples take the source task by ID. When the source is a model from outside Meshy,
+replace `--input-task-id SOURCE_ID` with `--model-url`; use only one source. A local file must
+be GLB or glTF. An STL, OBJ or FBX goes in only as an http(s) URL: the CLI refuses a local one
+(exit 2) before anything is sent, so do not retry it, and do not convert it with a paid task
+just to get it in.
 
 ```bash
-meshy retexture create --input-task-id SOURCE_ID --text-style-prompt "TEXTURE_DESCRIPTION" --enable-original-uv true --enable-pbr true --texture-resolution 4k --target-formats glb --async --project "PROJECT_DIR" --stage retexture --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy remesh create --input-task-id SOURCE_ID --topology triangle --target-polycount 30000 --target-formats glb --async --project "PROJECT_DIR" --stage remesh --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy convert create --input-task-id SOURCE_ID --target-formats fbx,obj --async --project "PROJECT_DIR" --stage convert --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy resize create --input-task-id SOURCE_ID --resize-height 0.15 --origin-at bottom --async --project "PROJECT_DIR" --stage resize --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy retexture create --input-task-id SOURCE_ID --text-style-prompt "TEXTURE_DESCRIPTION" --enable-original-uv true --enable-pbr true --texture-resolution 4k --target-formats glb --async --format json --no-update-check
+meshy remesh create --input-task-id SOURCE_ID --topology triangle --target-polycount 30000 --target-formats glb --async --format json --no-update-check
+meshy convert create --input-task-id SOURCE_ID --target-formats fbx,obj --async --format json --no-update-check
+meshy resize create --input-task-id SOURCE_ID --resize-height 0.15 --origin-at bottom --async --format json --no-update-check
 ```
 
 These are alternatives, not an automatic four-step chain. Each is the answer to exactly one
@@ -131,24 +127,23 @@ Resize uses **metres**: 0.15 is 15 cm; choose one of height, longest-side or aut
 each resource's `create --help` for further options.
 
 **UV unwrap:** outputs an untextured UV white model for external texturing; requires GLB and at
-most 40,000 faces. Inspect the source snapshot first:
+most 40,000 faces. The API does not report a face count, so count the GLB itself: download the
+source model (free), check it locally, then submit:
 
 ```bash
-meshy inspect faces --task-json "PROJECT_DIR/task_SOURCE_ID.json" --max-faces 40000 --output-schema v1 --format json --no-update-check
-meshy uv-unwrap create --input-task-id SOURCE_ID --async --project "PROJECT_DIR" --stage uv-unwrap --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy download --resource RESOURCE --task-id SOURCE_ID --model-format glb --output "JOB_DIR/source-SOURCE_ID.glb" --workspace "WORKSPACE" --format json --no-update-check
+meshy inspect faces --model "JOB_DIR/source-SOURCE_ID.glb" --max-faces 40000 --format json --no-update-check
+meshy uv-unwrap create --input-task-id SOURCE_ID --async --format json --no-update-check
 ```
 
-Proceed only after a passing check (exit 0); 12 means too dense, 13 means unknown. A remesh is an
-additional paid stage when needed, followed by a new face check. If the snapshot is missing,
-retrieve it through its actual owning resource:
-
-```bash
-meshy RESOURCE get SOURCE_ID --save-json "PROJECT_DIR/task_SOURCE_ID.json" --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-```
-
-For an external GLB with unknown faces, establish the count with an available local modeling tool
-or user-provided evidence. This CLI has no local face counter, so unknown stays unknown: do not
-treat it as a pass and do not submit a speculative remesh to make it go away.
+`inspect faces --model` counts the triangles of every mesh instance in a local GLB or glTF, with
+no network and no sign-in. Proceed only after a passing check (exit 0); 12 means too dense, 13
+means unknown. A remesh is an additional paid stage when needed, followed by a new download and
+check. `inspect faces` with `--task-json` or `--resource` and `--task-id` only reads a
+`face_count` the task itself carries, which the API does not report, so it normally ends in 13:
+measure the model instead. For an external GLB or glTF, run `inspect faces --model` on the file itself. A count that stays
+unknown (for example a model that is not GLB/glTF) is not a pass: do not treat it as one and do
+not submit a speculative remesh to make it go away.
 
 ## Rigging and animation
 
@@ -157,13 +152,16 @@ Use the refined, retextured or textured image task, not an untextured preview. V
 and texture suitability from the task and its preview; a face check alone cannot establish them.
 
 ```bash
-meshy inspect faces --task-json "PROJECT_DIR/task_TEXTURED_ID.json" --max-faces 300000 --output-schema v1 --format json --no-update-check
-meshy rigging create --input-task-id TEXTURED_ID --height-meters 1.7 --async --project "PROJECT_DIR" --stage rigging --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy download --resource RESOURCE --task-id TEXTURED_ID --model-format glb --output "JOB_DIR/textured-TEXTURED_ID.glb" --workspace "WORKSPACE" --format json --no-update-check
+meshy inspect faces --model "JOB_DIR/textured-TEXTURED_ID.glb" --max-faces 300000 --format json --no-update-check
+meshy rigging create --input-task-id TEXTURED_ID --height-meters 1.7 --async --format json --no-update-check
 ```
 
 Apply the same pass/fail/unknown rule as UV. Wait through `rigging` using the newly accepted ID.
 For external input the rigging CLI accepts a textured GLB via `--model-url`; it still needs the
-same suitability and face evidence.
+same suitability and face evidence. Leave `--texture-image-url` out: it is deprecated, the rig
+keeps the model's own textures, and sending it makes that one image the only texture and drops the
+PBR maps (it exists only for a `--model-url` GLB that has no textures).
 
 Choose the motion source in this order; stop at the first that gives the requested action:
 
@@ -176,11 +174,11 @@ Choose the motion source in this order; stop at the first that gives the request
    the next section, wait for it, then apply it with `--motion-task-id`. Biped rigs only, and
    apply it within 3 days of the motion task.
 
-Select the rig or bundled clips individually:
+Select the rig or bundled clips individually, each to its own `OUTPUT_FILE`:
 
 ```bash
-meshy download --task-json "PROJECT_DIR/task_RIG_ID.json" --asset result.rigged_character_glb_url --output "PROJECT_DIR/rigged.glb" --project "PROJECT_DIR" --stage rigging --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy download --task-json "PROJECT_DIR/task_RIG_ID.json" --asset result.basic_animations.walking_glb_url --output "PROJECT_DIR/walking.glb" --project "PROJECT_DIR" --stage rigging --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy download --resource rigging --task-id RIG_ID --asset result.rigged_character_glb_url --output "OUTPUT_FILE" --workspace "WORKSPACE" --format json --no-update-check
+meshy download --resource rigging --task-id RIG_ID --asset result.basic_animations.walking_glb_url --output "OUTPUT_FILE" --workspace "WORKSPACE" --format json --no-update-check
 ```
 
 For running, use `result.basic_animations.running_glb_url`; list the assets for FBX and armature
@@ -191,10 +189,10 @@ and `--sub-category` narrows further. Each item carries a `preview_url` GIF to s
 when the choice is not obvious.
 
 ```bash
-meshy animation-catalog list --search wave --output-schema v1 --format json --no-update-check
-meshy animate create --rig-task-id RIG_ID --action-id ACTION_ID --async --project "PROJECT_DIR" --stage animation --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy animate create --rig-task-id RIG_ID --action-ids ACTION_IDS --async --project "PROJECT_DIR" --stage animation --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy animate create --rig-task-id RIG_ID --motion-task-id MOTION_ID --async --project "PROJECT_DIR" --stage animation --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy animation-catalog list --search wave --format json --no-update-check
+meshy animate create --rig-task-id RIG_ID --action-id ACTION_ID --async --format json --no-update-check
+meshy animate create --rig-task-id RIG_ID --action-ids ACTION_IDS --async --format json --no-update-check
+meshy animate create --rig-task-id RIG_ID --motion-task-id MOTION_ID --async --format json --no-update-check
 ```
 
 These are alternatives: one action, several actions in one file, or a generated motion. Wait
@@ -212,14 +210,16 @@ them, never insert them silently into a 3D request. Choose a model supported by 
 not an invented identifier.
 
 ```bash
-meshy text-to-image create --ai-model nano-banana-pro --prompt "DESIGN_DESCRIPTION" --aspect-ratio 1:1 --async --output-schema v1 --format json --no-update-check
-meshy image-to-image create --ai-model nano-banana-pro --prompt "EDIT_DESCRIPTION" --reference-image-urls "IMAGE_PATH" --async --output-schema v1 --format json --no-update-check
-meshy text-to-motion create --prompt "MOTION_DESCRIPTION" --mode prime --duration 3 --async --output-schema v1 --format json --no-update-check
+meshy text-to-image create --ai-model nano-banana-pro --prompt "DESIGN_DESCRIPTION" --aspect-ratio 1:1 --async --format json --no-update-check
+meshy image-to-image create --ai-model nano-banana-pro --prompt "EDIT_DESCRIPTION" --reference-image-urls "IMAGE_PATH" --async --format json --no-update-check
+meshy text-to-motion create --prompt "MOTION_DESCRIPTION" --mode prime --duration 3 --async --format json --no-update-check
 ```
 
-Apply init/wait to the selected resource, or add the existing project's flags for a chained step.
+Wait on the selected resource as above.
 Character concept generation can use `--generate-multi-view true --pose-mode a-pose` where the
-selected image model supports it. `--remove-background true` returns a transparent PNG. A
+selected image model supports it. A nano-banana model renders a pose at 3:4 whatever
+`--aspect-ratio` says (the envelope carries a `pose_aspect_ratio` warning, and the request is
+still sent and billed); GPT Image models keep the ratio. `--remove-background true` returns a transparent PNG. A
 finished image task can feed image-to-image with `--input-task-id IMAGE_TASK_ID` instead of
 re-uploading its output. Text-to-motion makes a standalone skeleton clip from a prompt of up to
 400 characters: prime returns FBX, swift BVH; duration is 2–10 seconds in 0.5-second steps.
@@ -230,26 +230,38 @@ motion with `--kind motion`, using `--output-dir`.
 ## Asset delivery and recovery
 
 ```bash
-meshy download --task-json "PROJECT_DIR/task_TASK_ID.json" --list --output-schema v1 --format json --no-update-check
-meshy download --task-json "PROJECT_DIR/task_TASK_ID.json" --model-format glb --output "OUTPUT_FILE" --project "PROJECT_DIR" --stage delivered --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy download --task-json "PROJECT_DIR/task_TASK_ID.json" --model-format obj --output-dir "OUTPUT_DIR" --project "PROJECT_DIR" --stage delivered --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy RESOURCE get TASK_ID -o "OUTPUT_FILE" --workspace "WORKSPACE" --format json --no-update-check
+meshy download --resource RESOURCE --task-id TASK_ID --list --format json --no-update-check
+meshy download --resource RESOURCE --task-id TASK_ID --model-format obj --output-dir "OUTPUT_DIR" --workspace "WORKSPACE" --format json --no-update-check
 ```
 
 `OUTPUT_FILE` is the exact path the user asked for, resolved as in [setup](setup.md); with no
-requested path it is a named file inside `PROJECT_DIR`. Use `--output-dir` when a selection
-yields several files (OBJ with its MTL and textures, a `--kind`), and `--output` for a single
-file. Choose only the applicable download. OBJ includes available MTL and textures; inspect
-material-link warnings. For one thumbnail use `--asset thumbnail.primary`; signed URLs and asset
-keys come from the task, never from guesswork.
+requested path it is a named file inside `JOB_DIR`. `-o` on a SUCCEEDED task saves its primary
+files: a file path such as `chest.glb` gets the one asset of that format (`.fbx` on a rigging task
+gets the rig's FBX) and a sidecar `chest_meta.json` beside it that records the resource, the task
+and the saved files. That sidecar is the task trail for follow-ups, so leave it next to the model.
+`-o` also works on `wait`, `stream` and a synchronous `create`, but `get` after a `wait` keeps the
+delivery a separate, repeatable step.
 
-A task-json file preserves a snapshot, not a forever-valid download URL. If it expires, use
-`meshy download --resource RESOURCE --task-id TASK_ID` with the same selection, output, project
-and workspace flags to obtain refreshed URLs; do not regenerate the model. Existing files are
-protected: successful files survive a partial failure, and overwriting happens only within the
-user's authorization.
+A directory (`-o OUTPUT_DIR`, sidecar `meta.json`) gets every primary file: each model format the
+task produced, the thumbnail, images, reports, a rig or animation as GLB. Texture PNGs a GLB
+already embeds, a rig's bundled walking and running clips, FBX copies and the pre-remesh model
+stay on the server and are listed in `result.downloads.skipped`. `--all-assets` (with `-o` and a
+directory) saves them too, which on a long chain is hundreds of megabytes. To take specific
+files use `meshy download` instead: `--list` shows the asset keys the task really has, `--asset`
+takes one, `--model-format obj --output-dir` takes an OBJ with its MTL and textures (inspect the
+material-link warnings), and `--asset thumbnail.primary` takes the preview. `download` writes no
+sidecar. Signed URLs and asset keys come from the task, never from guesswork. Every writing
+command carries `--workspace WORKSPACE`. A `get` of a task that has not succeeded yet answers
+`downloads.state: "not_ready"` with exit 0, so `wait` first.
 
-Use `meshy project show --project "PROJECT_DIR" --output-schema v1 --format json
---no-update-check` to recover lineage. The CLI reads legacy metadata and backs it up when
-migrating on a later write. Task failures, interrupted waits and unknown submissions follow
-[troubleshooting](troubleshooting.md); a failed local save does not erase a remote task. Report
-null or unknown charges as unknown rather than assuming zero.
+Rerunning the same `-o` for the same task is safe and free: its sidecar says which files that
+task saved, so the rerun replaces them and fetches anything missing. Any other file already at the
+target (no sidecar, or another task's) is refused before anything downloads, exit 11: choose
+another path, or for `download` pass `--overwrite` only when the user's instruction covers
+replacing that file. A transfer that fails part-way (exit 7 or 130) still writes the sidecar for
+what landed, and `error.recovery.command` is the same `get … -o …` with absolute paths: run it
+once the cause is gone. Signed URLs expire; `get` and `download --resource` fetch fresh ones, so
+never regenerate a model to obtain a file. Task failures, interrupted waits and unknown
+submissions follow [troubleshooting](troubleshooting.md); a failed local save does not erase a
+remote task. Report null or unknown charges as unknown rather than assuming zero.

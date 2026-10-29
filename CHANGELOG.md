@@ -1,5 +1,71 @@
 # Changelog
 
+## [0.8.0] - 2026-10-29
+
+### Changed
+
+- All three skills now pin **Meshy CLI 0.7.0** (setup, SKILL.md, INSTALL.md, README, validator,
+  CI, contract tests and the OpenClaw install hint `meshy-cli@0.7.0`), moving from 0.4.3. The
+  contract suite passes against the published 0.7.0 package. `INSTALL.md` now matches `setup.md`:
+  keep exactly 0.7.0, install it when the CLI is missing or older, and use the pinned temporary
+  package rather than downgrade a newer global CLI.
+- **No project store.** `meshy project`, `--project` and `--stage` are gone from the CLI (0.7.0
+  refuses them as unknown, exit 2), and with them `metadata.json`, `history.json` and the
+  `task_<id>.json` snapshots. The recipes no longer carry a project folder: the lineage is the
+  `{resource, task_id, parent_task_id}` you keep, `JOB_DIR` (a fresh `<job>` folder inside the
+  workspace) holds previews and intermediate downloads, `download --resource RESOURCE --task-id
+  TASK_ID` fetches fresh signed URLs instead of reading a snapshot, and `create` and `wait` no
+  longer carry `--workspace` because they write nothing. A `metadata.json` from an older version is
+  not read; take the task IDs from it by hand.
+- Delivery is `RESOURCE get TASK_ID -o "OUTPUT_FILE"`: the one asset of the requested format plus a
+  `<name>_meta.json` sidecar beside it (`meta.json` in a directory) recording the resource, task
+  and saved files. That sidecar is the task trail for follow-ups ("rig the one from before"), found
+  with the host's file tools or, failing that, `RESOURCE list`. `meshy download` stays for picking
+  specific assets and writes no sidecar.
+- Rerunning `-o` for the same task replaces its own files instead of exiting 11, and a part-way
+  failure writes its sidecar and prints the same `get … -o …` as `error.recovery.command`. Files at
+  the target that are not that task's own are refused before anything downloads. Troubleshooting
+  and Delivery describe this; exit 11 now says to choose another path.
+- `--output-schema` is gone. CLI 0.5.0 made every command print the `meshy.cli/v1` envelope and
+  refuses the flag as an unknown option, so no recipe passes it any more and the validator rejects
+  it. Every command keeps `--format json --no-update-check`.
+- Auth commands print the envelope too. Read `result.authenticated`, `result.verified`,
+  `result.source` and `result.hint` from `auth status` (an unauthenticated or unverified answer is
+  `ok: true` with exit 3) and `result.status: "logged_in"` after a login; a failed login is an
+  error envelope with `error.details.oauth_error`. `auth status` still ignores `--api-key-file`:
+  verify that source with `balance`.
+- `image-to-3d` and `multi-image-to-3d` texture by default, like the API (full PBR maps, 4k base
+  colour). A draft needs `--should-texture false`, and texture settings are refused together with
+  it. The white-print recipe keeps `--should-texture false` explicitly.
+- Smart Topology defaults to `meshy-t2.5` (100-30,000 triangles, default 15,000);
+  `--ai-model meshy-t2` keeps 100-15,000 with a 10,000 default.
+- The face-count gates for UV unwrap and rigging download the GLB and measure it with
+  `inspect faces --model`. The API reports no face count, so a task response alone answers
+  unknown; the "no local face counter" caveat is gone.
+- Rigging: `--texture-image-url` is deprecated. The recipes say to leave it out, because it replaces
+  the model's own textures and drops its PBR maps.
+- Printability analysis and repair take a model URL of up to 400 MB; local files and inline data
+  stay within the CLI's 50 MiB limit.
+
+### Added
+
+- China site: `meshy auth login --device --region cn` signs in at `meshy.cn` and the CLI remembers
+  the region, so later commands call `api.meshy.cn`; `--region global` switches back, and
+  `MESHY_REGION=cn` covers an API-key session. The OpenClaw security manifest lists the China
+  hosts, and the setup reference notes that DeepSeek Harness strips credential-shaped variables
+  such as `MESHY_API_KEY`, so use the stored login or `--api-key-file` there.
+- Troubleshooting: close out an unknown submission with `meshy operations` (`resolve --task-id`
+  binds the task the list showed, `--not-created` releases the ID), exit 130 for SIGTERM and SIGHUP
+  as well as Ctrl-C, and a `get` of a FAILED task being a successful query (exit 0).
+- Delivery: `-o PATH` and `--all-assets`, what `-o` leaves on the server (`result.downloads.skipped`)
+  and how to take specific files with `download`.
+- 2D images: a pose on a nano-banana model renders at 3:4 whatever `--aspect-ratio` says, and the
+  envelope carries a `pose_aspect_ratio` warning.
+- The validator also pins the OpenClaw install hint and rejects `--project`, `--stage` and
+  `meshy project`. New contract tests cover the sidecar and rerun, part-way recovery, the local face
+  gates, default texturing, `-o`/`--all-assets`, the pose warning, `operations resolve`, the
+  denied-login envelope, the China-site login and the rejected stale flags.
+
 ## [0.7.0] - 2026-10-15
 
 ### Changed

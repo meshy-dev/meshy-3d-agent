@@ -10,10 +10,12 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 SKILLS = ("meshy-3d-generation", "meshy-3d-printing", "meshy-openclaw")
-VERSION = "0.7.0"
+VERSION = "0.8.0"
+# The Meshy CLI the skills are written for; every pin below derives from it.
+CLI = "0.7.0"
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 # The pinned temporary-package runner documented in setup.md; recipes stay written as `meshy ...`.
-RUNNER = ["npm", "exec", "--yes", "--package=meshy-cli@0.4.3", "--"]
+RUNNER = ["npm", "exec", "--yes", f"--package=meshy-cli@{CLI}", "--"]
 # Written paths are placeholders resolved from the user's request, never a hardcoded directory.
 WORKSPACE_FLAGS = ("--workspace", "WORKSPACE")
 
@@ -41,7 +43,10 @@ def validate_skill(folder):
     allowed = {"openclaw"} if folder.name == "meshy-openclaw" else set()
     require(set(meta.get("metadata") or {}) == allowed and "interface" not in meta, f"{entry}: unexpected metadata/interface block; the release version lives in the plugin manifests")
     require("env" not in ((meta.get("metadata") or {}).get("openclaw", {}).get("requires") or {}), f"{entry}: an env gate hides the skill from users who sign in through the browser")
-    require("0.4.3" in text, f"{entry}: missing supported CLI version")
+    if folder.name == "meshy-openclaw":
+        installs = meta["metadata"]["openclaw"].get("install") or []
+        require([spec.get("package") for spec in installs] == [f"meshy-cli@{CLI}"], f"{entry}: the OpenClaw install hint must pin meshy-cli@{CLI}")
+    require(CLI in text, f"{entry}: missing supported CLI version")
     require(len(text.splitlines()) <= 300, f"{entry}: move detail into references")
     markdown = set()
     for file in folder.rglob("*"):
@@ -73,15 +78,15 @@ def validate_skill(folder):
                 continue
             require("--format" in argv and argv[argv.index("--format") + 1] == "json", f"{file}: missing JSON output")
             require("--no-update-check" in argv, f"{file}: unexpected update check")
-            if argv[1] != "auth":
-                require("--output-schema" in argv and argv[argv.index("--output-schema") + 1] == "v1", f"{file}: missing v1 schema")
+            # Removed upstream: every command prints the v1 envelope (0.5.0), and the project store is gone (0.7.0).
+            # The CLI refuses all of these (exit 2), so a documented command must not carry them.
+            require("--output-schema" not in argv, f"{file}: --output-schema no longer exists")
+            require(argv[1] != "project" and "--project" not in argv and "--stage" not in argv, f"{file}: the project store no longer exists")
             require(not any("meshy_output" in arg for arg in argv[1:]), f"{file}: hardcoded output root instead of a resolved placeholder")
-            writes = any(flag in argv for flag in ("--save-json", "--output", "--output-dir", "--project")) or argv[1:3] in (["project", "init"], ["project", "record"], ["mesh", "prepare-print"])
+            writes = any(flag in argv for flag in ("--save-json", "--output", "-o", "--output-dir")) or argv[1:3] == ["mesh", "prepare-print"]
             if writes and argv[1] != "auth":
                 require("--workspace" in argv, f"{file}: output write without workspace")
                 require(argv[argv.index("--workspace") + 1] == WORKSPACE_FLAGS[1], f"{file}: workspace must be the resolved WORKSPACE placeholder")
-            if argv[1:3] == ["project", "init"]:
-                require("--root" in argv and argv[argv.index("--root") + 1] == "PROJECT_ROOT", f"{file}: project init must use the resolved PROJECT_ROOT")
     reachable, queue = set(), [entry.resolve()]
     while queue:
         file = queue.pop()
@@ -91,11 +96,11 @@ def validate_skill(folder):
     require(markdown <= reachable, f"{folder}: unreachable documents {markdown - reachable}")
     # The first-run contract each skill must be able to answer on its own.
     setup = (folder / "references" / "setup.md").read_text()
-    for needle in ("npm exec --yes --package=meshy-cli@0.4.3 -- meshy", "auth login --device", "./meshy_output", "WORKSPACE", "PROJECT_ROOT"):
+    for needle in (f"npm exec --yes --package=meshy-cli@{CLI} -- meshy", "auth login --device", "--region cn", "./meshy_output", "WORKSPACE", "JOB_DIR"):
         require(needle in setup, f"{folder}: setup.md does not document {needle!r}")
     require("--no-wait" not in re.sub(r"Do not use `--no-wait`[^.]*\.", "", setup), f"{folder}: setup.md must not use the device-secret login mode")
     delivery = (folder / "references" / "delivery.md").read_text()
-    for needle in ("thumbnail.primary", "docs.meshy.ai/en/api/pricing", "--dry-run", "project list"):
+    for needle in ("thumbnail.primary", "docs.meshy.ai/en/api/pricing", "--dry-run", "_meta.json"):
         require(needle in delivery, f"{folder}: delivery.md does not document {needle!r}")
 
 def safe_paths(value, root):

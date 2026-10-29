@@ -2,7 +2,7 @@
 
 Use [Setup](setup.md) for the runner, login and path rules, [Delivery](delivery.md) for cost,
 previews and hand-over, and [Troubleshooting](troubleshooting.md) for recovery. These recipes
-target **meshy-cli@0.4.3** on Node.js 22.12+. Parameter details come from each command's `--help`;
+target **meshy-cli@0.7.0** on Node.js 22.12+. Parameter details come from each command's `--help`;
 the skill carries no API client.
 
 ## 0. Local-only work needs no account
@@ -11,9 +11,9 @@ These commands are local: no credential, no balance check, no network, no cost. 
 already has the geometry and only wants it prepared or opened, this is the whole job.
 
 ```bash
-meshy slicer detect --output-schema v1 --format json --no-update-check
-meshy mesh prepare-print "SOURCE_OBJ" --height-mm 75 --output "OUTPUT_FILE" --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy slicer open --slicer SLICER_ID --file "OUTPUT_FILE" --output-schema v1 --format json --no-update-check
+meshy slicer detect --format json --no-update-check
+meshy mesh prepare-print "SOURCE_OBJ" --height-mm 75 --output "OUTPUT_FILE" --workspace "WORKSPACE" --format json --no-update-check
+meshy slicer open --slicer SLICER_ID --file "OUTPUT_FILE" --format json --no-update-check
 ```
 
 `mesh prepare-print` rotates Y-up to Z-up, scales to the requested height, centers XY and
@@ -29,22 +29,17 @@ Only leave this section when the job actually needs Meshy to make or change a mo
 ## Carry state explicitly
 
 Uppercase tokens are placeholders, not literal arguments or shell variables. Read each JSON
-result before forming the next command. Keep `{resource, task_id, parent_task_id, project_dir}`
-for each stage. `WORKSPACE`, `PROJECT_ROOT` and `OUTPUT_FILE` come from the user's requested
-location as resolved in [Setup](setup.md). Use one initialized project per user job:
+result before forming the next command. Keep `{resource, task_id, parent_task_id}` for each
+stage: the lineage lives in your notes and in the sidecar of each delivered file, not in a project
+folder. `WORKSPACE`, `JOB_DIR` and `OUTPUT_FILE` come from the user's requested location as
+resolved in [Setup](setup.md). All create commands use `--async`; read `result.submission.task_id`
+as the ID named in the next step, and `wait` blocks until that task is terminal. Pass
+`--workspace WORKSPACE` on every command that writes a file (download, `-o`, mesh preparation);
+create and wait write nothing there. Local CLI credential and journal storage is controlled
+separately by CLI configuration.
 
-```bash
-meshy project init --root "PROJECT_ROOT" --name "print project" --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-```
-
-Read `result.project_dir` as PROJECT_DIR. All following create commands use `--async`; read
-`result.submission.task_id` as the ID named in the next step. `wait --project` saves
-`task_ID.json` and records the result. Pass `--workspace WORKSPACE` on every writing command,
-including create (submission/project state), wait, download, record and mesh preparation. Local
-CLI credential and journal storage is controlled separately by CLI configuration.
-
-For an existing job, use its initialized project and originating resource. Never query an image
-task through text-to-3d. An ID is not interchangeable with its asset URL. `--input-task-id` is
+For an existing job, use its originating resource and task ID (Delivery says where to find
+them). Never query an image task through text-to-3d. An ID is not interchangeable with its asset URL. `--input-task-id` is
 only for task types the destination command explicitly accepts; otherwise take a supported model
 URL from the completed task, or its downloaded local model. Never pass both source forms and
 hope the right one wins.
@@ -57,24 +52,24 @@ The word "figurine", "statue" or "toy" does not by itself send the job to Creati
 Choose **one** creation route. Text preview is untextured geometry:
 
 ```bash
-meshy text-to-3d create --mode preview --prompt "A sturdy small owl figurine on a broad flat base" --target-formats glb,obj --async --project "PROJECT_DIR" --stage geometry --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy text-to-3d wait TEXT_ID --timeout 600 --project "PROJECT_DIR" --stage geometry --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy text-to-3d create --mode preview --prompt "A sturdy small owl figurine on a broad flat base" --target-formats glb,obj --async --format json --no-update-check
+meshy text-to-3d wait TEXT_ID --timeout 600 --format json --no-update-check
 ```
 
 Or use the user's photo (local JPG/PNG/WebP or a supported URL):
 
 ```bash
-meshy image-to-3d create --image-url INPUT_IMAGE --should-texture false --target-formats glb,obj --async --project "PROJECT_DIR" --stage geometry --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy image-to-3d wait IMAGE_ID --timeout 600 --project "PROJECT_DIR" --stage geometry --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy image-to-3d create --image-url INPUT_IMAGE --should-texture false --target-formats glb,obj --async --format json --no-update-check
+meshy image-to-3d wait IMAGE_ID --timeout 600 --format json --no-update-check
 ```
 
-`--should-texture false` is deliberate for a white print: texturing is a paid stage nobody asked
-for. Only after `SUCCEEDED`, set SOURCE_ID and SOURCE_RESOURCE to that task. Run analysis below
-when required; if repair changes the model, set CURRENT_RESOURCE/CURRENT_ID to the repair task
+`--should-texture false` is deliberate for a white print: the CLI textures an image by default,
+and texturing is a paid stage nobody asked for. Only after `SUCCEEDED`, set SOURCE_ID and
+SOURCE_RESOURCE to that task. Run analysis below when required; if repair changes the model, set CURRENT_RESOURCE/CURRENT_ID to the repair task
 instead. Otherwise CURRENT equals SOURCE. Download from **CURRENT**, not an earlier preview:
 
 ```bash
-meshy download --resource CURRENT_RESOURCE --task-id CURRENT_ID --model-format obj --output-dir "PROJECT_DIR/white-model" --project "PROJECT_DIR" --stage white-model --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy download --resource CURRENT_RESOURCE --task-id CURRENT_ID --model-format obj --output-dir "JOB_DIR/white-model" --workspace "WORKSPACE" --format json --no-update-check
 ```
 
 OBJ selection includes MTL/textures when present. Read `result.downloads.files` to identify
@@ -93,8 +88,8 @@ or a repair result (see help). Other sources, such as a Creative Lab build, use 
 **model URL** instead of assuming their IDs are accepted.
 
 ```bash
-meshy analyze-printability create --input-task-id SOURCE_ID --async --project "PROJECT_DIR" --stage analysis --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy analyze-printability wait ANALYSIS_ID --timeout 600 --project "PROJECT_DIR" --stage analysis --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy analyze-printability create --input-task-id SOURCE_ID --async --format json --no-update-check
+meshy analyze-printability wait ANALYSIS_ID --timeout 600 --format json --no-update-check
 ```
 
 When the printer or the print size is known, add `--printer-type fdm|sla|full_color` and the
@@ -112,9 +107,8 @@ requires it; discuss relevant warnings. Retain existing user authorization; ask 
 additional paid repair is outside it.
 
 ```bash
-meshy repair-printability create --input-task-id SOURCE_ID --async --project "PROJECT_DIR" --stage repaired --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy repair-printability wait REPAIR_ID --timeout 600 --project "PROJECT_DIR" --stage repaired --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy project record --project "PROJECT_DIR" --task-id REPAIR_ID --resource repair-printability --parent-task-id SOURCE_ID --stage repaired --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy repair-printability create --input-task-id SOURCE_ID --async --format json --no-update-check
+meshy repair-printability wait REPAIR_ID --timeout 600 --format json --no-update-check
 ```
 
 Repair also takes ANALYSIS_ID as its `--input-task-id`, unless that analysis was made from an
@@ -128,7 +122,8 @@ For uploaded models replace `--input-task-id SOURCE_ID` with `--model-url MODEL_
 create. Both accept GLB, glTF, OBJ, FBX or STL from an http(s) URL, and repair returns the
 input's format; a **local** file must be GLB or glTF, and the CLI refuses a local STL/OBJ/FBX
 (exit 2) before sending it. Local input and base64 data URIs have a **50 MiB CLI limit**; this
-is stricter than the API's advertised model limit and is not raised by passing a file to `--data`.
+is stricter than the API's advertised limit and is not raised by passing a file to `--data`. An
+http(s) model URL can be larger (up to 400 MB for analysis and repair) and is not subject to it.
 
 Set CURRENT_RESOURCE=`repair-printability`, CURRENT_ID=REPAIR_ID. Inspect its model assets.
 Re-analyze with `--input-task-id REPAIR_ID`, and use that repaired model for printing,
@@ -147,8 +142,8 @@ The input must carry textures. If an unrepaired text-to-3d preview is still the 
 texture it using its own preview ID:
 
 ```bash
-meshy text-to-3d create --mode refine --preview-task-id TEXT_ID --target-formats glb --async --project "PROJECT_DIR" --stage textured --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy text-to-3d wait TEXTURED_ID --timeout 600 --project "PROJECT_DIR" --stage textured --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy text-to-3d create --mode refine --preview-task-id TEXT_ID --target-formats glb --async --format json --no-update-check
+meshy text-to-3d wait TEXTURED_ID --timeout 600 --format json --no-update-check
 ```
 
 Refine cannot texture an image-to-3d, imported or repaired model. For an accepted image task,
@@ -156,9 +151,8 @@ retexture may use `--input-task-id IMAGE_ID`; for a repaired or unsupported task
 actual model URL or local GLB. Read the repaired output URL as CURRENT_MODEL_URL:
 
 ```bash
-meshy retexture create --model-url CURRENT_MODEL_URL --text-style-prompt "Natural owl colors with a warm brown body and cream face" --target-formats glb --async --project "PROJECT_DIR" --stage textured --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy retexture wait TEXTURED_ID --timeout 600 --project "PROJECT_DIR" --stage textured --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy project record --project "PROJECT_DIR" --task-id TEXTURED_ID --resource retexture --parent-task-id CURRENT_ID --stage textured --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy retexture create --model-url CURRENT_MODEL_URL --text-style-prompt "Natural owl colors with a warm brown body and cream face" --target-formats glb --async --format json --no-update-check
+meshy retexture wait TEXTURED_ID --timeout 600 --format json --no-update-check
 ```
 
 Replace the style with the user's requested look. Use only one style input. After repair,
@@ -166,10 +160,10 @@ CURRENT_ID here is REPAIR_ID; this preserves lineage instead of mistakenly retur
 original mesh. After `SUCCEEDED`, an accepted textured task can be passed to multicolor:
 
 ```bash
-meshy multi-color-print create --input-task-id TEXTURED_ID --max-colors 4 --max-depth 4 --async --project "PROJECT_DIR" --stage multicolor --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy multi-color-print wait MULTICOLOR_ID --timeout 600 --project "PROJECT_DIR" --stage multicolor --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy download --resource multi-color-print --task-id MULTICOLOR_ID --model-format 3mf --output-dir "PROJECT_DIR/multicolor" --project "PROJECT_DIR" --stage multicolor --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy slicer open --slicer SLICER_ID --file DOWNLOADED_3MF_PATH --output-schema v1 --format json --no-update-check
+meshy multi-color-print create --input-task-id TEXTURED_ID --max-colors 4 --max-depth 4 --async --format json --no-update-check
+meshy multi-color-print wait MULTICOLOR_ID --timeout 600 --format json --no-update-check
+meshy download --resource multi-color-print --task-id MULTICOLOR_ID --model-format 3mf --output-dir "JOB_DIR/multicolor" --workspace "WORKSPACE" --format json --no-update-check
+meshy slicer open --slicer SLICER_ID --file DOWNLOADED_3MF_PATH --format json --no-update-check
 ```
 
 `--style realistic` (the default) samples colours from the texture and is the only style that
@@ -194,9 +188,9 @@ not pay for one of those steps to get a model in. Split the generation task, or 
 remesh/convert/resize, before any repair.
 
 ```bash
-meshy auto-split create --input-task-id SOURCE_ID --mode by_parts --prompt "head, body, base" --target-formats glb,3mf --layout on_plate --async --project "PROJECT_DIR" --stage split --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy auto-split wait SPLIT_ID --timeout 600 --project "PROJECT_DIR" --stage split --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy download --resource auto-split --task-id SPLIT_ID --model-format 3mf --output-dir "PROJECT_DIR/parts" --project "PROJECT_DIR" --stage split --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy auto-split create --input-task-id SOURCE_ID --mode by_parts --prompt "head, body, base" --target-formats glb,3mf --layout on_plate --async --format json --no-update-check
+meshy auto-split wait SPLIT_ID --timeout 600 --format json --no-update-check
+meshy download --resource auto-split --task-id SPLIT_ID --model-format 3mf --output-dir "JOB_DIR/parts" --workspace "WORKSPACE" --format json --no-update-check
 ```
 
 `--mode auto` (the default) lets Meshy choose the cuts and needs no prompt. `by_parts` cuts along
@@ -222,15 +216,15 @@ its own cost; do not pass text to a lamp prototype. Only successful prototypes c
 this API with the matching credential are accepted as build inputs; web-app prototypes are not
 interchangeable.
 
-Create the project using the initial recipe before any commands below. Substitute PRODUCT with
+Substitute PRODUCT in the commands below with
 exactly `figure`, `vinyl-figure`, `brick-figure`, `lamp`, `keychain`, `fridge-magnet` or `keycap`.
-`fidget-pixel` uses the same wait, download and record commands; only its prototype create below
+`fidget-pixel` uses the same wait and download commands; only its prototype create below
 adds `--type`:
 
 ```bash
-meshy creative-lab PRODUCT prototype create --image-url INPUT_IMAGE --name "print product" --async --project "PROJECT_DIR" --stage prototype --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy creative-lab PRODUCT prototype wait PROTOTYPE_ID --timeout 600 --project "PROJECT_DIR" --stage prototype --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy download --resource creative-lab.PRODUCT.prototype --task-id PROTOTYPE_ID --list --output-schema v1 --format json --no-update-check
+meshy creative-lab PRODUCT prototype create --image-url INPUT_IMAGE --name "print product" --async --format json --no-update-check
+meshy creative-lab PRODUCT prototype wait PROTOTYPE_ID --timeout 600 --format json --no-update-check
+meshy download --resource creative-lab.PRODUCT.prototype --task-id PROTOTYPE_ID --list --format json --no-update-check
 ```
 
 A keychain can carry engraved text: add `--name-text "TEXT"` (up to 10 characters) to its
@@ -238,7 +232,7 @@ prototype; the build inherits it, while `--name` only labels the task. The fidge
 prototype needs the subject type, `person` (a chibi sprite) or `other` (a bead-art icon):
 
 ```bash
-meshy creative-lab fidget-pixel prototype create --image-url INPUT_IMAGE --type person --name "print product" --async --project "PROJECT_DIR" --stage prototype --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy creative-lab fidget-pixel prototype create --image-url INPUT_IMAGE --type person --name "print product" --async --format json --no-update-check
 ```
 
 Review the returned concept image (lamp also supplies a lampshade GLB). Select the image's actual
@@ -247,12 +241,12 @@ build if already authorized; ask only for a needed design choice or new cost out
 scope. Each create below is an **alternative**, not builds to run in sequence:
 
 ```bash
-meshy creative-lab figure build create --input-task-id PROTOTYPE_ID --async --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy creative-lab lamp build create --input-task-id PROTOTYPE_ID --model-format stl --options '{"diameter_mm":180,"light_source_preset":"none"}' --async --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy creative-lab keychain build create --input-task-id PROTOTYPE_ID --model-format obj --options '{"size_mm":50}' --async --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy creative-lab fridge-magnet build create --input-task-id PROTOTYPE_ID --model-format obj --options '{"size_mm":60}' --async --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy creative-lab keycap build create --input-task-id PROTOTYPE_ID --candidate-id CANDIDATE_ID --async --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy creative-lab fidget-pixel build create --input-task-id PROTOTYPE_ID --async --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy creative-lab figure build create --input-task-id PROTOTYPE_ID --async --format json --no-update-check
+meshy creative-lab lamp build create --input-task-id PROTOTYPE_ID --model-format stl --options '{"diameter_mm":180,"light_source_preset":"none"}' --async --format json --no-update-check
+meshy creative-lab keychain build create --input-task-id PROTOTYPE_ID --model-format obj --options '{"size_mm":50}' --async --format json --no-update-check
+meshy creative-lab fridge-magnet build create --input-task-id PROTOTYPE_ID --model-format obj --options '{"size_mm":60}' --async --format json --no-update-check
+meshy creative-lab keycap build create --input-task-id PROTOTYPE_ID --candidate-id CANDIDATE_ID --async --format json --no-update-check
+meshy creative-lab fidget-pixel build create --input-task-id PROTOTYPE_ID --async --format json --no-update-check
 ```
 
 Figure, vinyl figure and brick figure have **no** build `--options` or `--model-format`; build the
@@ -272,17 +266,16 @@ inspect their build help before setting shape, backing or thickness.
 The collapsible fidget has a single stage, straight from the photo, with no prototype to review:
 
 ```bash
-meshy creative-lab fidget-collapsible create --image-url INPUT_IMAGE --async --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy creative-lab fidget-collapsible wait BUILD_ID --timeout 600 --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy creative-lab fidget-collapsible create --image-url INPUT_IMAGE --async --format json --no-update-check
+meshy creative-lab fidget-collapsible wait BUILD_ID --timeout 600 --format json --no-update-check
 ```
 
 Download it with `--resource creative-lab.fidget-collapsible --model-format stl`. For every
-two-stage product, read BUILD_ID from the chosen create; wait and record its parent:
+two-stage product, read BUILD_ID from the chosen create, note PROTOTYPE_ID as its parent, wait:
 
 ```bash
-meshy creative-lab PRODUCT build wait BUILD_ID --timeout 600 --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy project record --project "PROJECT_DIR" --task-id BUILD_ID --resource creative-lab.PRODUCT.build --parent-task-id PROTOTYPE_ID --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
-meshy download --resource creative-lab.PRODUCT.build --task-id BUILD_ID --list --output-schema v1 --format json --no-update-check
+meshy creative-lab PRODUCT build wait BUILD_ID --timeout 600 --format json --no-update-check
+meshy download --resource creative-lab.PRODUCT.build --task-id BUILD_ID --list --format json --no-update-check
 ```
 
 Choose the actual delivered asset, not a guessed filename:
@@ -305,13 +298,13 @@ Choose the actual delivered asset, not a guessed filename:
 A concrete lamp-shade download (only for the STL build):
 
 ```bash
-meshy download --resource creative-lab.lamp.build --task-id BUILD_ID --asset model.lamp_stl --output-dir "PROJECT_DIR/lamp" --project "PROJECT_DIR" --stage build --workspace "WORKSPACE" --output-schema v1 --format json --no-update-check
+meshy download --resource creative-lab.lamp.build --task-id BUILD_ID --asset model.lamp_stl --output-dir "JOB_DIR/lamp" --workspace "WORKSPACE" --format json --no-update-check
 ```
 
 For another listed asset, adapt the resource, selector and stage-specific output directory.
 Repeat `--asset` to select multiple actual parts. The CLI does not extract archives; do not label
 a downloaded ZIP as print-ready OBJ. Deliver the archive with extraction/import instructions, or
-use the host's supported archive operation within the project after validating member paths and
+use the host's supported archive operation within the workspace after validating member paths and
 symlinks. Do not create an extraction script inside the skill. Check the product's actual units
 and orientation in the slicer; the generic Y-up rotation is not a blanket requirement for product
 STL/3MF/relief bundles. A figure OBJ that is Y-up can use the local preparation recipe.
@@ -332,6 +325,7 @@ repair or build is its own decision.
 
 Timeout or interruption does not cancel the server task. Keep the accepted ID and rerun its
 matching wait/get. For an unknown submission outcome, inspect journal/recovery information and
-stop before another POST; never manufacture a replacement task to fix a missing local snapshot.
-Partial downloads resume only the missing assets. Preserve source files, project lineage and the
-CLI's existing shared login throughout recovery.
+stop before another POST; never manufacture a replacement task to fix a missing local file.
+Partial downloads resume only the missing assets: rerun the same `-o` or `download`. Preserve
+source files, the task IDs and sidecars you hold and the CLI's existing shared login throughout
+recovery.

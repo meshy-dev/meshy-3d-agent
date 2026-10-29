@@ -6,7 +6,7 @@ license: MIT
 
 # Meshy 3D Printing
 
-Use Meshy CLI **0.4.3** to deliver the requested print files at the intended size, with
+Use Meshy CLI **0.7.0** to deliver the requested print files at the intended size, with
 analysis/repair results where applicable and a slicer handoff when requested. This skill is
 self-contained. Ordinary digital assets belong to meshy-3d-generation.
 
@@ -40,7 +40,7 @@ local dimension check cannot establish full printability.
 ## Cloud authorization
 
 Resolve the runner automatically using Setup (compatible `meshy` or
-`npm exec --yes --package=meshy-cli@0.4.3 -- meshy …`). Local-only work stops at runner setup.
+`npm exec --yes --package=meshy-cli@0.7.0 -- meshy …`). Local-only work stops at runner setup.
 Cloud work reuses a verified session. If login is needed, keep `auth login --device` running,
 show its URL and user code in **commentary/progress, never a final answer**, and await the
 same tool session in this turn. After it exits, verify `auth status` and resume the print job.
@@ -59,8 +59,9 @@ Do not ask for a "done" message or credentials in chat; Setup has the host wait 
 - API, downloads and geometry operations use the CLI. Local inputs have a 50 MiB limit, and a
   local model must be GLB or glTF (multicolor: GLB); an STL, OBJ or FBX goes to Meshy only as an
   http(s) URL.
-  Business commands use `--output-schema v1 --format json --no-update-check`; writes carry
-  the resolved `--workspace WORKSPACE`. Read returned paths and IDs rather than guessing.
+  Every command uses `--format json --no-update-check` and prints one `meshy.cli/v1` envelope;
+  writes carry the resolved `--workspace WORKSPACE`. Read returned paths and IDs rather than
+  guessing.
 - Submit cloud tasks once with `create --async`, retain their resource and lineage, and `wait`
   on the same task. Keep the turn active during waits. Unknown submission and interrupted
   downloads are recovery cases, not permission to generate again.

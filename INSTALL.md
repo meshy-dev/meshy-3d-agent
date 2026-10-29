@@ -21,16 +21,20 @@ If Node.js is missing or older, stop and ask the user to install a current Node.
 meshy --version
 ```
 
-- It prints `0.4.3` or newer: keep it. Never downgrade a newer CLI.
-- Otherwise, install it:
+- It prints exactly `0.7.0`: keep it. The skills are written for that version, and a different
+  one can change flags and output.
+- It prints an older version, or there is no `meshy`: install the pinned version.
 
 ```bash
-npm install -g meshy-cli@0.4.3
+npm install -g meshy-cli@0.7.0
 ```
 
-If the global install is refused (permissions, a managed machine), leave it: the skills can
-fall back to `npm exec --yes --package=meshy-cli@0.4.3 -- meshy …`. Use that as `meshy` in the
-steps below.
+- It prints a newer version: do not downgrade it, since something else may rely on it. Use the
+  pinned temporary package `npm exec --yes --package=meshy-cli@0.7.0 -- meshy …` as `meshy` in the
+  steps below.
+
+If the global install is refused (permissions, a managed machine), leave it and use the same
+`npm exec` form as `meshy` in the steps below.
 
 ## Step 2: Install the skills
 
@@ -67,7 +71,7 @@ the link.
 meshy auth status --format json --no-update-check
 ```
 
-If it reports `"authenticated": true` and `"verified": true`, skip to Step 4. Otherwise, sign
+If its `result` reports `"authenticated": true` and `"verified": true`, skip to Step 4. Otherwise, sign
 in with the device flow:
 
 ```bash
@@ -91,7 +95,7 @@ If the code expires, run the same login command again.
 
 ```bash
 meshy auth status --format json --no-update-check
-meshy balance --output-schema v1 --format json --no-update-check
+meshy balance --format json --no-update-check
 ```
 
 Tell the user the setup is done and how many credits they have. Nothing has been spent. If your

@@ -14,7 +14,7 @@ metadata:
     install:
       - id: node
         kind: node
-        package: meshy-cli
+        package: meshy-cli@0.7.0
         bins:
           - meshy
         label: Install Meshy CLI (npm)
@@ -22,7 +22,7 @@ metadata:
 
 # Meshy 3D — Generation + Printing
 
-Use Meshy CLI **0.4.3** to turn the user's request into a delivered asset: the requested files
+Use Meshy CLI **0.7.0** to turn the user's request into a delivered asset: the requested files
 in the requested location, an inspected preview when one exists, and — for prints — the
 intended size, analysis/repair results and a slicer handoff when asked. Login or task
 submission alone is not completion. Choose the shortest suitable pipeline and reuse existing
@@ -31,16 +31,17 @@ assets for follow-ups.
 ## SECURITY MANIFEST
 
 **Executables:** only the Meshy CLI — `meshy`, or the pinned temporary package
-`npm exec --yes --package=meshy-cli@0.4.3 -- meshy`. No Python, no `curl`, no bundled scripts.
+`npm exec --yes --package=meshy-cli@0.7.0 -- meshy`. No Python, no `curl`, no bundled scripts.
 
 **Credentials:** the CLI's own browser sign-in (OAuth device flow) stores and refreshes a
 session in `~/.config/meshy/credentials.json` (mode 0600). An existing `MESHY_API_KEY`, or an
 explicit `--api-key-file`, is honoured and takes precedence. The skill never reads, prints or
 copies a token, device code or key, and never asks for one in chat. `MESHY_API_KEY` is optional.
 
-**Network:** the Meshy API (`api.meshy.ai`) and its sign-in page (`www.meshy.ai`); the media
-hosts of assets being downloaded or input URLs being checked, without the credential; the npm
-registry when the CLI is installed or run as a temporary package.
+**Network:** the Meshy API (`api.meshy.ai`) and its sign-in page (`www.meshy.ai`), or
+`api.meshy.cn` and `meshy.cn` on the China site; the media hosts of assets being downloaded or
+input URLs being checked, without the credential; the npm registry when the CLI is installed or
+run as a temporary package.
 
 **Files:** writes only inside one workspace per job — the directory the user named, or
 `./meshy_output` — and the CLI refuses paths that escape it, including through symlinks.
@@ -111,8 +112,9 @@ than re-submitting or looping on `sleep`.
 - Run API, upload, download and mesh operations through the CLI. Local inputs have a 50 MiB
   limit, and a local model must be GLB or glTF (rigging and multicolor: GLB); use the supported
   URL input route for anything else.
-- Business commands use `--output-schema v1 --format json --no-update-check`; auth has its own
-  JSON shape. Resolve `WORKSPACE` from the user's output path and pass it to every write.
+- Every command uses `--format json --no-update-check` and prints one `meshy.cli/v1` envelope,
+  auth included (`--output-schema` no longer exists). Resolve `WORKSPACE` from the user's
+  output path and pass it to every write.
 - Submit once with `create --async`, keep the owning resource and task ID, then `wait` on that
   task. Timeouts and unknown submissions follow Troubleshooting; they never authorize another
   paid create.

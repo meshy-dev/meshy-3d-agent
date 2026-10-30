@@ -11,11 +11,11 @@ timeout · deleting a task · local files.
 
 ## Runner problems
 
-- **`meshy: command not found`** or **a version older than 0.7.1**: install the newest 0.7.x as
-  Setup describes. If the install is refused, use the temporary 0.7 package
-  (`npm exec --yes --package=meshy-cli@0.7 -- meshy …`) and carry on with the same job.
+- **`meshy: command not found`** or **a version older than 0.7.3**: install the newest 0.7.x as
+  Setup describes. If the install is refused, use the temporary package
+  (`npm exec --yes --package=meshy-cli@0.7.3 -- meshy …`) and carry on with the same job.
 - **A global 0.8 or newer** answers `--version`. Do not uninstall or downgrade it; use the
-  temporary 0.7 package for this work and mention the mismatch once.
+  temporary package for this work and mention the mismatch once.
 - **Node older than 22.12** fails the CLI's own runtime gate. Report the required version and the
   installed one; do not try to relax it or run an older CLI.
 - **`npm exec` cannot reach the registry**: report the network/proxy error. A cached package

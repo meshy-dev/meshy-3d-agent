@@ -2,7 +2,7 @@
 
 Shared by the generation and print workflows. Three things are settled before any job
 starts: **how to run the CLI**, **whether a session already exists**, and **where files go**.
-The supported CLI is **0.7.x, from 0.7.1,** on **Node.js 22.12 or newer**. No Python, request wrapper or
+The supported CLI is **0.7.x, from 0.7.3,** on **Node.js 22.12 or newer**. No Python, request wrapper or
 separate token store is involved.
 
 Contents: 1 runner · 2 reuse a session · 3 first login · 4 where files go · 5 one session
@@ -17,26 +17,29 @@ meshy --version
 
 | Observation | What to do |
 |---|---|
-| `meshy --version` prints 0.7.1 or a later 0.7.x | run `meshy` |
-| no `meshy` command, or a version older than 0.7.1 | install the newest 0.7.x (below), then run `meshy` |
-| 0.8 or newer | keep it, since something else may rely on it, and run the temporary 0.7 package |
+| `meshy --version` prints 0.7.3 or a later 0.7.x | run `meshy` |
+| no `meshy` command, or a version older than 0.7.3 | install the newest 0.7.x (below), then run `meshy` |
+| 0.8 or newer | keep it, since something else may rely on it, and run the temporary package |
 | no Node.js, or Node older than 22.12 | stop and report it: the user installs Node.js 22.12+ |
 
 ```bash
 npm install -g meshy-cli@0.7
 ```
 
-Check and install without asking first; say in one line that you are installing it. Never use `sudo` or change system policy: when the
-install is refused (permissions, a managed machine, a sandbox), use the temporary 0.7 package
+Check and install without asking first; say in one line that you are installing it. Install at
+most once: when `meshy --version` still reports a version older than 0.7.3 afterwards, the
+registry this machine uses lags npm, so report that instead of installing again. Never use `sudo`
+or change system policy: when the install is refused (permissions, a managed machine, a sandbox), use the temporary package
 instead. It runs the same CLI without installing anything: put `npm exec --yes
---package=meshy-cli@0.7 --` in front of the same arguments, and the exit code and the JSON on
+--package=meshy-cli@0.7.3 --` in front of the same arguments, and the exit code and the JSON on
 stdout are forwarded unchanged. Recipes are written as `meshy …`; example:
 
 ```bash
-npm exec --yes --package=meshy-cli@0.7 -- meshy auth status --format json --no-update-check
+npm exec --yes --package=meshy-cli@0.7.3 -- meshy auth status --format json --no-update-check
 ```
 
-The first such call downloads the package into the npm cache; later calls reuse it. On Windows
+The first such call downloads the package into the npm cache; later calls reuse it. It names an
+exact version because `npm exec` keeps reusing whatever matching version it cached first. On Windows
 both commands go through `npm.cmd`. A missing `npm` with a working Node.js means the host
 stripped npm: report that and ask the user to install the CLI themselves.
 
@@ -138,12 +141,35 @@ Failure branches — each is a different recovery, so read the error rather than
 - **`device_flow_not_supported`**: this API host has no device endpoint. Ask the user to run
   `meshy auth login` in their own desktop terminal (loopback + browser), or to store their own
   key with `meshy auth login --with-key <key>` privately. Never ask for the key in chat.
-- **Host cannot keep a process alive at all**: fall back to the user running the login command
-  in their own terminal, then re-check `auth status` and resume. This is the only case where a
-  manual terminal step is acceptable.
+- **Host cannot keep a process alive at all**: use the two-step sign-in below.
 
-Do not use `--no-wait`: its JSON contains a `device_code`, which is a bearer secret. Do not use
-`--manual` from an agent — it prompts on stdin for a pasted code. Never show a token, a device
+### Remote chat: sign in across two turns
+
+When the user talks to you through a chat bridge from another device (a phone in QQ, WeChat,
+Slack or Telegram), progress messages may arrive late or only when the turn ends, so a link shown
+while the login waits never reaches them. Sign in in two steps instead (add `--region cn` to the
+first for the China site):
+
+```bash
+meshy auth login --device --no-wait --format json --no-update-check
+```
+
+It returns at once with `result.verification_url` (the code is already in the link),
+`result.user_code` and `result.flow_id`. Keep FLOW_ID in your notes and end the turn with the link
+and the code: ask the user to open it in the phone's own browser rather than the chat app's (an
+in-app browser may not keep the sign-in), approve, and reply when done. When they reply:
+
+```bash
+meshy auth login --device-flow FLOW_ID --format json --no-update-check
+```
+
+It waits while the approval is still pending, saves the session and prints
+`result.status: "logged_in"`; verify `auth status` and continue the original request. An expired
+or unknown flow means running step one again. A host whose question tool reaches the user
+(dsh's `ask_user_question` is forwarded by its chat bridges) can instead ask with the link and
+wait for the answer in the same turn, then run step two.
+
+Do not use `--manual` from an agent — it prompts on stdin for a pasted code. Never show a token, a device
 code or a signed URL to the user or copy one into chat or a file: task results and sidecars
 carry signed URLs, so report paths and task IDs instead of pasting them.
 

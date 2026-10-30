@@ -106,7 +106,7 @@ async function fixture(t) {
     });
   }
   async function ok(args) { const r = await run(args); assert.equal(r.code, 0, r.stdout + r.stderr); return r.json; }
-  const version = await run(['--version']); assert.match(version.stdout.trim(), /^0\.7\.([1-9]\d*)$/); assert.equal(version.code, 0);
+  const version = await run(['--version']); assert.match(version.stdout.trim(), /^0\.7\.([3-9]|[1-9]\d+)$/); assert.equal(version.code, 0);
   // The documented default job location, resolved the same way a user-named directory would be.
   const workspace = join(root, 'job output');
   await mkdir(workspace);

@@ -111,7 +111,7 @@ async function fixture(t, respond) {
   }
   const version = await run(['--version']);
   assert.equal(version.code, 0, version.stderr);
-  assert.match(version.stdout.trim(), /^0\.7\.([1-9]\d*)$/, 'these recipes require Meshy CLI 0.7.1 or a later 0.7.x');
+  assert.match(version.stdout.trim(), /^0\.7\.([3-9]|[1-9]\d+)$/, 'these recipes require Meshy CLI 0.7.3 or a later 0.7.x');
   const image = join(cwd, 'reference photo.png');
   const png = Buffer.from('89504e470d0a1a0a0000000000000000', 'hex');
   await writeFile(image, png);

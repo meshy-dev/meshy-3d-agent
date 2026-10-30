@@ -10,13 +10,13 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 SKILLS = ("meshy-3d-generation", "meshy-3d-printing", "meshy-openclaw")
-VERSION = "0.8.0"
+VERSION = "0.8.1"
 # The Meshy CLI the skills are written for: any 0.7.x from MIN_CLI. Package specs use the range.
 CLI = "0.7"
-MIN_CLI = "0.7.1"
+MIN_CLI = "0.7.3"
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 # The pinned temporary-package runner documented in setup.md; recipes stay written as `meshy ...`.
-RUNNER = ["npm", "exec", "--yes", f"--package=meshy-cli@{CLI}", "--"]
+RUNNER = ["npm", "exec", "--yes", f"--package=meshy-cli@{MIN_CLI}", "--"]
 # Written paths are placeholders resolved from the user's request, never a hardcoded directory.
 WORKSPACE_FLAGS = ("--workspace", "WORKSPACE")
 
@@ -97,9 +97,10 @@ def validate_skill(folder):
     require(markdown <= reachable, f"{folder}: unreachable documents {markdown - reachable}")
     # The first-run contract each skill must be able to answer on its own.
     setup = (folder / "references" / "setup.md").read_text()
-    for needle in (f"npm exec --yes --package=meshy-cli@{CLI} -- meshy", "auth login --device", "--region cn", "./meshy_output", "WORKSPACE", "JOB_DIR"):
+    for needle in (f"npm exec --yes --package=meshy-cli@{MIN_CLI} -- meshy", "auth login --device", "--region cn", "./meshy_output", "WORKSPACE", "JOB_DIR"):
         require(needle in setup, f"{folder}: setup.md does not document {needle!r}")
-    require("--no-wait" not in re.sub(r"Do not use `--no-wait`[^.]*\.", "", setup), f"{folder}: setup.md must not use the device-secret login mode")
+    # --no-wait only in the two-step sign-in, which resumes by flow_id (CLI 0.7.3 no longer prints the device code).
+    require("--no-wait" not in setup or "--device-flow FLOW_ID" in setup, f"{folder}: --no-wait without the --device-flow resume")
     delivery = (folder / "references" / "delivery.md").read_text()
     for needle in ("thumbnail.primary", "docs.meshy.ai/en/api/pricing", "--dry-run", "_meta.json"):
         require(needle in delivery, f"{folder}: delivery.md does not document {needle!r}")

@@ -31,7 +31,8 @@ existing GLB needs no extra format conversion. Use command help when parameters 
 Before the first command run `meshy --version`; no need to ask. When `meshy` is missing or
 older than 0.7.1, install the newest 0.7.x with `npm install -g meshy-cli@0.7` and say so in
 one line; Setup covers a refused install and a CLI of 0.8 or newer. Reuse a verified session. If login is
-needed, follow Setup and run `auth login --device` in a persistent tool session. Show its
+needed, follow Setup and run `auth login --device` (adding `--region cn` for a user in mainland
+China) in a persistent tool session. Show its
 verification URL and user code in **commentary/progress, not a final answer**. Await that same
 session in this turn until it exits, verify `auth status`, then continue the original request.
 A background process cannot resume a finished turn; do not require a "done" chat message.

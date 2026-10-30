@@ -27,6 +27,8 @@ meshy make "MODEL_DESCRIPTION" --dry-run --format json --no-update-check
 2. **The published price list**, <https://docs.meshy.ai/en/api/pricing>, for everything else —
    retexture, remesh, convert, resize, UV, rigging, animation, 2D, motion, print analysis and
    repair, multicolor, auto split, Creative Lab. Quote it with the date you read it and call it an estimate.
+   Smart Topology is the `meshy-t2.5` (or `meshy-t2`) column; the page is also served as
+   Markdown at <https://docs.meshy.ai/api/pricing.md>.
 
 Nothing else is a quote. `meshy balance` reports the **balance**, not a price. Do not invent a
 cost command, reuse a `make` estimate for an unrelated chain, or state a precise figure for a
@@ -109,7 +111,8 @@ Deliver four things, every time:
    resource and task ID; `download` and `mesh prepare-print` leave none. The file's own location
    comes from `result.downloads.files`. When there is a sidecar, name it in the handover so the
    extra file is no surprise: it records which Meshy task made the model, so a later "now as FBX"
-   continues from that task instead of generating again. The user may delete it; then follow-ups
+   continues from that task instead of generating again. It also holds the task's signed URLs,
+   so do not paste it whole. The user may delete it; then follow-ups
    fall back to the account's task list, and the same `-o` no longer replaces that model, so a new
    delivery needs a new path.
 4. **What it cost**: `consumed_credits` when reported, otherwise stated as unknown, plus any

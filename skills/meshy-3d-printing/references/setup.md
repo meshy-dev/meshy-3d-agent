@@ -69,6 +69,9 @@ own; pass `--device` to make that explicit and deterministic.
 meshy auth login --device --format json --no-update-check
 ```
 
+In mainland China, or when the user asks for the China site, add `--region cn`
+([section 7](#7-the-china-site)): the code is then entered at `meshy.cn`.
+
 Run it as a **persistent tool session that you keep awaiting in the current turn**. A live
 CLI process alone is insufficient: finishing the agent turn leaves no active continuation
 to consume its result. Do not detach it with `&`, `nohup`, or a terminal launch and then
@@ -108,7 +111,9 @@ For Codex shells exposing `exec_command` / `write_stdin`:
 If shell calls are wrapped by `functions.exec` and it returns a running `cell_id`, resume
 that cell with `functions.wait`; once it returns the shell result, use its `session_id`
 if present. Do not confuse the two IDs or leave an unawaited promise in a finished wrapper.
-Other hosts should use their equivalent running-command wait tool. Send a brief progress
+In Claude Code, start it with the Bash tool's `run_in_background`, read its output file until
+the code line appears, then keep checking that output until the process exits. Other hosts use
+their equivalent running-command wait tool. Send a brief progress
 update during a long wait without ending the turn. Stop waiting on a terminal login error,
 actual code expiry, user cancellation, or an explicit host limitation; report the reason.
 Do not create recurring automations or a second task to keep a login alive.
@@ -138,8 +143,9 @@ Failure branches — each is a different recovery, so read the error rather than
   manual terminal step is acceptable.
 
 Do not use `--no-wait`: its JSON contains a `device_code`, which is a bearer secret. Do not use
-`--manual` from an agent — it prompts on stdin for a pasted code. Never print tokens, device
-codes or signed URLs.
+`--manual` from an agent — it prompts on stdin for a pasted code. Never show a token, a device
+code or a signed URL to the user or copy one into chat or a file: task results and sidecars
+carry signed URLs, so report paths and task IDs instead of pasting them.
 
 ## 4. Where files go
 

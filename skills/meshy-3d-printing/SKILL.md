@@ -50,7 +50,8 @@ local dimension check cannot establish full printability.
 Before the first command run `meshy --version`; no need to ask. When `meshy` is missing or
 older than 0.7.1, install the newest 0.7.x with `npm install -g meshy-cli@0.7` and say so in
 one line; Setup covers a refused install and a CLI of 0.8 or newer. Local-only work stops at runner setup.
-Cloud work reuses a verified session. If login is needed, keep `auth login --device` running,
+Cloud work reuses a verified session. If login is needed, keep `auth login --device` running (with `--region cn` for a
+user in mainland China),
 show its URL and user code in **commentary/progress, never a final answer**, and await the
 same tool session in this turn. After it exits, verify `auth status` and resume the print job.
 Do not ask for a "done" message or credentials in chat; Setup has the host wait procedure.

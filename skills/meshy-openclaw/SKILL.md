@@ -103,7 +103,8 @@ older than 0.7.1, install the newest 0.7.x with `npm install -g meshy-cli@0.7` a
 one line; Setup covers a refused install and a CLI of 0.8 or newer. Local-only print work stops there. Everything else reuses a verified `auth status`
 session; only when there is none, sign in:
 
-1. Start `meshy auth login --device --format json --no-update-check` with `exec` and a short
+1. Start `meshy auth login --device --format json --no-update-check` (add `--region cn` for a
+   user in mainland China) with `exec` and a short
    `yieldMs` (about 3000) and `timeoutSeconds: 900`, so it keeps running in the background and
    returns a `sessionId`.
 2. The CLI prints `Enter code … at https://www.meshy.ai/device` on stderr within seconds. If the

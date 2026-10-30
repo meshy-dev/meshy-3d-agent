@@ -86,6 +86,9 @@
   a plan-gated model; a create refused with `NoMorePendingTasks` (exit 6) made no task; a wait is
   resumed for about an hour from creation; retexture after a repair takes the repair task ID
   rather than a signed URL.
+- From a fresh-agent China-site run: every SKILL.md and the first-login step name `--region cn`;
+  Setup says how Claude Code keeps the login running; signed URLs in task results and sidecars
+  stay out of chat; the price list's Smart Topology column and its Markdown URL.
 - `--data` carries an API field the CLI has no flag for; `make --dry-run` prices only the same
   settings; a FAILED task is refunded; rigging limits (320,000 faces, +Z facing for a model URL).
 - China site: `meshy auth login --device --region cn` signs in at `meshy.cn` and the CLI remembers

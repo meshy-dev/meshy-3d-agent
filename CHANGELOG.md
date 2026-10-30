@@ -4,10 +4,10 @@
 
 ### Changed
 
-- All three skills now pin **Meshy CLI 0.7.0** (setup, SKILL.md, INSTALL.md, README, validator,
-  CI, contract tests and the OpenClaw install hint `meshy-cli@0.7.0`), moving from 0.4.3. The
-  contract suite passes against the published 0.7.0 package. `INSTALL.md` now matches `setup.md`:
-  keep exactly 0.7.0, install it when the CLI is missing or older, and use the pinned temporary
+- All three skills now pin **Meshy CLI 0.7.1** (setup, SKILL.md, INSTALL.md, README, validator,
+  CI, contract tests and the OpenClaw install hint `meshy-cli@0.7.1`), moving from 0.4.3. The
+  contract suite passes against the published 0.7.1 package. `INSTALL.md` now matches `setup.md`:
+  keep exactly 0.7.1, install it when the CLI is missing or older, and use the pinned temporary
   package rather than downgrade a newer global CLI.
 - **No project store.** `meshy project`, `--project` and `--stage` are gone from the CLI (0.7.0
   refuses them as unknown, exit 2), and with them `metadata.json`, `history.json` and the

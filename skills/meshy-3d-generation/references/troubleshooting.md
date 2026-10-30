@@ -12,7 +12,7 @@ timeout · deleting a task · local files.
 ## Runner problems
 
 - **`meshy: command not found`** is not a dead end: switch to the pinned temporary package
-  (`npm exec --yes --package=meshy-cli@0.7.0 -- meshy …`) and carry on with the same job.
+  (`npm exec --yes --package=meshy-cli@0.7.1 -- meshy …`) and carry on with the same job.
 - **A different global version** answers `--version`. Do not uninstall or downgrade it; use the
   pinned temporary package for this work and mention the mismatch once.
 - **Node older than 22.12** fails the CLI's own runtime gate. Report the required version and the
@@ -26,7 +26,7 @@ timeout · deleting a task · local files.
 resolved, while `authenticated: true, verified: false` also covers network and server failures.
 For the latter, use the hint or a free `meshy balance --format json --no-update-check` to
 obtain a typed error. Keep the same explicit `--api-key-file` if that is the selected source;
-status does not honor it in 0.7.0.
+status does not honor it in 0.7.1.
 
 - **Network failure during verification**: say it is a connectivity problem, keep the stored
   credential, and retry the check when the network is back. Do not start a new authorization.
@@ -41,7 +41,7 @@ status does not honor it in 0.7.0.
 - **`device_flow_not_supported`**: this API host has no device endpoint — the user logs in
   from their own desktop terminal, or supplies their own key privately.
 
-## CLI 0.7.0 exit codes
+## CLI 0.7.1 exit codes
 
 | Exit | Meaning | Recovery |
 |---|---|---|
@@ -60,7 +60,7 @@ status does not honor it in 0.7.0.
 | 14 | Conflict: the task is running | A delete of an `IN_PROGRESS` task; see *Deleting a task* below. |
 | 130 | Interrupted (Ctrl-C, SIGTERM or SIGHUP) | Preserve task/operation context and reconcile before continuing. |
 
-These are 0.7.0 codes, not HTTP status codes. Some OAuth errors use generic exit 1; inspect
+These are 0.7.1 codes, not HTTP status codes. Some OAuth errors use generic exit 1; inspect
 their message and hint, and `error.details.oauth_error` when it is present, as well.
 
 ## Unknown submission, failure and timeout

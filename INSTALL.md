@@ -21,16 +21,16 @@ If Node.js is missing or older, stop and ask the user to install a current Node.
 meshy --version
 ```
 
-- It prints exactly `0.7.0`: keep it. The skills are written for that version, and a different
+- It prints exactly `0.7.1`: keep it. The skills are written for that version, and a different
   one can change flags and output.
 - It prints an older version, or there is no `meshy`: install the pinned version.
 
 ```bash
-npm install -g meshy-cli@0.7.0
+npm install -g meshy-cli@0.7.1
 ```
 
 - It prints a newer version: do not downgrade it, since something else may rely on it. Use the
-  pinned temporary package `npm exec --yes --package=meshy-cli@0.7.0 -- meshy …` as `meshy` in the
+  pinned temporary package `npm exec --yes --package=meshy-cli@0.7.1 -- meshy …` as `meshy` in the
   steps below.
 
 If the global install is refused (permissions, a managed machine), leave it and use the same

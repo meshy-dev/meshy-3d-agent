@@ -2,7 +2,7 @@
 
 Shared by the generation and print workflows. Three things are settled before any job
 starts: **how to run the CLI**, **whether a session already exists**, and **where files go**.
-The supported CLI is **0.7.0** on **Node.js 22.12 or newer**. No Python, request wrapper or
+The supported CLI is **0.7.1** on **Node.js 22.12 or newer**. No Python, request wrapper or
 separate token store is involved.
 
 Contents: 1 runner · 2 reuse a session · 3 first login · 4 where files go · 5 one session
@@ -17,21 +17,21 @@ meshy --version
 
 | Observation | Runner to use for every command below |
 |---|---|
-| `meshy --version` prints `0.7.0` | `meshy` |
-| no `meshy` command, or another version | `npm exec --yes --package=meshy-cli@0.7.0 -- meshy` |
+| `meshy --version` prints `0.7.1` | `meshy` |
+| no `meshy` command, or another version | `npm exec --yes --package=meshy-cli@0.7.1 -- meshy` |
 | no Node.js, or Node older than 22.12 | stop and report it: the user installs Node.js 22.12+ |
 
 Recipes are written as `meshy …`. When the pinned temporary package is the runner, put
-`npm exec --yes --package=meshy-cli@0.7.0 --` in front of the same arguments; the exit code
+`npm exec --yes --package=meshy-cli@0.7.1 --` in front of the same arguments; the exit code
 and the JSON on stdout are forwarded unchanged. Example:
 
 ```bash
-npm exec --yes --package=meshy-cli@0.7.0 -- meshy auth status --format json --no-update-check
+npm exec --yes --package=meshy-cli@0.7.1 -- meshy auth status --format json --no-update-check
 ```
 
 The first such call downloads the package into the npm cache; later calls reuse it, in any
 working directory. Nothing is installed globally and no existing installation is touched.
-A global `npm install -g meshy-cli@0.7.0` is optional and only worth proposing when the user
+A global `npm install -g meshy-cli@0.7.1` is optional and only worth proposing when the user
 wants faster startup — never as a precondition for the first job, and never as a silent
 downgrade of a newer global CLI. Do not install with `sudo` or change system policy; if a
 global install is refused by the host, keep using the temporary package. On Windows the
@@ -209,7 +209,7 @@ from every shell call, so a key the user exported before starting dsh never reac
 There, use the stored browser login (`meshy auth login`) or an explicit `--api-key-file`.
 
 There is no automatic `.env` discovery. If the user chooses a project key file, pass its
-explicit path on authenticated commands. In 0.7.0 **`auth status` ignores `--api-key-file`**,
+explicit path on authenticated commands. In 0.7.1 **`auth status` ignores `--api-key-file`**,
 so verify that branch with a free balance call instead:
 
 ```bash

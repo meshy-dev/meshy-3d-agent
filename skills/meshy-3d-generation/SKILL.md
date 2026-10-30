@@ -6,7 +6,7 @@ license: MIT
 
 # Meshy 3D Generation
 
-Use Meshy CLI **0.7.0** to turn the user's request into a delivered asset. Completion means
+Use Meshy CLI **0.7.1** to turn the user's request into a delivered asset. Completion means
 saving the requested files in the requested location, inspecting an available preview, and
 finishing any project integration the user requested. Login or task submission alone is not
 completion. Choose the shortest suitable pipeline and reuse existing assets for follow-ups.
@@ -27,8 +27,8 @@ existing GLB needs no extra format conversion. Use command help when parameters 
 
 ## First use and authorization
 
-Resolve the runner automatically: use a `meshy` that reports 0.7.0, otherwise
-`npm exec --yes --package=meshy-cli@0.7.0 -- meshy …`. Reuse a verified session. If login is
+Resolve the runner automatically: use a `meshy` that reports 0.7.1, otherwise
+`npm exec --yes --package=meshy-cli@0.7.1 -- meshy …`. Reuse a verified session. If login is
 needed, follow Setup and run `auth login --device` in a persistent tool session. Show its
 verification URL and user code in **commentary/progress, not a final answer**. Await that same
 session in this turn until it exits, verify `auth status`, then continue the original request.

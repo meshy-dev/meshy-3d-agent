@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SKILLS = ("meshy-3d-generation", "meshy-3d-printing", "meshy-openclaw")
 VERSION = "0.8.0"
 # The Meshy CLI the skills are written for; every pin below derives from it.
-CLI = "0.7.0"
+CLI = "0.7.1"
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 # The pinned temporary-package runner documented in setup.md; recipes stay written as `meshy ...`.
 RUNNER = ["npm", "exec", "--yes", f"--package=meshy-cli@{CLI}", "--"]

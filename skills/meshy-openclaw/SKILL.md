@@ -14,7 +14,7 @@ metadata:
     install:
       - id: node
         kind: node
-        package: meshy-cli@0.7.0
+        package: meshy-cli@0.7.1
         bins:
           - meshy
         label: Install Meshy CLI (npm)
@@ -22,7 +22,7 @@ metadata:
 
 # Meshy 3D — Generation + Printing
 
-Use Meshy CLI **0.7.0** to turn the user's request into a delivered asset: the requested files
+Use Meshy CLI **0.7.1** to turn the user's request into a delivered asset: the requested files
 in the requested location, an inspected preview when one exists, and — for prints — the
 intended size, analysis/repair results and a slicer handoff when asked. Login or task
 submission alone is not completion. Choose the shortest suitable pipeline and reuse existing
@@ -31,7 +31,7 @@ assets for follow-ups.
 ## SECURITY MANIFEST
 
 **Executables:** the Meshy CLI — `meshy`, or the pinned temporary package
-`npm exec --yes --package=meshy-cli@0.7.0 -- meshy` — plus `node --version` to check the runtime
+`npm exec --yes --package=meshy-cli@0.7.1 -- meshy` — plus `node --version` to check the runtime
 and the file manager when the user asks to see a delivered file. No Python, no `curl`, no
 bundled scripts.
 
@@ -97,7 +97,7 @@ missing choice materially changes the result.
 
 ## First use and sign-in on OpenClaw
 
-Resolve the runner as Setup describes: a `meshy` that reports 0.7.0, otherwise the pinned temporary
+Resolve the runner as Setup describes: a `meshy` that reports 0.7.1, otherwise the pinned temporary
 package. Local-only print work stops there. Everything else reuses a verified `auth status`
 session; only when there is none, sign in:
 

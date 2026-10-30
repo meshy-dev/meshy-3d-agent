@@ -63,12 +63,16 @@
   fixture mount (the default preset puts the base plate in `lamp_stl`); an unreadable split prompt
   falls back to the model's reference image.
 
+- The runner installs the pinned CLI (`npm install -g meshy-cli@0.7.1`) when `meshy` is missing
+  or older; the temporary `npm exec` package is the fallback when the install is refused or a
+  newer CLI must stay.
+
 ### Added
 
 - Asset retention: Meshy keeps a task's files for at most 3 days, after which a follow-up uses the
   delivered local GLB instead of the task ID. The handover names the `-o` sidecar and what deleting
   it costs.
-- Routes for several photos of one object, a new look on an existing model (including
+- Routes for multi-view images of one object, a new look on an existing model (including
   `--multiview-image-urls`), a UV white model, a motion clip without a character, checking or
   fixing an existing print model in any format, and resizing an STL/3MF/GLB; a note telling the
   three colour routes apart.

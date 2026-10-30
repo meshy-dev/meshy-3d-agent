@@ -46,8 +46,8 @@ local dimension check cannot establish full printability.
 
 ## Cloud authorization
 
-Resolve the runner automatically using Setup (a `meshy` that reports 0.7.1, or
-`npm exec --yes --package=meshy-cli@0.7.1 -- meshy …`). Local-only work stops at runner setup.
+Resolve the runner as Setup describes: `meshy` 0.7.1, installed with
+`npm install -g meshy-cli@0.7.1` when it is missing or older. Local-only work stops at runner setup.
 Cloud work reuses a verified session. If login is needed, keep `auth login --device` running,
 show its URL and user code in **commentary/progress, never a final answer**, and await the
 same tool session in this turn. After it exits, verify `auth status` and resume the print job.

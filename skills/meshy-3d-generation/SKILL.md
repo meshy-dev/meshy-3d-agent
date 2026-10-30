@@ -27,8 +27,8 @@ existing GLB needs no extra format conversion. Use command help when parameters 
 
 ## First use and authorization
 
-Resolve the runner automatically: use a `meshy` that reports 0.7.1, otherwise
-`npm exec --yes --package=meshy-cli@0.7.1 -- meshy …`. Reuse a verified session. If login is
+Resolve the runner as Setup describes: `meshy` 0.7.1, installed with
+`npm install -g meshy-cli@0.7.1` when it is missing or older. Reuse a verified session. If login is
 needed, follow Setup and run `auth login --device` in a persistent tool session. Show its
 verification URL and user code in **commentary/progress, not a final answer**. Await that same
 session in this turn until it exits, verify `auth status`, then continue the original request.

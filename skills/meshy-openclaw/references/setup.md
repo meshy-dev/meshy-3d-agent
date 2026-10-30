@@ -15,41 +15,30 @@ node --version
 meshy --version
 ```
 
-| Observation | Runner to use for every command below |
+| Observation | What to do |
 |---|---|
-| `meshy --version` prints `0.7.1` | `meshy` |
-| no `meshy` command, or another version | `npm exec --yes --package=meshy-cli@0.7.1 -- meshy` |
+| `meshy --version` prints `0.7.1` | run `meshy` |
+| no `meshy` command, or an older version | install the pinned version (below), then run `meshy` |
+| a newer version | keep it, since something else may rely on it, and run the pinned temporary package |
 | no Node.js, or Node older than 22.12 | stop and report it: the user installs Node.js 22.12+ |
 
-Recipes are written as `meshy …`. When the pinned temporary package is the runner, put
-`npm exec --yes --package=meshy-cli@0.7.1 --` in front of the same arguments; the exit code
-and the JSON on stdout are forwarded unchanged. Example:
+```bash
+npm install -g meshy-cli@0.7.1
+```
+
+Say in one line that you are installing it. Never use `sudo` or change system policy: when the
+install is refused (permissions, a managed machine, a sandbox), use the pinned temporary package
+instead. It runs the same CLI without installing anything: put `npm exec --yes
+--package=meshy-cli@0.7.1 --` in front of the same arguments, and the exit code and the JSON on
+stdout are forwarded unchanged. Recipes are written as `meshy …`; example:
 
 ```bash
 npm exec --yes --package=meshy-cli@0.7.1 -- meshy auth status --format json --no-update-check
 ```
 
-The first such call downloads the package into the npm cache; later calls reuse it, in any
-working directory. Nothing is installed globally and no existing installation is touched.
-A global `npm install -g meshy-cli@0.7.1` is optional and only worth proposing when the user
-wants faster startup — never as a precondition for the first job, and never as a silent
-downgrade of a newer global CLI. Do not install with `sudo` or change system policy; if a
-global install is refused by the host, keep using the temporary package. On Windows the
-runner is the same command through `npm.cmd` in a shell that resolves it.
-
-A missing `npm` with a working Node.js means the host stripped npm: report that and fall back
-to asking the user to install the CLI themselves.
-
-Local diagnostics, once a runner is chosen:
-
-```bash
-meshy doctor --format json --no-update-check
-```
-
-`doctor` is local unless `--check-api` is supplied. Check its resolved API origins before
-sending credentials; production is `api.meshy.ai` and browser authorization is `www.meshy.ai` (the China site is
-`api.meshy.cn` and `meshy.cn`).
-Preserve a user-authorized custom environment, and investigate an unexpected override.
+The first such call downloads the package into the npm cache; later calls reuse it. On Windows
+both commands go through `npm.cmd`. A missing `npm` with a working Node.js means the host
+stripped npm: report that and ask the user to install the CLI themselves.
 
 ## 2. Reuse a working session before logging in
 

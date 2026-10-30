@@ -17,7 +17,7 @@ text.
 |---|---|---|
 | A model to look at / a digital prop | text-to-3d preview, then refine when texture is wanted | GLB unless they name a format |
 | A model of a specific object in a photo | image-to-3d, textured by default (`--should-texture false` for a draft) | one clean reference, whole subject visible |
-| A model from several photos of one object | multi-image-to-3d | consistent views, front first |
+| A model from multi-view images of one object (front, side, back) | multi-image-to-3d | every view shows the same object; front first |
 | A new look for a model that exists | retexture that task or file | text style, style image, or photos of the real object |
 | A low-poly / game-ready asset on a budget | image-to-3d or text-to-3d preview with `--model-type smart-topology --target-polycount N`, or remesh after a standard model | ranges under *Single image* below; mobile/web budgets sit at the low end |
 | An LOD chain from a model that exists | remesh the **existing** task, once per level | never regenerate for a second LOD |

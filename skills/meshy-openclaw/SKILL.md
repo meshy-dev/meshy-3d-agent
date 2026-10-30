@@ -31,9 +31,9 @@ assets for follow-ups.
 ## SECURITY MANIFEST
 
 **Executables:** the Meshy CLI — `meshy`, or the pinned temporary package
-`npm exec --yes --package=meshy-cli@0.7.1 -- meshy` — plus `node --version` to check the runtime
-and the file manager when the user asks to see a delivered file. No Python, no `curl`, no
-bundled scripts.
+`npm exec --yes --package=meshy-cli@0.7.1 -- meshy` — plus `npm` to install it,
+`node --version` to check the runtime, and the file manager when the user asks to see a
+delivered file. No Python, no `curl`, no bundled scripts.
 
 **Credentials:** the CLI's own browser sign-in (OAuth device flow) stores and refreshes a
 session in `~/.config/meshy/credentials.json` (mode 0600). An existing `MESHY_API_KEY`, or an
@@ -97,8 +97,8 @@ missing choice materially changes the result.
 
 ## First use and sign-in on OpenClaw
 
-Resolve the runner as Setup describes: a `meshy` that reports 0.7.1, otherwise the pinned temporary
-package. Local-only print work stops there. Everything else reuses a verified `auth status`
+Resolve the runner as Setup describes: `meshy` 0.7.1, installed with
+`npm install -g meshy-cli@0.7.1` when it is missing or older. Local-only print work stops there. Everything else reuses a verified `auth status`
 session; only when there is none, sign in:
 
 1. Start `meshy auth login --device --format json --no-update-check` with `exec` and a short

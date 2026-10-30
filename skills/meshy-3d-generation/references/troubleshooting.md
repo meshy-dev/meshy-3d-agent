@@ -11,9 +11,10 @@ timeout · deleting a task · local files.
 
 ## Runner problems
 
-- **`meshy: command not found`** is not a dead end: switch to the pinned temporary package
+- **`meshy: command not found`** or **an older version**: install the pinned version as Setup
+  describes. If the install is refused, use the pinned temporary package
   (`npm exec --yes --package=meshy-cli@0.7.1 -- meshy …`) and carry on with the same job.
-- **A different global version** answers `--version`. Do not uninstall or downgrade it; use the
+- **A newer global version** answers `--version`. Do not uninstall or downgrade it; use the
   pinned temporary package for this work and mention the mismatch once.
 - **Node older than 22.12** fails the CLI's own runtime gate. Report the required version and the
   installed one; do not try to relax it or run an older CLI.

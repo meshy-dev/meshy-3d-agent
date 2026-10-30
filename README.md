@@ -30,9 +30,10 @@ name none — with a rendered preview alongside it and the task IDs for whatever
 
 Two more things worth knowing:
 
-- **No global CLI needed.** With Node 22.12+ the agent runs the pinned package temporarily
-  (`npm exec --yes --package=meshy-cli@0.7.1 -- meshy …`). A global
-  `npm install -g meshy-cli@0.7.1` only makes startup faster.
+- **The agent installs the CLI.** With Node 22.12+ and no `meshy` (or an older one), it runs
+  `npm install -g meshy-cli@0.7.1`. Where a global install is not allowed, or a newer CLI is
+  already installed, it runs the pinned package temporarily instead
+  (`npm exec --yes --package=meshy-cli@0.7.1 -- meshy …`).
 - **Local print work needs no account.** Rescaling an OBJ or opening a 3MF in a slicer runs
   entirely on your machine — no login, no balance check, no credits.
 

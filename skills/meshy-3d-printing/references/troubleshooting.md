@@ -53,7 +53,7 @@ status does not honor it in 0.7.0.
 | 6 | Rate limit | Back off for read/status requests; respect server guidance. |
 | 7 | Network | Retry safe reads after connectivity recovers; inspect submission state before any create. |
 | 8 | Timeout | Resume waiting on an existing task; a login timeout needs a new authorization flow. |
-| 9 | Insufficient credit | Report balance/top-up requirement; no repeated submissions. |
+| 9 | Insufficient credit | Report balance/top-up requirement; no repeated submissions. A plan-gated model (`nano-banana-pro` below Pro) lands here too, with credits left. |
 | 10 | Submission outcome unknown | Reconcile first; never automatically resubmit. |
 | 11 | Local I/O | Fix the output path/permissions, or choose another path when the target holds files that are not that task's own; then rerun the same `-o` or `download`. |
 | 12 / 13 | Check failed / unknown | Inspect check details; do not present an unknown result as a pass. |

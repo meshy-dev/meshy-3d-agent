@@ -17,9 +17,13 @@ text.
 |---|---|---|
 | A model to look at / a digital prop | text-to-3d preview, then refine when texture is wanted | GLB unless they name a format |
 | A model of a specific object in a photo | image-to-3d, textured by default (`--should-texture false` for a draft) | one clean reference, whole subject visible |
+| A model from several photos of one object | multi-image-to-3d | consistent views, front first |
+| A new look for a model that exists | retexture that task or file | text style, style image, or photos of the real object |
 | A low-poly / game-ready asset on a budget | image-to-3d or text-to-3d preview with `--model-type smart-topology --target-polycount N`, or remesh after a standard model | ranges under *Single image* below; mobile/web budgets sit at the low end |
 | An LOD chain from a model that exists | remesh the **existing** task, once per level | never regenerate for a second LOD |
-| A character that must move | textured humanoid in A/T pose → rigging → bundled walk/run, a library action, or a generated motion | see [animation](animation.md) |
+| A character that must move, or new actions for a rig | textured humanoid in A/T pose → rigging → bundled walk/run, a library action, or a generated motion | see [animation](animation.md) |
+| A motion clip without a character | text-to-motion | see [animation](animation.md) |
+| A UV-unwrapped white model to texture elsewhere | uv-unwrap | GLB, at most 40,000 faces |
 | A different format / size of an existing asset | convert / resize on that task | one step, no regeneration |
 | A concept image, or a style reference before committing to 3D | text-to-image / image-to-image | optional, and only when offered and accepted |
 | A printable physical object | the print workflow, not these recipes | it sets geometry, format and texture from the start |
@@ -39,15 +43,8 @@ meshy RESOURCE wait TASK_ID --timeout 600 --format json --no-update-check
 
 `RESOURCE` is the command that created that task, e.g. `image-to-3d` or `rigging`, not the parent
 task's resource. Every later create chains by ID (`--input-task-id`, `--preview-task-id`,
-`--rig-task-id`); for example:
-
-```bash
-meshy text-to-3d create --mode refine --preview-task-id PREVIEW_ID --enable-pbr true --texture-resolution 4k --target-formats glb --async --format json --no-update-check
-```
-
-Read the **new** ID, then wait through `text-to-3d`. Without `--texture-resolution` refine uses
-the server's 2k; 4k and 8k need a meshy-6, meshy-7.1, `latest` or Smart Topology preview, and a
-meshy-6-lite preview refuses them, so drop the flag for one. A job that starts from an existing
+`--rig-task-id`), and every chained create has a **new** ID to wait on. An API field with no
+CLI flag goes in `--data '{"field": …}'` on the same create; a flag overrides it. A job that starts from an existing
 task needs no new generation step: `get` or `wait` on that task by its ID and resource.
 
 ## Text and image models
@@ -60,12 +57,21 @@ asked for an untextured mesh.
 meshy text-to-3d create --mode preview --prompt "MODEL_DESCRIPTION" --target-formats glb --async --format json --no-update-check
 ```
 
-Wait on it, then run the refine example above when texturing is in scope. For a humanoid intended
-for rigging, add `--pose-mode a-pose` or `t-pose` to the preview. The preview also takes
-`--model-type smart-topology` with the polygon rules described for images below.
+For a humanoid intended for rigging, add `--pose-mode a-pose` or `t-pose`. The preview also takes
+`--model-type smart-topology` with the polygon rules described for images below, or in standard
+mode the paid `--geometry-resolution` pass. Wait on it, then refine when texturing is in scope:
+
+```bash
+meshy text-to-3d create --mode refine --preview-task-id PREVIEW_ID --enable-pbr true --texture-resolution 4k --target-formats glb --async --format json --no-update-check
+```
+
+Without `--texture-resolution` refine uses the server's 2k; 4k and 8k need a meshy-6, meshy-7.1,
+`latest` or Smart Topology preview, and a meshy-6-lite preview refuses them, so drop the flag
+for one.
 
 **Single image:** use a clean reference with the whole subject visible. The CLI textures by
-default, like the API (full PBR maps, 4k base colour), and bills for it, so say which you want:
+default, as the API does, and also asks for full PBR maps and a 4k base colour; texturing is
+billed, so say which you want:
 `--should-texture false` gives the untextured draft. Texture settings (`--enable-pbr`,
 `--texture-resolution`, `--texture-prompt`) are refused together with `--should-texture false`.
 
@@ -99,9 +105,9 @@ and re-uploading it:
 meshy image-to-3d create --input-task-id IMAGE_TASK_ID --should-texture false --target-formats glb --async --format json --no-update-check
 ```
 
-Use the resulting image-to-3d task for retexture, not the 2D task. Multi-image-to-3d also
-exposes `--input-task-id`; inspect its help when consuming generated multiview references. For
-single-image humanoids, `--pose-mode a-pose` is available.
+That image task must have produced exactly one image; a multi-view image task feeds
+`multi-image-to-3d --input-task-id` instead. Use the resulting 3D task for retexture, not the 2D
+task. For single-image humanoids, `--pose-mode a-pose` is available.
 
 ## Texture, topology, formats and scale
 
@@ -121,7 +127,8 @@ meshy resize create --input-task-id SOURCE_ID --resize-height 0.15 --origin-at b
 These are alternatives, not an automatic four-step chain. Each is the answer to exactly one
 follow-up: a polygon budget or an LOD level (remesh), a format (convert), a physical size
 (resize), a new look (retexture). Retexture can use `--image-style-url "STYLE_PATH"` instead of
-the text-style prompt; do not combine both style selectors. Remesh supports quad topology and an
+the text-style prompt, or `--multiview-image-urls` (1–4 photos of the real object, front first)
+to match that object; use exactly one of the three. Remesh supports quad topology and an
 adaptive `--decimation-mode` instead of a fixed polygon count. Convert only changes formats.
 Resize uses **metres**: 0.15 is 15 cm; choose one of height, longest-side or auto-size. Consult
 each resource's `create --help` for further options.
@@ -146,17 +153,19 @@ new download and check. An unknown count is not a pass, and not a reason for a s
 
 Text-to-image makes a design or reference image. Image-to-image edits an existing reference; keep
 the edit prompt specific. These may be final deliverables, or approved pre-steps to 3D — offer
-them, never insert them silently into a 3D request. Choose a model supported by `create --help`,
-not an invented identifier.
+them, never insert them silently into a 3D request. The default model needs no `--ai-model`; any
+other comes from `create --help`, not memory. `nano-banana-pro` needs a Pro plan or higher, and
+on a lower plan it fails like an empty balance (exit 9) with credits left: retry once on the
+default model rather than reporting a low balance.
 
 ```bash
-meshy text-to-image create --ai-model nano-banana-pro --prompt "DESIGN_DESCRIPTION" --aspect-ratio 1:1 --async --format json --no-update-check
-meshy image-to-image create --ai-model nano-banana-pro --prompt "EDIT_DESCRIPTION" --reference-image-urls "IMAGE_PATH" --async --format json --no-update-check
+meshy text-to-image create --prompt "DESIGN_DESCRIPTION" --aspect-ratio 1:1 --async --format json --no-update-check
+meshy image-to-image create --prompt "EDIT_DESCRIPTION" --reference-image-urls "IMAGE_PATH" --async --format json --no-update-check
 ```
 
-Wait on the selected resource as above. Character concept generation can use
+Wait on the selected resource as above. A character concept from text-to-image can use
 `--generate-multi-view true --pose-mode a-pose` (drop `--aspect-ratio`: the two exclude each
-other) where the selected image model supports it. A nano-banana model renders any pose at 3:4
+other). A nano-banana model renders any pose at 3:4
 (a `pose_aspect_ratio` warning says so). `--remove-background true` returns a transparent PNG. A
 finished image task can feed image-to-image with `--input-task-id IMAGE_TASK_ID` instead of
 re-uploading its output. Download image tasks with `--kind image`, using `--output-dir`.

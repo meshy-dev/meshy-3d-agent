@@ -5,7 +5,8 @@ in [pipelines](pipelines.md); cost, previews and hand-over are in [delivery](del
 
 ## Rigging
 
-Rig a **textured humanoid** with clear limbs, preferably in an A/T pose, at most 300,000 faces.
+Rig a **textured humanoid** with clear limbs, preferably in an A/T pose, at most 300,000 faces
+(the API refuses more than 320,000).
 Use the refined, retextured or textured image task, not an untextured preview. Verify geometry
 and texture suitability from the task and its preview; a face check alone cannot establish them.
 
@@ -16,8 +17,8 @@ meshy rigging create --input-task-id TEXTURED_ID --height-meters 1.7 --async --f
 ```
 
 Apply the same pass/fail/unknown rule as for UV unwrap in [pipelines](pipelines.md). Wait through `rigging` using the newly accepted ID.
-For external input the rigging CLI accepts a textured GLB via `--model-url`; it still needs the
-same suitability and face evidence. Do not pass the deprecated `--texture-image-url`: the rig
+For external input the rigging CLI accepts a textured GLB via `--model-url`, with the character
+facing +Z (glTF forward); it still needs the same suitability and face evidence. Do not pass the deprecated `--texture-image-url`: the rig
 keeps the model's own textures, and that flag replaces them with one image.
 
 Choose the motion source in this order; stop at the first that gives the requested action:

@@ -19,8 +19,10 @@ Two sources are legitimate. Use them, and say which one you used.
 meshy make "MODEL_DESCRIPTION" --dry-run --format json --no-update-check
 ```
 
-   Read `steps[]` and `estimated_credits`. The same per-step numbers apply when you run those
-   steps yourself as `text-to-3d`/`image-to-3d` commands.
+   Read `steps[]` and `estimated_credits`. The numbers carry over to `text-to-3d`/`image-to-3d`
+   commands you run yourself only with the same settings (standard model, texture up to 4k, no
+   `--geometry-resolution`); Smart Topology, 8k texture or the geometry pass are priced from the
+   list below.
 
 2. **The published price list**, <https://docs.meshy.ai/en/api/pricing>, for everything else —
    retexture, remesh, convert, resize, UV, rigging, animation, 2D, motion, print analysis and
@@ -31,7 +33,8 @@ cost command, reuse a `make` estimate for an unrelated chain, or state a precise
 stage neither source covers — say that the exact price is unknown and give the source to check.
 
 The real number arrives afterwards: `consumed_credits` on the finished task. Report it when it
-is present, and report it as unknown when it is not. Never assume zero. Studio and Enterprise
+is present, and report it as unknown when it is not. Never assume zero. A task that ends
+`FAILED` is refunded. Studio and Enterprise
 teams can also list finished tasks with their charges through the free `meshy usage tasks`; any
 other account gets a permission error there, which says nothing about the job.
 

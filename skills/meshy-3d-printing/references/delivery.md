@@ -99,7 +99,9 @@ Deliver four things, every time:
 
 1. **The model file**, at the path the user asked for, written as a plain path in backticks.
    Do not present it as a clickable link: hosts open such links in a text/preview pane that
-   cannot render a binary mesh, and it looks broken. Offer the next real action instead —
+   cannot render a binary mesh, and it looks broken. A host with a tool that delivers files to the
+   user (dsh's `present`) gets the model through that tool as well, so it opens from the
+   conversation. Offer the next real action instead —
    reveal it in the file manager (`open -R <path>` on macOS, `explorer /select,<path>` on
    Windows), open it in a local 3D tool, or wire it into the project.
 2. **The preview**, shown inline when one exists, or an explicit note that none does.

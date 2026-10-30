@@ -2,7 +2,7 @@
 
 Shared by the generation and print workflows. Three things are settled before any job
 starts: **how to run the CLI**, **whether a session already exists**, and **where files go**.
-The supported CLI is **0.7.x, from 0.7.1,** on **Node.js 22.12 or newer**. No Python, request wrapper or
+The supported CLI is **0.7.x, from 0.7.3,** on **Node.js 22.12 or newer**. No Python, request wrapper or
 separate token store is involved.
 
 Contents: 1 runner · 2 reuse a session · 3 first login · 4 where files go · 5 one session
@@ -17,9 +17,9 @@ meshy --version
 
 | Observation | What to do |
 |---|---|
-| `meshy --version` prints 0.7.1 or a later 0.7.x | run `meshy` |
-| no `meshy` command, or a version older than 0.7.1 | install the newest 0.7.x (below), then run `meshy` |
-| 0.8 or newer | keep it, since something else may rely on it, and run the temporary 0.7 package |
+| `meshy --version` prints 0.7.3 or a later 0.7.x | run `meshy` |
+| no `meshy` command, or a version older than 0.7.3 | install the newest 0.7.x (below), then run `meshy` |
+| 0.8 or newer | keep it, since something else may rely on it, and run the temporary package |
 | no Node.js, or Node older than 22.12 | stop and report it: the user installs Node.js 22.12+ |
 
 ```bash
@@ -27,18 +27,19 @@ npm install -g meshy-cli@0.7
 ```
 
 Check and install without asking first; say in one line that you are installing it. Install at
-most once: when `meshy --version` still reports a version older than 0.7.1 afterwards, the
+most once: when `meshy --version` still reports a version older than 0.7.3 afterwards, the
 registry this machine uses lags npm, so report that instead of installing again. Never use `sudo`
-or change system policy: when the install is refused (permissions, a managed machine, a sandbox), use the temporary 0.7 package
+or change system policy: when the install is refused (permissions, a managed machine, a sandbox), use the temporary package
 instead. It runs the same CLI without installing anything: put `npm exec --yes
---package=meshy-cli@0.7 --` in front of the same arguments, and the exit code and the JSON on
+--package=meshy-cli@0.7.3 --` in front of the same arguments, and the exit code and the JSON on
 stdout are forwarded unchanged. Recipes are written as `meshy …`; example:
 
 ```bash
-npm exec --yes --package=meshy-cli@0.7 -- meshy auth status --format json --no-update-check
+npm exec --yes --package=meshy-cli@0.7.3 -- meshy auth status --format json --no-update-check
 ```
 
-The first such call downloads the package into the npm cache; later calls reuse it. On Windows
+The first such call downloads the package into the npm cache; later calls reuse it. It names an
+exact version because `npm exec` keeps reusing whatever matching version it cached first. On Windows
 both commands go through `npm.cmd`. A missing `npm` with a working Node.js means the host
 stripped npm: report that and ask the user to install the CLI themselves.
 

@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.8.1] - 2026-10-30
+
+### Changed
+
+- Meshy CLI 0.7.3 or later (still the `meshy-cli@0.7` range). 0.7.3 keeps the device code out of
+  `auth login --no-wait`, which the two-step sign-in below relies on.
+- The temporary package names `meshy-cli@0.7.3` exactly: `npm exec` with the `0.7` range kept
+  reusing whichever 0.7.x it had cached first (0.7.1 on a machine that ran it before). The global
+  install keeps the range and resolves the newest 0.7.x.
+- The runner installs the CLI at most once: a version still too old afterwards means the
+  registry the machine uses lags npm, and the agent reports that instead of looping.
+
+### Added
+
+- Remote chat sign-in. A user on a phone, talking to the agent through a chat bot, never saw the
+  link while the login waited in the same turn. Setup now signs in across two turns:
+  `meshy auth login --device --no-wait` returns the link (code included) and a flow id, the agent
+  ends the turn with it, and `meshy auth login --device-flow FLOW_ID` finishes on the user's
+  reply. A host whose question tool reaches the user (dsh's `ask_user_question`) can wait in the
+  same turn instead. Contract test against the published CLI.
+- A host with a file-delivery tool (dsh's `present`) also gets the delivered model through it.
+
 ## [0.8.0] - 2026-10-30
 
 ### Changed

@@ -79,7 +79,7 @@ async function fixture(t, handler) {
   }
   const version = await run(['--version']);
   assert.equal(version.code, 0);
-  assert.match(version.data, /^0\.7\.([1-9]\d*)$/, 'these contracts target Meshy CLI 0.7.1 or a later 0.7.x');
+  assert.match(version.data, /^0\.7\.([3-9]|[1-9]\d+)$/, 'these contracts target Meshy CLI 0.7.3 or a later 0.7.x');
   async function storeOauth(expiresAt = Date.now() + 3600000) {
     await writeFile(env.MESHY_CREDENTIALS_PATH, JSON.stringify({
       auth_version: 1, active_profile: 'shared', profiles: {

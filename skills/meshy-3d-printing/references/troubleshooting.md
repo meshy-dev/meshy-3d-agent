@@ -3,11 +3,11 @@
 Every command uses `--format json --no-update-check` and prints one envelope. Read the process
 exit code and the envelope's `error`, `result` and `warnings`; preserve any task ID, operation
 ID, downloaded files and recovery command even when `ok` is false. Auth results are in
-`result` as well; see [setup.md](setup.md). A recipe that still carries `--output-schema`,
-`--project` or `--stage`, or runs `meshy project`, is stale: 0.7.0 refuses it as an unknown
-option or command (exit 2, `usage`), so drop it instead of retrying with it. There is no project
-store any more; a `metadata.json` or `meshy_output` folder from an older skill is not read by the
-CLI, so take task IDs from it by hand.
+`result` as well; see [setup.md](setup.md). A `metadata.json` left by an older version of this
+skill is no longer read by the CLI; take task IDs from it by hand.
+
+Contents: runner problems · authentication · exit codes · unknown submission, failure and
+timeout · deleting a task · local files.
 
 ## Runner problems
 
@@ -38,7 +38,7 @@ status does not honor it in 0.7.0.
 - **Works in another terminal**: compare status `source`, active profile, OS user and
   config/API environment. An environment key overrides a stored OAuth session. Do not scan
   shell profiles or print secret values.
-- **`device_flow_not_supported`**: this API host has no device endpoint yet — the user logs in
+- **`device_flow_not_supported`**: this API host has no device endpoint — the user logs in
   from their own desktop terminal, or supplies their own key privately.
 
 ## CLI 0.7.0 exit codes
@@ -49,7 +49,7 @@ status does not honor it in 0.7.0.
 | 2 | Usage or operation conflict | Correct arguments/account/payload mismatch; do not invent a fresh operation ID to bypass a conflict. A local STL/OBJ/FBX `--model-url` lands here: pass it as an http(s) URL instead. So do `unknown option '--output-schema'`, `'--project'` and `'--stage'`: drop those flags. |
 | 3 | Authentication | Use the source-aware checks above; status also uses this for failed network verification. |
 | 4 | Validation | Correct the rejected input or explain the unsupported request. |
-| 5 | Not found | Check the resource, task ID and account. |
+| 5 | Not found | Check the resource, task ID and account; a task older than Meshy's 3-day retention is gone (see Delivery). |
 | 6 | Rate limit | Back off for read/status requests; respect server guidance. |
 | 7 | Network | Retry safe reads after connectivity recovers; inspect submission state before any create. |
 | 8 | Timeout | Resume waiting on an existing task; a login timeout needs a new authorization flow. |
@@ -78,8 +78,8 @@ meshy operations resolve OPERATION_ID --not-created --format json --no-update-ch
 
 `--task-id` binds the task the list showed: a replay of that operation ID returns it with no new
 request, and you carry on with its `get`/`wait`. `--not-created` releases the ID when the list
-shows no matching task; the same ID can then submit again, which is a new paid create, so only
-within the user's existing authorization. A record still at `started` (the process was killed
+shows no matching task; the original create run again with `--operation-id OPERATION_ID` then
+submits it, which is a new paid create, so only within the user's existing authorization. A record still at `started` (the process was killed
 mid-request) is resolved the same way, and `operations show OPERATION_ID` reads one record. These
 commands are local and need no sign-in. If the outcome stays ambiguous, report that uncertainty
 and wait for a decision. Do not generate another operation ID or resubmit automatically.
@@ -125,5 +125,5 @@ repair only the failed step. A part-way `-o` transfer (exit 7 or 130) still writ
 the files that landed, and `error.recovery.command` is the same `get … -o …` with absolute paths:
 run it as printed once the cause is gone, and it replaces what landed and fetches the rest. A
 process killed hard mid-transfer leaves files without a sidecar; the rerun then refuses them, so
-delete only those partial files first. A `download` with the same selection can likewise be
+choose a new path, or ask the user before deleting those partial files. A `download` with the same selection can likewise be
 re-run for the rest. Never restart generation to obtain a missing file.

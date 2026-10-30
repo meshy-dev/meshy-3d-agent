@@ -1,9 +1,12 @@
 # Cost, waiting, previews, delivery and follow-ups
 
-Shared by both Meshy skills. [setup.md](setup.md) decides the runner, the session and
-`WORKSPACE`/`JOB_DIR`; this file covers what happens around a job: what it costs, what the
-user sees while it runs, what is handed over at the end, and how the next sentence
+Shared by the generation and print workflows. [setup.md](setup.md) decides the runner, the
+session and `WORKSPACE`/`JOB_DIR`; this file covers what happens around a job: what it costs,
+what the user sees while it runs, what is handed over at the end, and how the next sentence
 ("make it 1500 faces", "now as FBX") reuses what already exists.
+
+Contents: cost · waiting · previews · handing over the result · continuing from something that
+already exists · wiring the asset into a project.
 
 ## Cost: only estimates you can point at
 
@@ -96,13 +99,14 @@ Deliver four things, every time:
    A PNG render is not an interactive 3D viewer; this CLI has no local viewer command, so say
    "rendered preview", never "3D preview".
 3. **The task trail**: the producing task ID(s) and the resource each belongs to. That is what
-   makes the next request cheap. The sidecar the CLI wrote beside the model (`chest_meta.json`
-   next to `chest.glb`, or `meta.json` in a directory) records the same resource and task ID; the
-   file's own location comes from `result.downloads.files`. Name the sidecar in the handover so
-   the extra file is no surprise: it records which Meshy task made the model, so a later "now as
-   FBX" continues from that task instead of generating again. The user may delete it; then
-   follow-ups fall back to the account's task list, and the same `-o` no longer replaces that
-   model, so a new delivery needs a new path.
+   makes the next request cheap. A delivery made with `-o` also leaves a sidecar beside the model
+   (`chest_meta.json` next to `chest.glb`, or `meta.json` in a directory) that records the same
+   resource and task ID; `download` and `mesh prepare-print` leave none. The file's own location
+   comes from `result.downloads.files`. When there is a sidecar, name it in the handover so the
+   extra file is no surprise: it records which Meshy task made the model, so a later "now as FBX"
+   continues from that task instead of generating again. The user may delete it; then follow-ups
+   fall back to the account's task list, and the same `-o` no longer replaces that model, so a new
+   delivery needs a new path.
 4. **What it cost**: `consumed_credits` when reported, otherwise stated as unknown, plus any
    warnings that affect use.
 
@@ -128,8 +132,13 @@ meshy text-to-3d list --page-size 10 --format json --no-update-check
 ```
 
 4. A local model file the user points at — pass it to the step's `--model-url` input. A local
-   file must be GLB or glTF (rigging and multicolor: GLB); an STL, OBJ or FBX needs an http(s)
-   URL or the task it came from.
+   file must be GLB or glTF (rigging, UV unwrap and multicolor: GLB); an STL, OBJ or FBX needs an
+   http(s) URL or the task it came from.
+
+Meshy keeps a task's files for at most 3 days (Enterprise accounts longer). An older task answers
+not found (exit 5) and can no longer be chained by ID: pass the delivered local GLB or glTF to
+`--model-url` instead, and only if there is none, say that the model has to be generated again
+and what that costs.
 
 Then run the one step that is actually missing: `remesh` for a polygon budget, `convert` for a
 format, `resize` for a physical size, `retexture` for a new look, `rigging`/`animate` for motion,

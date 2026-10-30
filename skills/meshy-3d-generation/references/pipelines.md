@@ -17,12 +17,12 @@ text.
 |---|---|---|
 | A model to look at / a digital prop | text-to-3d preview, then refine when texture is wanted | GLB unless they name a format |
 | A model of a specific object in a photo | image-to-3d, textured by default (`--should-texture false` for a draft) | one clean reference, whole subject visible |
-| A low-poly / game-ready asset on a budget | image-to-3d or text-to-3d preview with `--model-type smart-topology --target-polycount N`, or remesh after a standard model | meshy-t2.5 (default) 100–30,000 triangles, `--ai-model meshy-t2` up to 15,000; mobile/web budgets sit at the low end |
+| A low-poly / game-ready asset on a budget | image-to-3d or text-to-3d preview with `--model-type smart-topology --target-polycount N`, or remesh after a standard model | ranges under *Single image* below; mobile/web budgets sit at the low end |
 | An LOD chain from a model that exists | remesh the **existing** task, once per level | never regenerate for a second LOD |
 | A character that must move | textured humanoid in A/T pose → rigging → bundled walk/run, a library action, or a generated motion | see rigging and animation below |
 | A different format / size of an existing asset | convert / resize on that task | one step, no regeneration |
 | A concept image, or a style reference before committing to 3D | text-to-image / image-to-image | optional, and only when offered and accepted |
-| A printable physical object | hand the whole job to the printing skill | it sets geometry, format and texture from the start |
+| A printable physical object | the print workflow, not these recipes | it sets geometry, format and texture from the start |
 
 Prefer the shortest chain that satisfies the request. An untextured mesh does not need refine;
 a GLB does not need a convert step; a plain preview does not need a 2D concept first.
@@ -60,7 +60,7 @@ asked for an untextured mesh.
 meshy text-to-3d create --mode preview --prompt "MODEL_DESCRIPTION" --target-formats glb --async --format json --no-update-check
 ```
 
-Run init/wait, then the refine example above when texturing is in scope. For a humanoid intended
+Wait on it, then run the refine example above when texturing is in scope. For a humanoid intended
 for rigging, add `--pose-mode a-pose` or `t-pose` to the preview. The preview also takes
 `--model-type smart-topology` with the polygon rules described for images below.
 
@@ -75,7 +75,7 @@ meshy image-to-3d create --image-url "PHOTO_PATH" --model-type standard --should
 
 For a draft use `--should-texture false` and omit `--enable-pbr`/`--texture-resolution`. For
 controllable low-poly output use smart topology: its default model, meshy-t2.5, takes 100–30,000
-target triangles (default 15,000) and is currently priced like meshy-t2; `--ai-model meshy-t2`
+target triangles (default 15,000); `--ai-model meshy-t2`
 takes 100–15,000 (default 10,000). Standard mode needs a later remesh for polygon control.
 `--geometry-resolution 2k|4k` adds a paid high-detail geometry pass to standard mode only; never
 combine it with smart topology.
@@ -136,14 +136,11 @@ meshy inspect faces --model "JOB_DIR/source-SOURCE_ID.glb" --max-faces 40000 --f
 meshy uv-unwrap create --input-task-id SOURCE_ID --async --format json --no-update-check
 ```
 
-`inspect faces --model` counts the triangles of every mesh instance in a local GLB or glTF, with
-no network and no sign-in. Proceed only after a passing check (exit 0); 12 means too dense, 13
-means unknown. A remesh is an additional paid stage when needed, followed by a new download and
-check. `inspect faces` with `--task-json` or `--resource` and `--task-id` only reads a
-`face_count` the task itself carries, which the API does not report, so it normally ends in 13:
-measure the model instead. For an external GLB or glTF, run `inspect faces --model` on the file itself. A count that stays
-unknown (for example a model that is not GLB/glTF) is not a pass: do not treat it as one and do
-not submit a speculative remesh to make it go away.
+`inspect faces --model` counts the triangles of every mesh instance in a local GLB or glTF (an
+external one included), with no network and no sign-in; its task forms read a `face_count` the
+API does not report, so always measure the file. Proceed only after a passing check (exit 0);
+12 means too dense, 13 unknown. A remesh is an additional paid stage when needed, followed by a
+new download and check. An unknown count is not a pass, and not a reason for a speculative remesh.
 
 ## Rigging and animation
 
@@ -159,9 +156,8 @@ meshy rigging create --input-task-id TEXTURED_ID --height-meters 1.7 --async --f
 
 Apply the same pass/fail/unknown rule as UV. Wait through `rigging` using the newly accepted ID.
 For external input the rigging CLI accepts a textured GLB via `--model-url`; it still needs the
-same suitability and face evidence. Leave `--texture-image-url` out: it is deprecated, the rig
-keeps the model's own textures, and sending it makes that one image the only texture and drops the
-PBR maps (it exists only for a `--model-url` GLB that has no textures).
+same suitability and face evidence. Do not pass the deprecated `--texture-image-url`: the rig
+keeps the model's own textures, and that flag replaces them with one image.
 
 Choose the motion source in this order; stop at the first that gives the requested action:
 
@@ -215,11 +211,10 @@ meshy image-to-image create --ai-model nano-banana-pro --prompt "EDIT_DESCRIPTIO
 meshy text-to-motion create --prompt "MOTION_DESCRIPTION" --mode prime --duration 3 --async --format json --no-update-check
 ```
 
-Wait on the selected resource as above.
-Character concept generation can use `--generate-multi-view true --pose-mode a-pose` where the
-selected image model supports it. A nano-banana model renders a pose at 3:4 whatever
-`--aspect-ratio` says (the envelope carries a `pose_aspect_ratio` warning, and the request is
-still sent and billed); GPT Image models keep the ratio. `--remove-background true` returns a transparent PNG. A
+Wait on the selected resource as above. Character concept generation can use
+`--generate-multi-view true --pose-mode a-pose` (drop `--aspect-ratio`: the two exclude each
+other) where the selected image model supports it. A nano-banana model renders any pose at 3:4
+(a `pose_aspect_ratio` warning says so). `--remove-background true` returns a transparent PNG. A
 finished image task can feed image-to-image with `--input-task-id IMAGE_TASK_ID` instead of
 re-uploading its output. Text-to-motion makes a standalone skeleton clip from a prompt of up to
 400 characters: prime returns FBX, swift BVH; duration is 2–10 seconds in 0.5-second steps.
@@ -255,13 +250,8 @@ sidecar. Signed URLs and asset keys come from the task, never from guesswork. Ev
 command carries `--workspace WORKSPACE`. A `get` of a task that has not succeeded yet answers
 `downloads.state: "not_ready"` with exit 0, so `wait` first.
 
-Rerunning the same `-o` for the same task is safe and free: its sidecar says which files that
-task saved, so the rerun replaces them and fetches anything missing. Any other file already at the
-target (no sidecar, or another task's) is refused before anything downloads, exit 11: choose
-another path, or for `download` pass `--overwrite` only when the user's instruction covers
-replacing that file. A transfer that fails part-way (exit 7 or 130) still writes the sidecar for
-what landed, and `error.recovery.command` is the same `get … -o …` with absolute paths: run it
-once the cause is gone. Signed URLs expire; `get` and `download --resource` fetch fresh ones, so
-never regenerate a model to obtain a file. Task failures, interrupted waits and unknown
-submissions follow [troubleshooting](troubleshooting.md); a failed local save does not erase a
-remote task. Report null or unknown charges as unknown rather than assuming zero.
+Rerunning the same `-o` for the same task is safe and free; anything else already at a target is
+refused (exit 11). Meshy keeps a task's files for at most 3 days, and until then `get` and
+`download --resource` fetch them again, so never regenerate a model to obtain a file. Existing
+files, part-way transfers, task failures, interrupted waits and unknown submissions follow
+[troubleshooting](troubleshooting.md); a failed local save does not erase a remote task.

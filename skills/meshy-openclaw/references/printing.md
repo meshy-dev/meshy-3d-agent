@@ -5,6 +5,9 @@ previews and hand-over, and [Troubleshooting](troubleshooting.md) for recovery. 
 target **meshy-cli@0.7.0** on Node.js 22.12+. Parameter details come from each command's `--help`;
 the skill carries no API client.
 
+Contents: 0 local-only work · state · 1 white prints · 2 analysis and repair · 3 multicolor ·
+4 split into parts · 5 Creative Lab.
+
 ## 0. Local-only work needs no account
 
 These commands are local: no credential, no balance check, no network, no cost. When the user
@@ -18,9 +21,9 @@ meshy slicer open --slicer SLICER_ID --file "OUTPUT_FILE" --format json --no-upd
 
 `mesh prepare-print` rotates Y-up to Z-up, scales to the requested height, centers XY and
 grounds Z=0, and rejects degenerate input. It writes a new file — use `--output`, never
-`--in-place` — and keeps MTL/texture dependencies unless `--geometry-only` is given. An STL or
-3MF the user already has is already in print orientation: open it, do not run the OBJ transform
-on it. `slicer detect` returning an empty list is a valid answer: deliver the prepared file and
+`--in-place` — and keeps MTL/texture dependencies unless `--geometry-only` is given. Treat an STL
+or 3MF the user already has as print-oriented unless they say otherwise: open it, do not run the
+OBJ transform on it. `slicer detect` returning an empty list is a valid answer: deliver the prepared file and
 say which slicers the CLI knows how to launch. `launch_requested` means the application was
 started, not that the import succeeded.
 
@@ -30,8 +33,8 @@ Only leave this section when the job actually needs Meshy to make or change a mo
 
 Uppercase tokens are placeholders, not literal arguments or shell variables. Read each JSON
 result before forming the next command. Keep `{resource, task_id, parent_task_id}` for each
-stage: the lineage lives in your notes and in the sidecar of each delivered file, not in a project
-folder. `WORKSPACE`, `JOB_DIR` and `OUTPUT_FILE` come from the user's requested location as
+stage in your notes: these recipes deliver with `download` and `mesh prepare-print`, which leave
+no sidecar. `WORKSPACE`, `JOB_DIR` and `OUTPUT_FILE` come from the user's requested location as
 resolved in [Setup](setup.md). All create commands use `--async`; read `result.submission.task_id`
 as the ID named in the next step, and `wait` blocks until that task is terminal. Pass
 `--workspace WORKSPACE` on every command that writes a file (download, `-o`, mesh preparation);
@@ -74,8 +77,8 @@ meshy download --resource CURRENT_RESOURCE --task-id CURRENT_ID --model-format o
 
 OBJ selection includes MTL/textures when present. Read `result.downloads.files` to identify
 OBJ_PATH, then prepare it with the local recipe in section 0, writing to the user's requested
-location. If OBJ is absent, use `download --list` to inspect actual assets and propose
-conversion of the **current** model to OBJ; conversion is an additional paid operation, not a
+location. A repaired model is GLB only, so after a repair this is the normal path: if OBJ is absent, use
+`download --list` to inspect actual assets and propose conversion of the **current** model to OBJ; conversion is an additional paid operation, not a
 reason to regenerate. Use `convert create --help` for its source/target parameters. GLB may
 instead be delivered for a slicer that supports it. Replace 75 mm with the requested height
 (15 cm = 150 mm).
@@ -133,12 +136,14 @@ in for the repaired mesh.
 ## 3. Multicolor 3MF
 
 Only relevant when the user wants colour in the print. Detect a slicer with multicolor support
-before incurring multicolor-specific costs. The CLI recognizes OrcaSlicer, Bambu Studio, Creality
+before incurring multicolor-specific costs; when none is found, say so and ask whether to go on,
+since the 3MF can still be delivered. The CLI recognizes OrcaSlicer, Bambu Studio, Creality
 Print, Elegoo Slicer and Anycubic Slicer Next as multicolor-capable; report the actual detection,
 not an assumed install. Default to 4 colors/depth 4 unless the request specifies otherwise;
 supported colors 1–16 and depth 3–6.
 
-The input must carry textures. If an unrepaired text-to-3d preview is still the current geometry,
+The input must carry textures. An unrepaired image-to-3d task made with the CLI's default
+texturing already does: pass it straight to `multi-color-print`. If an unrepaired text-to-3d preview is still the current geometry,
 texture it using its own preview ID:
 
 ```bash
@@ -313,19 +318,3 @@ For multicolor figure/keychain/magnet, obtain the **textured build GLB** (reques
 builds when that is the intended route), then use `multi-color-print --model-url` as described
 above. Never feed an OBJ ZIP or lamp STL into the GLB/FBX multicolor input. A second build is a
 separate paid operation, so choose the intended output up front.
-
-## 6. Cost and recovery
-
-Estimate sources, spend rules, progress reporting and hand-over are in [Delivery](delivery.md):
-`meshy make --dry-run` covers only the text/image-to-3D chains it runs, and everything else is
-quoted from the dated published price list. Explain the selected stages — generation, optional
-repair, texturing, multicolor, splitting, or Creative Lab prototype/build — and honour an already approved
-scope without re-asking between its stages. A new design variant or a previously unapproved
-repair or build is its own decision.
-
-Timeout or interruption does not cancel the server task. Keep the accepted ID and rerun its
-matching wait/get. For an unknown submission outcome, inspect journal/recovery information and
-stop before another POST; never manufacture a replacement task to fix a missing local file.
-Partial downloads resume only the missing assets: rerun the same `-o` or `download`. Preserve
-source files, the task IDs and sidecars you hold and the CLI's existing shared login throughout
-recovery.

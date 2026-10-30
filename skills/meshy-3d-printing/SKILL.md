@@ -1,6 +1,6 @@
 ---
 name: meshy-3d-printing
-description: Generate or prepare models for physical 3D printing, including white or multicolor prints, Creative Lab products, sizing, and slicer handoff.
+description: "Generates and prepares models for physical 3D printing with the Meshy CLI: white and multicolor prints (3MF, STL, OBJ), printability analysis and repair, splitting into parts, Creative Lab products such as figures, lamps and keychains, sizing, and slicer handoff (Bambu Studio, OrcaSlicer, PrusaSlicer, Cura). Use when the user wants something 3D-printed or asks for print or slicer files."
 license: MIT
 ---
 
@@ -39,7 +39,7 @@ local dimension check cannot establish full printability.
 
 ## Cloud authorization
 
-Resolve the runner automatically using Setup (compatible `meshy` or
+Resolve the runner automatically using Setup (a `meshy` that reports 0.7.0, or
 `npm exec --yes --package=meshy-cli@0.7.0 -- meshy …`). Local-only work stops at runner setup.
 Cloud work reuses a verified session. If login is needed, keep `auth login --device` running,
 show its URL and user code in **commentary/progress, never a final answer**, and await the

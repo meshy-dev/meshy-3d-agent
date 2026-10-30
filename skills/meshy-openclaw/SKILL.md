@@ -1,6 +1,6 @@
 ---
 name: meshy-openclaw
-description: "Create 3D models, textures, reference images, rigging and animation with Meshy, and prepare models for physical 3D printing: white or multicolor prints, Creative Lab products, sizing and slicer handoff. Drives the Meshy CLI; signs in through the browser, no API key required."
+description: "Generates 3D models, textures, reference images, rigging and animation with the Meshy CLI, and prepares them for physical 3D printing: white or multicolor prints, printability repair, Creative Lab products, sizing and slicer handoff (Bambu Studio, OrcaSlicer, PrusaSlicer, Cura). Use when the user asks to make, texture, rig, animate or convert a 3D model, or wants something 3D-printed. Signs in through the browser; no API key required."
 license: MIT-0
 metadata:
   openclaw:
@@ -30,8 +30,10 @@ assets for follow-ups.
 
 ## SECURITY MANIFEST
 
-**Executables:** only the Meshy CLI — `meshy`, or the pinned temporary package
-`npm exec --yes --package=meshy-cli@0.7.0 -- meshy`. No Python, no `curl`, no bundled scripts.
+**Executables:** the Meshy CLI — `meshy`, or the pinned temporary package
+`npm exec --yes --package=meshy-cli@0.7.0 -- meshy` — plus `node --version` to check the runtime
+and the file manager when the user asks to see a delivered file. No Python, no `curl`, no
+bundled scripts.
 
 **Credentials:** the CLI's own browser sign-in (OAuth device flow) stores and refreshes a
 session in `~/.config/meshy/credentials.json` (mode 0600). An existing `MESHY_API_KEY`, or an
@@ -45,8 +47,9 @@ run as a temporary package.
 
 **Files:** writes only inside one workspace per job — the directory the user named, or
 `./meshy_output` — and the CLI refuses paths that escape it, including through symlinks.
-Existing files are not overwritten unless the user asked for it. Reads only input files the
-user pointed at. Slicer handoff launches an already-installed slicer application.
+Existing files are not overwritten unless the user asked for it. Reads the input files the
+user pointed at and its own outputs in the workspace (previews, sidecars). Slicer handoff
+launches an already-installed slicer application.
 
 **Data leaving this machine:** prompts, input images/models and task requests sent to Meshy.
 
@@ -86,7 +89,7 @@ missing choice materially changes the result.
 
 ## First use and sign-in on OpenClaw
 
-Resolve the runner as Setup describes: a compatible `meshy`, otherwise the pinned temporary
+Resolve the runner as Setup describes: a `meshy` that reports 0.7.0, otherwise the pinned temporary
 package. Local-only print work stops there. Everything else reuses a verified `auth status`
 session; only when there is none, sign in:
 
@@ -110,10 +113,10 @@ than re-submitting or looping on `sleep`.
 ## Execution boundaries
 
 - Run API, upload, download and mesh operations through the CLI. Local inputs have a 50 MiB
-  limit, and a local model must be GLB or glTF (rigging and multicolor: GLB); use the supported
+  limit, and a local model must be GLB or glTF (rigging, UV unwrap and multicolor: GLB); use the supported
   URL input route for anything else.
 - Every command uses `--format json --no-update-check` and prints one `meshy.cli/v1` envelope,
-  auth included (`--output-schema` no longer exists). Resolve `WORKSPACE` from the user's
+  auth included. Resolve `WORKSPACE` from the user's
   output path and pass it to every write.
 - Submit once with `create --async`, keep the owning resource and task ID, then `wait` on that
   task. Timeouts and unknown submissions follow Troubleshooting; they never authorize another

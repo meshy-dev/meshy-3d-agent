@@ -1,9 +1,12 @@
 # Runner, login and output locations
 
-Everything here is shared by both Meshy skills. Three things are settled before any job
+Shared by the generation and print workflows. Three things are settled before any job
 starts: **how to run the CLI**, **whether a session already exists**, and **where files go**.
 The supported CLI is **0.7.0** on **Node.js 22.12 or newer**. No Python, request wrapper or
 separate token store is involved.
+
+Contents: 1 runner · 2 reuse a session · 3 first login · 4 where files go · 5 one session
+everywhere · 6 API keys · 7 the China site.
 
 ## 1. Resolve the runner
 
@@ -95,7 +98,8 @@ the chat — the CLI receives the credential itself.
 
 ### Keep the agent turn alive
 
-After showing the link, your next action is to await the **same** running tool session.
+A host whose skill says it wakes the session when a background command exits (OpenClaw)
+follows that skill's procedure instead of this subsection. Everywhere else, after showing the link, your next action is to await the **same** running tool session.
 Do not ask the user to send "done" or "continue", and do not end the turn with "authorize
 and I will continue". Browser approval completes the CLI process; it is not a new user
 message and must not be relied on to restart a finished agent turn.
@@ -145,8 +149,8 @@ Failure branches — each is a different recovery, so read the error rather than
   manual terminal step is acceptable.
 
 Do not use `--no-wait`: its JSON contains a `device_code`, which is a bearer secret. Do not use
-`--manual` from an agent — it prompts on stdin for a pasted code. Do not force GUI mode with
-test environment variables, and never print tokens, device codes or signed URLs.
+`--manual` from an agent — it prompts on stdin for a pasted code. Never print tokens, device
+codes or signed URLs.
 
 ## 4. Where files go
 
@@ -192,8 +196,7 @@ settings consistent; do not copy tokens between plugins or read the credential f
 `auth list` reports profile kinds with masked credentials. `auth use <name>` changes the shared
 active profile, so do not switch it independently in concurrent workflows.
 
-The CLI refreshes stored OAuth tokens near expiry. Skills just invoke the CLI; they do not
-implement refresh, locks or credential persistence.
+The CLI refreshes stored OAuth tokens near expiry on its own.
 
 ## 6. Existing API keys remain supported
 

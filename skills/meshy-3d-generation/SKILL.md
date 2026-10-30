@@ -1,6 +1,6 @@
 ---
 name: meshy-3d-generation
-description: "Create or edit digital 3D assets with Meshy: models, textures, rigging, animation, and reference images. For physical printing, use meshy-3d-printing."
+description: "Generates and edits digital 3D assets with the Meshy CLI: text-to-3D and image-to-3D models, texturing, remeshing and LODs, format conversion (GLB, FBX, OBJ, USDZ), rigging, animation and reference images. Use when the user asks to make, texture, rig, animate or convert a 3D model or game asset. For physical 3D printing use meshy-3d-printing."
 license: MIT
 ---
 
@@ -26,7 +26,7 @@ existing GLB needs no extra format conversion. Use command help when parameters 
 
 ## First use and authorization
 
-Resolve the runner automatically: use compatible `meshy`, otherwise
+Resolve the runner automatically: use a `meshy` that reports 0.7.0, otherwise
 `npm exec --yes --package=meshy-cli@0.7.0 -- meshy …`. Reuse a verified session. If login is
 needed, follow Setup and run `auth login --device` in a persistent tool session. Show its
 verification URL and user code in **commentary/progress, not a final answer**. Await that same
@@ -37,10 +37,10 @@ Browser approval stays with the user; credentials never belong in chat.
 ## Execution boundaries
 
 - Run API, upload, download and mesh operations through the CLI. Local inputs have a 50 MiB
-  limit, and a local model must be GLB or glTF (rigging and multicolor: GLB); use the supported
+  limit, and a local model must be GLB or glTF (rigging, UV unwrap and multicolor: GLB); use the supported
   URL input route for anything else.
 - Use `--format json --no-update-check` on every command: stdout is one `meshy.cli/v1` envelope,
-  auth included (`--output-schema` no longer exists). Resolve `WORKSPACE` from the user's output
+  auth included. Resolve `WORKSPACE` from the user's output
   path and pass it to writes.
 - Submit once with `create --async`, retain the owning resource and ID, then `wait` on that
   task. Keep the agent turn active while awaiting a running command. Follow Troubleshooting

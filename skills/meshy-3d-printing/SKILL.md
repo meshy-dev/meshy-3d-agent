@@ -1,19 +1,21 @@
 ---
 name: meshy-3d-printing
-description: Generate or prepare models for physical 3D printing, including white or multicolor prints, Creative Lab products, sizing, and slicer handoff.
+description: "Generates and prepares models for physical 3D printing with the Meshy CLI: white and multicolor prints (3MF, STL, OBJ), printability analysis and repair, splitting into parts, Creative Lab products such as figures, lamps and keychains, sizing, and slicer handoff (Bambu Studio, OrcaSlicer, PrusaSlicer, Cura). Use when the user wants something 3D-printed or asks for print or slicer files."
 license: MIT
+compatibility: "Needs Node.js 22.12+ and the Meshy CLI 0.7.x, 0.7.1 or later (npm install -g meshy-cli@0.7); network access to the Meshy API."
 ---
 
 # Meshy 3D Printing
 
-Use Meshy CLI **0.4.3** to deliver the requested print files at the intended size, with
+Use Meshy CLI **0.7** (0.7.1 or later) to deliver the requested print files at the intended size, with
 analysis/repair results where applicable and a slicer handoff when requested. This skill is
 self-contained. Ordinary digital assets belong to meshy-3d-generation.
 
 | Need | Reference |
 |---|---|
 | CLI runner, credentials, or output location | [Setup](references/setup.md) |
-| Local preparation, cloud generation, or product workflow | [Printing recipes](references/printing.md) |
+| Local preparation, white or multicolor prints, analysis/repair, or splitting into parts | [Printing recipes](references/printing.md) |
+| Creative Lab products (figures, lamps, keychains, magnets, keycaps, fidgets) | [Creative Lab](references/creative-lab.md) |
 | Cost, waiting, preview, delivery, or finding a previous model | [Delivery](references/delivery.md) |
 | Failed or uncertain operation | [Troubleshooting](references/troubleshooting.md) |
 
@@ -29,8 +31,14 @@ needed for the user's output.
 | White model from text or photo | Generate geometry without textures; analyze/repair as needed; prepare the file |
 | Multicolor model | Generate/reuse geometry; analyze/repair as needed; texture; multi-color-print |
 | Print in separate parts (build plate, colours per part, fewer supports) | Generate/reuse geometry; auto-split; slice the parts |
-| Creative Lab figure, vinyl figure, brick figure, lamp, keychain, fridge magnet, keycap or pixel fidget board | Prototype → review → build → select product artifacts |
+| Check or fix an existing model (holes, thin walls), any format | Free analyze-printability by task ID or `--model-url`; repair only if needed |
+| Resize an existing STL, 3MF or GLB | Scale it in the slicer; only an OBJ is resized locally |
+| Creative Lab figure (a stylized collectible from a photo), vinyl figure, brick figure, lamp, keychain, fridge magnet, keycap or pixel fidget board | Prototype → review → build → select product artifacts |
 | Creative Lab collapsible fidget | One create from the photo → STL |
+
+Colour routes differ: multicolor paints one object's surface for a multi-material printer; a
+split cuts it into parts, one filament each, and drops the texture (split before any repair;
+the two do not chain); the pixel fidget board is a product of its own.
 
 A figurine does not by itself require Creative Lab. Infer the route from the intended product;
 ask about size, color or style only when the missing choice materially changes the result.
@@ -39,9 +47,11 @@ local dimension check cannot establish full printability.
 
 ## Cloud authorization
 
-Resolve the runner automatically using Setup (compatible `meshy` or
-`npm exec --yes --package=meshy-cli@0.4.3 -- meshy …`). Local-only work stops at runner setup.
-Cloud work reuses a verified session. If login is needed, keep `auth login --device` running,
+Before the first command run `meshy --version`; no need to ask. When `meshy` is missing or
+older than 0.7.1, install the newest 0.7.x with `npm install -g meshy-cli@0.7` and say so in
+one line; Setup covers a refused install and a CLI of 0.8 or newer. Local-only work stops at runner setup.
+Cloud work reuses a verified session. If login is needed, keep `auth login --device` running (with `--region cn` for a
+user in mainland China),
 show its URL and user code in **commentary/progress, never a final answer**, and await the
 same tool session in this turn. After it exits, verify `auth status` and resume the print job.
 Do not ask for a "done" message or credentials in chat; Setup has the host wait procedure.
@@ -54,13 +64,14 @@ Do not ask for a "done" message or credentials in chat; Setup has the host wait 
   thickness is checked too; its report does not establish material suitability.
 - Prepare a Y-up OBJ as a new Z-up file at the requested height, centered and grounded. Do not
   repeat the transform or apply it to STL, 3MF, or relief product output. A multicolor 3MF
-  requires no OBJ conversion. Product ZIPs and optional lamp bases have distinct handling in
+  requires no OBJ conversion; cloud print files are scaled in the slicer (Printing recipes, *Print size*). Product ZIPs and optional lamp bases have distinct handling in
   Printing recipes.
 - API, downloads and geometry operations use the CLI. Local inputs have a 50 MiB limit, and a
   local model must be GLB or glTF (multicolor: GLB); an STL, OBJ or FBX goes to Meshy only as an
   http(s) URL.
-  Business commands use `--output-schema v1 --format json --no-update-check`; writes carry
-  the resolved `--workspace WORKSPACE`. Read returned paths and IDs rather than guessing.
+  Every command uses `--format json --no-update-check` and prints one `meshy.cli/v1` envelope;
+  writes carry the resolved `--workspace WORKSPACE`. Read returned paths and IDs rather than
+  guessing.
 - Submit cloud tasks once with `create --async`, retain their resource and lineage, and `wait`
   on the same task. Keep the turn active during waits. Unknown submission and interrupted
   downloads are recovery cases, not permission to generate again.

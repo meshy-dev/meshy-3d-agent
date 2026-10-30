@@ -1,8 +1,8 @@
 # Meshy 3D Agent
 
 Meshy skills for creating digital assets and preparing 3D prints. All three skills drive
-**Meshy CLI 0.4.3** (`meshy`) on **Node.js 22.12+**. They are instructions and references only —
-no bundled runtime scripts. Current release: **0.7.0**.
+**Meshy CLI 0.7** (0.7.1 or later, `meshy`) on **Node.js 22.12+**. They are instructions and references only —
+no bundled runtime scripts. Current release: **0.8.0**.
 
 ## Let your agent install it
 
@@ -30,16 +30,17 @@ name none — with a rendered preview alongside it and the task IDs for whatever
 
 Two more things worth knowing:
 
-- **No global CLI needed.** With Node 22.12+ the agent runs the pinned package temporarily
-  (`npm exec --yes --package=meshy-cli@0.4.3 -- meshy …`). A global
-  `npm install -g meshy-cli@0.4.3` only makes startup faster.
+- **The agent installs the CLI.** With Node 22.12+ and no `meshy` (or an older one), it runs
+  `npm install -g meshy-cli@0.7`. Where a global install is not allowed, or a newer CLI is
+  already installed, it runs the pinned package temporarily instead
+  (`npm exec --yes --package=meshy-cli@0.7 -- meshy …`).
 - **Local print work needs no account.** Rescaling an OBJ or opening a 3MF in a slicer runs
   entirely on your machine — no login, no balance check, no credits.
 
 ### Doing it by hand instead
 
 ```bash
-npm install -g meshy-cli@0.4.3
+npm install -g meshy-cli@0.7
 meshy --version
 meshy auth login
 meshy auth status --format json --no-update-check
@@ -48,7 +49,8 @@ meshy auth status --format json --no-update-check
 Run `meshy auth login` from a desktop terminal and approve in your browser; in SSH, CI or
 container sessions use `meshy auth login --device` and open the verification URL it prints.
 Keep the login process alive until you have approved. The CLI stores and refreshes the session;
-both skills reuse it under the same OS user and CLI configuration, in any directory.
+both skills reuse it under the same OS user and CLI configuration, in any directory. On the China
+site add `--region cn` to the login; the CLI remembers the region for later commands.
 
 An existing `MESHY_API_KEY` overrides the stored browser session — keep it if that is
 intentional; `auth status` reports the effective source. Explicit key files need
@@ -92,13 +94,13 @@ Hermes Agent reads the same skills from skills.sh, ClawHub or GitHub:
 `hermes skills install meshy-dev/meshy-3d-agent/skills/meshy-3d-generation`, or
 `npx skills add … -a hermes-agent` as in [INSTALL.md](INSTALL.md).
 
-Until 0.6.0 the OpenClaw skill was a separate Python client that called the REST API with an API
-key. It is gone; its task IDs remain usable from the CLI.
+Until the 0.6.0 skills release the OpenClaw skill was a separate Python client that called the
+REST API with an API key. It is gone; its task IDs remain usable from the CLI.
 
 ## Data and local effects
 
 The CLI sends prompts, media and task requests to the resolved Meshy API origins (normally
-`api.meshy.ai`); OAuth opens Meshy's browser page. Asset downloads and input URL preflights
+`api.meshy.ai`, or `api.meshy.cn` on the China site); OAuth opens Meshy's browser page. Asset downloads and input URL preflights
 contact their media hosts without the API credential. npm is contacted when the CLI is installed
 or run as a temporary package; workflow commands disable the update notifier. An unexpected
 custom API or login origin must be resolved before credentials are sent.
@@ -110,11 +112,11 @@ and never print a token, device code or signed URL.
 `auth use` changes the shared active profile, so concurrent tasks should not switch accounts
 independently. Profile sharing is local, not automatic across machines or containers.
 
-Models, task snapshots and project metadata are written inside one workspace per job: the
-directory you named, or `./meshy_output` when you named none. Every writing command carries that
-boundary explicitly, so a path outside it — including through a symlink — is refused rather than
-written. Downloads are selected, not fetched in every format; existing files are not overwritten
-without `--overwrite`. OBJ preparation writes a new file. Slicer integration launches a detected
+Models, previews and the small `_meta.json` sidecar that records each delivered task are written
+inside one workspace per job: the directory you named, or `./meshy_output` when you named none.
+Every writing command carries that boundary explicitly, so a path outside it — including through
+a symlink — is refused rather than written. Downloads are selected, not fetched in every format;
+existing files are not overwritten, and `download` replaces one only with `--overwrite`. OBJ preparation writes a new file. Slicer integration launches a detected
 installed application; a launch request is not proof the model was imported.
 
 ## Development and validation
@@ -143,11 +145,12 @@ so set it.
 
 ## Upgrade and rollback
 
-Old task IDs remain usable. Initialize or reopen a CLI project and resume the original resource's
-wait; never recreate a task just to migrate. The CLI backs up legacy metadata when first writing
-its newer schema. Keep that backup. Returning to an old Python skill requires its old runtime
-and API-key setup; it cannot use the CLI OAuth store. Backward reading of newer project metadata
-is not guaranteed. Keep the CLI for inspecting in-flight tasks rather than submitting again.
+Old task IDs remain usable: `get` or `wait` on the original resource by its ID; never recreate a
+task just to migrate. CLI 0.7.0 removed the project store (`meshy project`, `--project` and `--stage`
+are gone), so a `metadata.json` or `history.json` left by an older version is not read: take the
+task IDs from it by hand. Returning to an old Python skill requires its old runtime and API-key
+setup; it cannot use the CLI OAuth store. Keep the CLI for inspecting in-flight tasks rather than
+submitting again.
 
 ## License
 

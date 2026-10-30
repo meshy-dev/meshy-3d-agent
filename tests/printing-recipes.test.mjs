@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { existsSync, realpathSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -11,8 +11,10 @@ import { test } from 'node:test';
 // Exercises commands extracted from shipped documentation, not handwritten recipe copies.
 // CLI under test is supplied by the maintainer; no npm install or real account is used.
 const cli = process.env.MESHY_CLI_BIN;
-const skip = cli ? false : 'Set MESHY_CLI_BIN to a Meshy CLI 0.4.3 executable or JS entrypoint';
-const doc = await readFile(new URL('../skills/meshy-3d-printing/references/printing.md', import.meta.url), 'utf8');
+const skip = cli ? false : 'Set MESHY_CLI_BIN to a Meshy CLI 0.7.x executable or JS entrypoint';
+const doc = (await Promise.all(['printing.md', 'creative-lab.md']
+  .map(name => readFile(new URL(`../skills/meshy-3d-printing/references/${name}`, import.meta.url), 'utf8'))))
+  .join('\n');
 const lines = doc.split('\n').filter(line => line.startsWith('meshy '));
 function words(line) {
   return [...line.matchAll(/'([^']*)'|"([^"]*)"|(\S+)/g)].map(m => m[1] ?? m[2] ?? m[3]);
@@ -23,14 +25,14 @@ function recipe(prefix) {
   assert.ok(line, `documented command exists: ${prefix}`);
   return line;
 }
-const TOKENS = /PROJECT_ROOT|PROJECT_DIR|CURRENT_MODEL_URL|INPUT_IMAGE|CURRENT_RESOURCE|CURRENT_ID|SOURCE_ID|SOURCE_OBJ|TEXTURED_ID|PROTOTYPE_ID|MULTICOLOR_ID|ANALYSIS_ID|REPAIR_ID|BUILD_ID|IMAGE_ID|TEXT_ID|OBJ_PATH|OUTPUT_FILE|WORKSPACE|PRODUCT/g;
+const TOKENS = /JOB_DIR|CURRENT_MODEL_URL|INPUT_IMAGE|CURRENT_RESOURCE|CURRENT_ID|SOURCE_ID|SOURCE_OBJ|TEXTURED_ID|PROTOTYPE_ID|MULTICOLOR_ID|ANALYSIS_ID|REPAIR_ID|BUILD_ID|IMAGE_ID|TEXT_ID|OBJ_PATH|OUTPUT_FILE|WORKSPACE|PRODUCT/g;
 function argv(line, substitutions) {
   return words(line).slice(1).map(arg => arg.replace(TOKENS, token => {
     assert.ok(token in substitutions, `unbound documentation token: ${token}`);
     return substitutions[token];
   }));
 }
-const flags = ['--output-schema', 'v1', '--format', 'json', '--no-update-check'];
+const flags = ['--format', 'json', '--no-update-check'];
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'meshy-printing-'));
@@ -104,17 +106,15 @@ async function fixture(t) {
     });
   }
   async function ok(args) { const r = await run(args); assert.equal(r.code, 0, r.stdout + r.stderr); return r.json; }
-  const version = await run(['--version']); assert.equal(version.stdout.trim(), '0.4.3'); assert.equal(version.code, 0);
+  const version = await run(['--version']); assert.match(version.stdout.trim(), /^0\.7\.([1-9]\d*)$/); assert.equal(version.code, 0);
   // The documented default job location, resolved the same way a user-named directory would be.
   const workspace = join(root, 'job output');
   await mkdir(workspace);
-  const paths = { WORKSPACE: workspace, PROJECT_ROOT: join(workspace, 'meshy_output') };
-  const project = await ok(argv(recipe('project init '), paths));
+  const paths = { WORKSPACE: workspace, JOB_DIR: join(workspace, 'meshy_output', 'owl') };
   const image = join(root, 'photo.png');
   await writeFile(image, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a9l8AAAAASUVORK5CYII=', 'base64'));
-  const tokens = { ...paths, PROJECT_DIR: project.result.project_dir, INPUT_IMAGE: image, CURRENT_MODEL_URL: `${origin}/assets/model.glb`,
+  const tokens = { ...paths, INPUT_IMAGE: image, CURRENT_MODEL_URL: `${origin}/assets/model.glb`,
     SOURCE_ID: 'source-task', CURRENT_ID: 'repair-task', TEXT_ID: 'text-preview', IMAGE_ID: 'image-task', TEXTURED_ID: 'textured-task', PROTOTYPE_ID: 'prototype-task' };
-  assert.ok(project.result.project_dir.startsWith(realpathSync(paths.PROJECT_ROOT)), 'bookkeeping stays under the resolved project root');
   return { root, workspace, requests, tasks, tokens, ok, run, obj };
 }
 
@@ -123,7 +123,8 @@ test('printing recipes carry stable JSON flags and explicit workspace on writes'
   for (const line of lines) {
     const a = words(line);
     for (const flag of flags) assert.ok(a.includes(flag), `${flag}: ${line}`);
-    if (a.some(x => ['create', 'wait', 'init', 'record', 'prepare-print', '--output-dir', '--output', '--save-json'].includes(x))) {
+    for (const removed of ['--output-schema', '--project', '--stage', 'project']) assert.ok(!a.includes(removed), `0.7 refuses ${removed}: ${line}`);
+    if (a.some(x => ['prepare-print', '--output-dir', '--output', '-o', '--save-json'].includes(x))) {
       assert.ok(a.includes('--workspace'), line);
       assert.equal(a[a.indexOf('--workspace') + 1], 'WORKSPACE', `the workspace is resolved from the request, not hardcoded: ${line}`);
     }
@@ -177,7 +178,7 @@ test('actual documented create commands submit the expected white/multicolor/rep
           if (request.body.mode === 'preview') assert.deepEqual(request.body.target_formats, ['glb', 'obj']);
           else assert.equal(request.body.preview_task_id, 'text-preview');
         }
-        if (args[1] === 'retexture') { assert.equal(request.body.model_url, f.tokens.CURRENT_MODEL_URL); assert.equal(request.body.input_task_id, undefined); }
+        if (args[1] === 'retexture') { assert.equal(request.body.input_task_id, f.tokens.CURRENT_ID); assert.equal(request.body.model_url, undefined); }
         if (args[1] === 'multi-color-print') { assert.equal(request.body.max_colors, 4); assert.equal(request.body.max_depth, 4); assert.equal(request.body.input_task_id, 'textured-task'); }
         if (args[1].includes('printability')) assert.equal(request.body.input_task_id, 'source-task');
         if (args[1] === 'auto-split') {
@@ -207,7 +208,7 @@ test('Creative Lab downloads distinguish optional lamp base, bundles and relief 
     if (variant === 'lamp-base') assert.ok(serialized.includes('model.base_stl'));
     let download = argv(recipe('download --resource creative-lab.lamp.build --task-id BUILD_ID --asset '), tokens);
     download[download.indexOf('--resource') + 1] = `creative-lab.${product}.build`;
-    download[download.indexOf('--output-dir') + 1] = join(f.tokens.PROJECT_DIR, variant);
+    download[download.indexOf('--output-dir') + 1] = join(f.tokens.JOB_DIR, variant);
     const asset = variant === 'lamp-zip' ? 'model.bundle_zip' : product === 'lamp' ? 'model.lamp_stl' : 'model.obj';
     download[download.indexOf('--asset') + 1] = asset;
     if (variant === 'lamp-base') download.push('--asset', 'model.base_stl');
@@ -228,8 +229,8 @@ test('documented white-model download and prepare-print preserve source and prod
   await f.ok(argv(recipe('text-to-3d wait TEXT_ID '), tokens));
   const d = await f.ok(argv(recipe('download --resource CURRENT_RESOURCE '), tokens));
   assert.ok(d.result.downloads.files.length);
-  const objPath = join(f.tokens.PROJECT_DIR, 'white-model', 'model.obj');
-  const readyPath = join(f.tokens.PROJECT_DIR, 'white-model', 'ready.print.obj');
+  const objPath = join(f.tokens.JOB_DIR, 'white-model', 'model.obj');
+  const readyPath = join(f.tokens.JOB_DIR, 'white-model', 'ready.print.obj');
   const before = await readFile(objPath, 'utf8');
   await f.ok(argv(recipe('mesh prepare-print '), { ...tokens, SOURCE_OBJ: objPath, OUTPUT_FILE: readyPath }));
   assert.equal(await readFile(objPath, 'utf8'), before, 'source is not overwritten');
@@ -239,7 +240,7 @@ test('documented white-model download and prepare-print preserve source and prod
   assert.deepEqual(bounds, [[-18.75, 18.75], [-56.25, 56.25], [0, 75]]);
 });
 
-test('repair lineage feeds retexture and multicolor download instead of the original mesh', { skip }, async t => {
+test('repair lineage, carried by task ID, feeds retexture and multicolor instead of the original mesh', { skip }, async t => {
   const f = await fixture(t);
   const analyzed = await f.ok(argv(recipe('analyze-printability create '), f.tokens));
   const report = await f.ok(argv(recipe('analyze-printability wait '), { ...f.tokens, ANALYSIS_ID: analyzed.result.submission.task_id }));
@@ -248,28 +249,19 @@ test('repair lineage feeds retexture and multicolor download instead of the orig
   const repaired = await f.ok(argv(recipe('repair-printability create '), f.tokens));
   const repairId = repaired.result.submission.task_id;
   const rt = { ...f.tokens, REPAIR_ID: repairId, CURRENT_ID: repairId };
-  const repairResult = await f.ok(argv(recipe('repair-printability wait '), rt));
-  await f.ok(argv(recipe('project record --project PROJECT_DIR --task-id REPAIR_ID '), rt));
-  rt.CURRENT_MODEL_URL = repairResult.result.task.model_urls.glb;
-  assert.notEqual(rt.CURRENT_MODEL_URL, f.tokens.CURRENT_MODEL_URL, 'repaired artifact is distinct from the original');
+  await f.ok(argv(recipe('repair-printability wait '), rt));
   const textured = await f.ok(argv(recipe('retexture create '), rt));
   const textureId = textured.result.submission.task_id;
   const tt = { ...rt, TEXTURED_ID: textureId };
   await f.ok(argv(recipe('retexture wait '), tt));
-  await f.ok(argv(recipe('project record --project PROJECT_DIR --task-id TEXTURED_ID '), tt));
   const multi = await f.ok(argv(recipe('multi-color-print create '), tt));
   const mt = { ...tt, MULTICOLOR_ID: multi.result.submission.task_id };
   await f.ok(argv(recipe('multi-color-print wait '), mt));
   const download = await f.ok(argv(recipe('download --resource multi-color-print '), mt));
   assert.match(JSON.stringify(download.result.downloads.files), /model\.3mf/);
-  const metadata = JSON.parse(await readFile(join(f.tokens.PROJECT_DIR, 'metadata.json'), 'utf8'));
-  const repairedEntry = metadata.tasks.find(task => task.task_id === repairId && task.stage === 'repaired');
-  const texturedEntry = metadata.tasks.find(task => task.task_id === textureId && task.stage === 'textured');
-  assert.equal(repairedEntry.parent_task_id, 'source-task');
-  assert.equal(texturedEntry.parent_task_id, repairId);
   const retexturePost = f.requests.find(r => r.method === 'POST' && r.path.endsWith('/retexture'));
-  assert.equal(retexturePost.body.model_url, repairResult.result.task.model_urls.glb);
-  assert.equal(retexturePost.body.input_task_id, undefined);
+  assert.equal(retexturePost.body.input_task_id, repairId, 'retexture takes the repair task, not the original mesh');
+  assert.equal(retexturePost.body.model_url, undefined);
   const multiPost = f.requests.find(r => r.method === 'POST' && r.path.endsWith('/print/multi-color'));
   assert.equal(multiPost.body.input_task_id, textureId);
 });

@@ -1,7 +1,8 @@
 ---
 name: meshy-openclaw
-description: "Create 3D models, textures, reference images, rigging and animation with Meshy, and prepare models for physical 3D printing: white or multicolor prints, Creative Lab products, sizing and slicer handoff. Drives the Meshy CLI; signs in through the browser, no API key required."
+description: "Generates 3D models, textures, format conversions, reference images, rigging, animation and motion clips with the Meshy CLI, and prepares them for physical 3D printing: white or multicolor prints, printability repair, Creative Lab products, sizing and slicer handoff (Bambu Studio, OrcaSlicer, PrusaSlicer, Cura). Use when the user asks to make, texture, rig, animate or convert a 3D model, or wants something 3D-printed. Signs in through the browser; no API key required."
 license: MIT-0
+compatibility: "Needs Node.js 22.12+ and the Meshy CLI 0.7.x, 0.7.1 or later (npm install -g meshy-cli@0.7); network access to the Meshy API."
 metadata:
   openclaw:
     emoji: "🧊"
@@ -14,7 +15,7 @@ metadata:
     install:
       - id: node
         kind: node
-        package: meshy-cli
+        package: meshy-cli@0.7
         bins:
           - meshy
         label: Install Meshy CLI (npm)
@@ -22,7 +23,7 @@ metadata:
 
 # Meshy 3D — Generation + Printing
 
-Use Meshy CLI **0.4.3** to turn the user's request into a delivered asset: the requested files
+Use Meshy CLI **0.7** (0.7.1 or later) to turn the user's request into a delivered asset: the requested files
 in the requested location, an inspected preview when one exists, and — for prints — the
 intended size, analysis/repair results and a slicer handoff when asked. Login or task
 submission alone is not completion. Choose the shortest suitable pipeline and reuse existing
@@ -30,22 +31,26 @@ assets for follow-ups.
 
 ## SECURITY MANIFEST
 
-**Executables:** only the Meshy CLI — `meshy`, or the pinned temporary package
-`npm exec --yes --package=meshy-cli@0.4.3 -- meshy`. No Python, no `curl`, no bundled scripts.
+**Executables:** the Meshy CLI — `meshy`, or the pinned temporary package
+`npm exec --yes --package=meshy-cli@0.7 -- meshy` — plus `npm` to install it,
+`node --version` to check the runtime, and the file manager when the user asks to see a
+delivered file. No Python, no `curl`, no bundled scripts.
 
 **Credentials:** the CLI's own browser sign-in (OAuth device flow) stores and refreshes a
 session in `~/.config/meshy/credentials.json` (mode 0600). An existing `MESHY_API_KEY`, or an
 explicit `--api-key-file`, is honoured and takes precedence. The skill never reads, prints or
 copies a token, device code or key, and never asks for one in chat. `MESHY_API_KEY` is optional.
 
-**Network:** the Meshy API (`api.meshy.ai`) and its sign-in page (`www.meshy.ai`); the media
-hosts of assets being downloaded or input URLs being checked, without the credential; the npm
-registry when the CLI is installed or run as a temporary package.
+**Network:** the Meshy API (`api.meshy.ai`) and its sign-in page (`www.meshy.ai`), or
+`api.meshy.cn` and `meshy.cn` on the China site; the media hosts of assets being downloaded or
+input URLs being checked, without the credential; the npm registry when the CLI is installed or
+run as a temporary package.
 
 **Files:** writes only inside one workspace per job — the directory the user named, or
 `./meshy_output` — and the CLI refuses paths that escape it, including through symlinks.
-Existing files are not overwritten unless the user asked for it. Reads only input files the
-user pointed at. Slicer handoff launches an already-installed slicer application.
+Existing files are not overwritten unless the user asked for it. Reads the input files the
+user pointed at and its own outputs in the workspace (previews, sidecars). Slicer handoff
+launches an already-installed slicer application.
 
 **Data leaving this machine:** prompts, input images/models and task requests sent to Meshy.
 
@@ -54,8 +59,10 @@ user pointed at. Slicer handoff launches an already-installed slicer application
 | Need | Reference |
 |---|---|
 | CLI runner, sign-in, or output location | [Setup](references/setup.md) |
-| Digital assets: generation, texturing, rigging, animation, conversion, images | [Pipelines](references/pipelines.md) |
-| Physical prints: local preparation, print generation, Creative Lab, slicers | [Printing recipes](references/printing.md) |
+| Digital assets: generation, texturing, remeshing, conversion, images | [Pipelines](references/pipelines.md) |
+| Rigging, animation, or generated motion | [Animation](references/animation.md) |
+| Physical prints: local preparation, print generation, analysis/repair, slicers | [Printing recipes](references/printing.md) |
+| Creative Lab products (figures, lamps, keychains, magnets, keycaps, fidgets) | [Creative Lab](references/creative-lab.md) |
 | Cost, waiting, preview, delivery, or finding a previous model | [Delivery](references/delivery.md) |
 | Failed or uncertain operation | [Troubleshooting](references/troubleshooting.md) |
 
@@ -77,19 +84,27 @@ first command**, so generation parameters fit the print. Everything else follows
 | White model from text or photo | Geometry without textures; analyze/repair as needed; prepare the file |
 | Multicolor model | Generate/reuse geometry; analyze/repair as needed; texture; multi-color-print |
 | Print in separate parts (build plate, colours per part, fewer supports) | Generate/reuse geometry; auto-split; slice the parts |
-| Creative Lab figure, vinyl figure, brick figure, lamp, keychain, fridge magnet, keycap or pixel fidget board | Prototype → review → build → select product artifacts |
+| Check or fix an existing model (holes, thin walls), any format | Free analyze-printability by task ID or `--model-url`; repair only if needed |
+| Resize an existing STL, 3MF or GLB | Scale it in the slicer; only an OBJ is resized locally |
+| Creative Lab figure (a stylized collectible from a photo), vinyl figure, brick figure, lamp, keychain, fridge magnet, keycap or pixel fidget board | Prototype → review → build → select product artifacts |
 | Creative Lab collapsible fidget | One create from the photo → STL |
+
+Colour routes differ: multicolor paints one object's surface for a multi-material printer; a
+split cuts it into parts, one filament each, and drops the texture (split before any repair;
+the two do not chain); the pixel fidget board is a product of its own.
 
 A figurine alone does not imply Creative Lab. Ask about size, color or style only when the
 missing choice materially changes the result.
 
 ## First use and sign-in on OpenClaw
 
-Resolve the runner as Setup describes: a compatible `meshy`, otherwise the pinned temporary
-package. Local-only print work stops there. Everything else reuses a verified `auth status`
+Before the first command run `meshy --version`; no need to ask. When `meshy` is missing or
+older than 0.7.1, install the newest 0.7.x with `npm install -g meshy-cli@0.7` and say so in
+one line; Setup covers a refused install and a CLI of 0.8 or newer. Local-only print work stops there. Everything else reuses a verified `auth status`
 session; only when there is none, sign in:
 
-1. Start `meshy auth login --device --format json --no-update-check` with `exec` and a short
+1. Start `meshy auth login --device --format json --no-update-check` (add `--region cn` for a
+   user in mainland China) with `exec` and a short
    `yieldMs` (about 3000) and `timeoutSeconds: 900`, so it keeps running in the background and
    returns a `sessionId`.
 2. The CLI prints `Enter code … at https://www.meshy.ai/device` on stderr within seconds. If the
@@ -109,10 +124,11 @@ than re-submitting or looping on `sleep`.
 ## Execution boundaries
 
 - Run API, upload, download and mesh operations through the CLI. Local inputs have a 50 MiB
-  limit, and a local model must be GLB or glTF (rigging and multicolor: GLB); use the supported
+  limit, and a local model must be GLB or glTF (rigging, UV unwrap and multicolor: GLB); use the supported
   URL input route for anything else.
-- Business commands use `--output-schema v1 --format json --no-update-check`; auth has its own
-  JSON shape. Resolve `WORKSPACE` from the user's output path and pass it to every write.
+- Every command uses `--format json --no-update-check` and prints one `meshy.cli/v1` envelope,
+  auth included. Resolve `WORKSPACE` from the user's
+  output path and pass it to every write.
 - Submit once with `create --async`, keep the owning resource and task ID, then `wait` on that
   task. Timeouts and unknown submissions follow Troubleshooting; they never authorize another
   paid create.

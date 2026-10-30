@@ -2,7 +2,7 @@
 
 Use [Setup](setup.md) for the runner, login and path rules, [Delivery](delivery.md) for cost,
 previews and hand-over, and [Troubleshooting](troubleshooting.md) for recovery. These recipes
-target **meshy-cli@0.7.1** on Node.js 22.12+. Parameter details come from each command's `--help`;
+target **Meshy CLI 0.7** (0.7.1 or later) on Node.js 22.12+. Parameter details come from each command's `--help`;
 the skill carries no API client.
 
 Contents: 0 local-only work · state · print size · 1 white prints · 2 analysis and repair · 3 multicolor ·

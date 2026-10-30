@@ -9,7 +9,7 @@ import { test } from 'node:test';
 // Set MESHY_CLI_BIN to a built CLI entrypoint (.js/.mjs/.cjs) or executable.
 // No install, real account, browser, paid endpoint, or personal config is used.
 const cli = process.env.MESHY_CLI_BIN;
-const skip = cli ? false : 'Set MESHY_CLI_BIN to test the real Meshy CLI 0.7.1';
+const skip = cli ? false : 'Set MESHY_CLI_BIN to test the real Meshy CLI 0.7.x';
 
 async function fixture(t, handler) {
   const root = await mkdtemp(join(tmpdir(), 'meshy-skill-auth-'));
@@ -79,7 +79,7 @@ async function fixture(t, handler) {
   }
   const version = await run(['--version']);
   assert.equal(version.code, 0);
-  assert.equal(version.data, '0.7.1', 'these contracts target the supported Meshy CLI version');
+  assert.match(version.data, /^0\.7\.([1-9]\d*)$/, 'these contracts target Meshy CLI 0.7.1 or a later 0.7.x');
   async function storeOauth(expiresAt = Date.now() + 3600000) {
     await writeFile(env.MESHY_CREDENTIALS_PATH, JSON.stringify({
       auth_version: 1, active_profile: 'shared', profiles: {

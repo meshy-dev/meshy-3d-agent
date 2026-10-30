@@ -1,4 +1,4 @@
-# Digital asset pipelines — CLI 0.7.1
+# Digital asset pipelines — CLI 0.7
 
 Contents: route choice; shared lifecycle; text/image models; texture/topology/size; 2D images;
 downloads and recovery. Rigging, animation and generated motion are in [animation](animation.md);

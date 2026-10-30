@@ -11,8 +11,9 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 SKILLS = ("meshy-3d-generation", "meshy-3d-printing", "meshy-openclaw")
 VERSION = "0.8.0"
-# The Meshy CLI the skills are written for; every pin below derives from it.
-CLI = "0.7.1"
+# The Meshy CLI the skills are written for: any 0.7.x from MIN_CLI. Package specs use the range.
+CLI = "0.7"
+MIN_CLI = "0.7.1"
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 # The pinned temporary-package runner documented in setup.md; recipes stay written as `meshy ...`.
 RUNNER = ["npm", "exec", "--yes", f"--package=meshy-cli@{CLI}", "--"]
@@ -46,7 +47,7 @@ def validate_skill(folder):
     if folder.name == "meshy-openclaw":
         installs = meta["metadata"]["openclaw"].get("install") or []
         require([spec.get("package") for spec in installs] == [f"meshy-cli@{CLI}"], f"{entry}: the OpenClaw install hint must pin meshy-cli@{CLI}")
-    require(CLI in text, f"{entry}: missing supported CLI version")
+    require(MIN_CLI in text, f"{entry}: missing minimum CLI version")
     require(len(text.splitlines()) <= 300, f"{entry}: move detail into references")
     markdown = set()
     for file in folder.rglob("*"):

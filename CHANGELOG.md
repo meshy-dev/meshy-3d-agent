@@ -4,11 +4,12 @@
 
 ### Changed
 
-- All three skills now pin **Meshy CLI 0.7.1** (setup, SKILL.md, INSTALL.md, README, validator,
-  CI, contract tests and the OpenClaw install hint `meshy-cli@0.7.1`), moving from 0.4.3. The
-  contract suite passes against the published 0.7.1 package. `INSTALL.md` now matches `setup.md`:
-  keep exactly 0.7.1, install it when the CLI is missing or older, and use the pinned temporary
-  package rather than downgrade a newer global CLI.
+- All three skills now target **Meshy CLI 0.7** (0.7.1 or later), moving from an exact 0.4.3 pin.
+  Package specs are the range `meshy-cli@0.7` (install, temporary package, OpenClaw install hint,
+  CI), so a 0.7.x patch release needs no skill release; the validator and contract tests accept
+  any 0.7.x from 0.7.1 and pass against the published 0.7.1. `INSTALL.md` matches `setup.md`: keep
+  a 0.7.x from 0.7.1, install the newest 0.7.x when the CLI is missing or older, and use the
+  temporary 0.7 package rather than downgrade a CLI of 0.8 or newer.
 - **No project store.** `meshy project`, `--project` and `--stage` are gone from the CLI (0.7.0
   refuses them as unknown, exit 2), and with them `metadata.json`, `history.json` and the
   `task_<id>.json` snapshots. The recipes no longer carry a project folder: the lineage is the
@@ -63,9 +64,9 @@
   fixture mount (the default preset puts the base plate in `lamp_stl`); an unreadable split prompt
   falls back to the model's reference image.
 
-- The runner installs the pinned CLI (`npm install -g meshy-cli@0.7.1`) when `meshy` is missing
-  or older; the temporary `npm exec` package is the fallback when the install is refused or a
-  newer CLI must stay. Each SKILL.md declares the requirement in `compatibility` and checks
+- The runner installs the CLI (`npm install -g meshy-cli@0.7`) when `meshy` is missing or older;
+  the temporary `npm exec` package is the fallback when the install is refused or a CLI of 0.8 or
+  newer must stay. Each SKILL.md declares the requirement in `compatibility` and checks
   `meshy --version` without asking.
 
 ### Added

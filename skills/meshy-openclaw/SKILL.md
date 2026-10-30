@@ -2,7 +2,7 @@
 name: meshy-openclaw
 description: "Generates 3D models, textures, format conversions, reference images, rigging, animation and motion clips with the Meshy CLI, and prepares them for physical 3D printing: white or multicolor prints, printability repair, Creative Lab products, sizing and slicer handoff (Bambu Studio, OrcaSlicer, PrusaSlicer, Cura). Use when the user asks to make, texture, rig, animate or convert a 3D model, or wants something 3D-printed. Signs in through the browser; no API key required."
 license: MIT-0
-compatibility: "Needs Node.js 22.12+ and the Meshy CLI 0.7.1 (npm install -g meshy-cli@0.7.1); network access to the Meshy API."
+compatibility: "Needs Node.js 22.12+ and the Meshy CLI 0.7.x, 0.7.1 or later (npm install -g meshy-cli@0.7); network access to the Meshy API."
 metadata:
   openclaw:
     emoji: "🧊"
@@ -15,7 +15,7 @@ metadata:
     install:
       - id: node
         kind: node
-        package: meshy-cli@0.7.1
+        package: meshy-cli@0.7
         bins:
           - meshy
         label: Install Meshy CLI (npm)
@@ -23,7 +23,7 @@ metadata:
 
 # Meshy 3D — Generation + Printing
 
-Use Meshy CLI **0.7.1** to turn the user's request into a delivered asset: the requested files
+Use Meshy CLI **0.7** (0.7.1 or later) to turn the user's request into a delivered asset: the requested files
 in the requested location, an inspected preview when one exists, and — for prints — the
 intended size, analysis/repair results and a slicer handoff when asked. Login or task
 submission alone is not completion. Choose the shortest suitable pipeline and reuse existing
@@ -32,7 +32,7 @@ assets for follow-ups.
 ## SECURITY MANIFEST
 
 **Executables:** the Meshy CLI — `meshy`, or the pinned temporary package
-`npm exec --yes --package=meshy-cli@0.7.1 -- meshy` — plus `npm` to install it,
+`npm exec --yes --package=meshy-cli@0.7 -- meshy` — plus `npm` to install it,
 `node --version` to check the runtime, and the file manager when the user asks to see a
 delivered file. No Python, no `curl`, no bundled scripts.
 
@@ -99,8 +99,8 @@ missing choice materially changes the result.
 ## First use and sign-in on OpenClaw
 
 Before the first command run `meshy --version`; no need to ask. When `meshy` is missing or
-older than 0.7.1, install it with `npm install -g meshy-cli@0.7.1` and say so in one line;
-Setup covers a refused install and a newer CLI. Local-only print work stops there. Everything else reuses a verified `auth status`
+older than 0.7.1, install the newest 0.7.x with `npm install -g meshy-cli@0.7` and say so in
+one line; Setup covers a refused install and a CLI of 0.8 or newer. Local-only print work stops there. Everything else reuses a verified `auth status`
 session; only when there is none, sign in:
 
 1. Start `meshy auth login --device --format json --no-update-check` with `exec` and a short

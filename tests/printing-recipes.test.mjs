@@ -11,7 +11,7 @@ import { test } from 'node:test';
 // Exercises commands extracted from shipped documentation, not handwritten recipe copies.
 // CLI under test is supplied by the maintainer; no npm install or real account is used.
 const cli = process.env.MESHY_CLI_BIN;
-const skip = cli ? false : 'Set MESHY_CLI_BIN to a Meshy CLI 0.7.1 executable or JS entrypoint';
+const skip = cli ? false : 'Set MESHY_CLI_BIN to a Meshy CLI 0.7.x executable or JS entrypoint';
 const doc = (await Promise.all(['printing.md', 'creative-lab.md']
   .map(name => readFile(new URL(`../skills/meshy-3d-printing/references/${name}`, import.meta.url), 'utf8'))))
   .join('\n');
@@ -106,7 +106,7 @@ async function fixture(t) {
     });
   }
   async function ok(args) { const r = await run(args); assert.equal(r.code, 0, r.stdout + r.stderr); return r.json; }
-  const version = await run(['--version']); assert.equal(version.stdout.trim(), '0.7.1'); assert.equal(version.code, 0);
+  const version = await run(['--version']); assert.match(version.stdout.trim(), /^0\.7\.([1-9]\d*)$/); assert.equal(version.code, 0);
   // The documented default job location, resolved the same way a user-named directory would be.
   const workspace = join(root, 'job output');
   await mkdir(workspace);
@@ -123,7 +123,7 @@ test('printing recipes carry stable JSON flags and explicit workspace on writes'
   for (const line of lines) {
     const a = words(line);
     for (const flag of flags) assert.ok(a.includes(flag), `${flag}: ${line}`);
-    for (const removed of ['--output-schema', '--project', '--stage', 'project']) assert.ok(!a.includes(removed), `0.7.1 refuses ${removed}: ${line}`);
+    for (const removed of ['--output-schema', '--project', '--stage', 'project']) assert.ok(!a.includes(removed), `0.7 refuses ${removed}: ${line}`);
     if (a.some(x => ['prepare-print', '--output-dir', '--output', '-o', '--save-json'].includes(x))) {
       assert.ok(a.includes('--workspace'), line);
       assert.equal(a[a.indexOf('--workspace') + 1], 'WORKSPACE', `the workspace is resolved from the request, not hardcoded: ${line}`);

@@ -11,7 +11,9 @@ import { test } from 'node:test';
 // No install or production requests. The command text comes from the shipped recipe.
 const cli = process.env.MESHY_CLI_BIN;
 const skip = cli ? false : 'Set MESHY_CLI_BIN to the Meshy CLI 0.7.0 executable or JS entrypoint';
-const markdown = readFileSync(new URL('../skills/meshy-3d-generation/references/pipelines.md', import.meta.url), 'utf8');
+const markdown = ['pipelines.md', 'animation.md']
+  .map(name => readFileSync(new URL(`../skills/meshy-3d-generation/references/${name}`, import.meta.url), 'utf8'))
+  .join('\n');
 const deliveryDoc = readFileSync(new URL('../skills/meshy-3d-generation/references/delivery.md', import.meta.url), 'utf8');
 const shellLines = doc => [...doc.matchAll(/```bash\n([\s\S]*?)```/g)]
   .flatMap(match => match[1].split('\n')).filter(line => line.startsWith('meshy '));

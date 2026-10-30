@@ -1,9 +1,9 @@
 # Digital asset pipelines — CLI 0.7.0
 
-Contents: route choice; shared lifecycle; text/image models; texture/topology/size; rigging and
-animation; 2D images and motion; downloads and recovery. Cost, previews, hand-over and
-follow-up requests are in [delivery](delivery.md); the runner, login and the meaning of
-`WORKSPACE`/`JOB_DIR` are in [setup](setup.md).
+Contents: route choice; shared lifecycle; text/image models; texture/topology/size; 2D images;
+downloads and recovery. Rigging, animation and generated motion are in [animation](animation.md);
+cost, previews, hand-over and follow-up requests in [delivery](delivery.md); the runner, login and
+the meaning of `WORKSPACE`/`JOB_DIR` in [setup](setup.md).
 
 Commands are templates: replace uppercase placeholders with values from the user's inputs or
 the preceding JSON, quoting paths and text as individual shell arguments. Each command is a
@@ -19,7 +19,7 @@ text.
 | A model of a specific object in a photo | image-to-3d, textured by default (`--should-texture false` for a draft) | one clean reference, whole subject visible |
 | A low-poly / game-ready asset on a budget | image-to-3d or text-to-3d preview with `--model-type smart-topology --target-polycount N`, or remesh after a standard model | ranges under *Single image* below; mobile/web budgets sit at the low end |
 | An LOD chain from a model that exists | remesh the **existing** task, once per level | never regenerate for a second LOD |
-| A character that must move | textured humanoid in A/T pose → rigging → bundled walk/run, a library action, or a generated motion | see rigging and animation below |
+| A character that must move | textured humanoid in A/T pose → rigging → bundled walk/run, a library action, or a generated motion | see [animation](animation.md) |
 | A different format / size of an existing asset | convert / resize on that task | one step, no regeneration |
 | A concept image, or a style reference before committing to 3D | text-to-image / image-to-image | optional, and only when offered and accepted |
 | A printable physical object | the print workflow, not these recipes | it sets geometry, format and texture from the start |
@@ -142,63 +142,7 @@ API does not report, so always measure the file. Proceed only after a passing ch
 12 means too dense, 13 unknown. A remesh is an additional paid stage when needed, followed by a
 new download and check. An unknown count is not a pass, and not a reason for a speculative remesh.
 
-## Rigging and animation
-
-Rig a **textured humanoid** with clear limbs, preferably in an A/T pose, at most 300,000 faces.
-Use the refined, retextured or textured image task, not an untextured preview. Verify geometry
-and texture suitability from the task and its preview; a face check alone cannot establish them.
-
-```bash
-meshy download --resource RESOURCE --task-id TEXTURED_ID --model-format glb --output "JOB_DIR/textured-TEXTURED_ID.glb" --workspace "WORKSPACE" --format json --no-update-check
-meshy inspect faces --model "JOB_DIR/textured-TEXTURED_ID.glb" --max-faces 300000 --format json --no-update-check
-meshy rigging create --input-task-id TEXTURED_ID --height-meters 1.7 --async --format json --no-update-check
-```
-
-Apply the same pass/fail/unknown rule as UV. Wait through `rigging` using the newly accepted ID.
-For external input the rigging CLI accepts a textured GLB via `--model-url`; it still needs the
-same suitability and face evidence. Do not pass the deprecated `--texture-image-url`: the rig
-keeps the model's own textures, and that flag replaces them with one image.
-
-Choose the motion source in this order; stop at the first that gives the requested action:
-
-1. **Walking or running.** The rig task already carries both clips. Download them; no new task.
-2. **Any other action: the preset animation library.** Look the action up, then apply it to the
-   rig. Several actions for one character (idle, walk and attack for a game's state machine) go
-   into one task with `--action-ids` (1–10 unique IDs): one file with one clip per action, in
-   the order given, charged per action.
-3. **An action the library does not have: text-to-motion.** Generate the clip with the recipe in
-   the next section, wait for it, then apply it with `--motion-task-id`. Biped rigs only, and
-   apply it within 3 days of the motion task.
-
-Select the rig or bundled clips individually, each to its own `OUTPUT_FILE`:
-
-```bash
-meshy download --resource rigging --task-id RIG_ID --asset result.rigged_character_glb_url --output "OUTPUT_FILE" --workspace "WORKSPACE" --format json --no-update-check
-meshy download --resource rigging --task-id RIG_ID --asset result.basic_animations.walking_glb_url --output "OUTPUT_FILE" --workspace "WORKSPACE" --format json --no-update-check
-```
-
-For running, use `result.basic_animations.running_glb_url`; list the assets for FBX and armature
-variants. Take library IDs from the library, never from memory: IDs have gaps and retired actions
-disappear. The lookup is free but needs the same sign-in as any other command. `--search` matches the name or key;
-`--category` narrows to `WalkAndRun`, `BodyMovements`, `DailyActions`, `Fighting` or `Dancing`,
-and `--sub-category` narrows further. Each item carries a `preview_url` GIF to show the user
-when the choice is not obvious.
-
-```bash
-meshy animation-catalog list --search wave --format json --no-update-check
-meshy animate create --rig-task-id RIG_ID --action-id ACTION_ID --async --format json --no-update-check
-meshy animate create --rig-task-id RIG_ID --action-ids ACTION_IDS --async --format json --no-update-check
-meshy animate create --rig-task-id RIG_ID --motion-task-id MOTION_ID --async --format json --no-update-check
-```
-
-These are alternatives: one action, several actions in one file, or a generated motion. Wait
-through `animate`, then download `--asset result.animation_glb_url` (or
-`result.animation_fbx_url`). A generated motion may come back GLB-only, with an empty FBX URL.
-Post-processing (FPS, USDZ, armature) is `--post-process-operation`; include it only when
-requested. On a generated motion it needs that FBX: when the retarget yields none, the task
-fails and its credits are refunded.
-
-## 2D images and standalone motion
+## 2D images
 
 Text-to-image makes a design or reference image. Image-to-image edits an existing reference; keep
 the edit prompt specific. These may be final deliverables, or approved pre-steps to 3D — offer
@@ -208,7 +152,6 @@ not an invented identifier.
 ```bash
 meshy text-to-image create --ai-model nano-banana-pro --prompt "DESIGN_DESCRIPTION" --aspect-ratio 1:1 --async --format json --no-update-check
 meshy image-to-image create --ai-model nano-banana-pro --prompt "EDIT_DESCRIPTION" --reference-image-urls "IMAGE_PATH" --async --format json --no-update-check
-meshy text-to-motion create --prompt "MOTION_DESCRIPTION" --mode prime --duration 3 --async --format json --no-update-check
 ```
 
 Wait on the selected resource as above. Character concept generation can use
@@ -216,11 +159,7 @@ Wait on the selected resource as above. Character concept generation can use
 other) where the selected image model supports it. A nano-banana model renders any pose at 3:4
 (a `pose_aspect_ratio` warning says so). `--remove-background true` returns a transparent PNG. A
 finished image task can feed image-to-image with `--input-task-id IMAGE_TASK_ID` instead of
-re-uploading its output. Text-to-motion makes a standalone skeleton clip from a prompt of up to
-400 characters: prime returns FBX, swift BVH; duration is 2–10 seconds in 0.5-second steps.
-Delivered as is, it is a raw clip for the user's own DCC tool; to put it on a rigged character,
-apply it with `animate --motion-task-id` (above). Download image tasks with `--kind image` and
-motion with `--kind motion`, using `--output-dir`.
+re-uploading its output. Download image tasks with `--kind image`, using `--output-dir`.
 
 ## Asset delivery and recovery
 

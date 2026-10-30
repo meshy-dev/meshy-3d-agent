@@ -58,8 +58,10 @@ launches an already-installed slicer application.
 | Need | Reference |
 |---|---|
 | CLI runner, sign-in, or output location | [Setup](references/setup.md) |
-| Digital assets: generation, texturing, rigging, animation, conversion, images | [Pipelines](references/pipelines.md) |
-| Physical prints: local preparation, print generation, Creative Lab, slicers | [Printing recipes](references/printing.md) |
+| Digital assets: generation, texturing, remeshing, conversion, images | [Pipelines](references/pipelines.md) |
+| Rigging, animation, or generated motion | [Animation](references/animation.md) |
+| Physical prints: local preparation, print generation, analysis/repair, slicers | [Printing recipes](references/printing.md) |
+| Creative Lab products (figures, lamps, keychains, magnets, keycaps, fidgets) | [Creative Lab](references/creative-lab.md) |
 | Cost, waiting, preview, delivery, or finding a previous model | [Delivery](references/delivery.md) |
 | Failed or uncertain operation | [Troubleshooting](references/troubleshooting.md) |
 

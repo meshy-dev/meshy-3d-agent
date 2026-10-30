@@ -12,7 +12,9 @@ import { test } from 'node:test';
 // CLI under test is supplied by the maintainer; no npm install or real account is used.
 const cli = process.env.MESHY_CLI_BIN;
 const skip = cli ? false : 'Set MESHY_CLI_BIN to a Meshy CLI 0.7.0 executable or JS entrypoint';
-const doc = await readFile(new URL('../skills/meshy-3d-printing/references/printing.md', import.meta.url), 'utf8');
+const doc = (await Promise.all(['printing.md', 'creative-lab.md']
+  .map(name => readFile(new URL(`../skills/meshy-3d-printing/references/${name}`, import.meta.url), 'utf8'))))
+  .join('\n');
 const lines = doc.split('\n').filter(line => line.startsWith('meshy '));
 function words(line) {
   return [...line.matchAll(/'([^']*)'|"([^"]*)"|(\S+)/g)].map(m => m[1] ?? m[2] ?? m[3]);

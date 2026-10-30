@@ -12,7 +12,9 @@ SHARED = (
     ("meshy-3d-generation", "delivery.md", ("meshy-3d-printing", "meshy-openclaw")),
     ("meshy-3d-generation", "troubleshooting.md", ("meshy-3d-printing", "meshy-openclaw")),
     ("meshy-3d-generation", "pipelines.md", ("meshy-openclaw",)),
+    ("meshy-3d-generation", "animation.md", ("meshy-openclaw",)),
     ("meshy-3d-printing", "printing.md", ("meshy-openclaw",)),
+    ("meshy-3d-printing", "creative-lab.md", ("meshy-openclaw",)),
 )
 
 def sync_shared(check: bool) -> None:

@@ -13,7 +13,8 @@ self-contained. Ordinary digital assets belong to meshy-3d-generation.
 | Need | Reference |
 |---|---|
 | CLI runner, credentials, or output location | [Setup](references/setup.md) |
-| Local preparation, cloud generation, or product workflow | [Printing recipes](references/printing.md) |
+| Local preparation, white or multicolor prints, analysis/repair, or splitting into parts | [Printing recipes](references/printing.md) |
+| Creative Lab products (figures, lamps, keychains, magnets, keycaps, fidgets) | [Creative Lab](references/creative-lab.md) |
 | Cost, waiting, preview, delivery, or finding a previous model | [Delivery](references/delivery.md) |
 | Failed or uncertain operation | [Troubleshooting](references/troubleshooting.md) |
 

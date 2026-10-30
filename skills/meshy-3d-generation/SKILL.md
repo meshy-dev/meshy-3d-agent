@@ -16,7 +16,8 @@ completion. Choose the shortest suitable pipeline and reuse existing assets for 
 | Need | Reference |
 |---|---|
 | CLI runner, credentials, or output location | [Setup](references/setup.md) |
-| Generation, texturing, rigging, animation, or conversion | [Pipelines](references/pipelines.md) |
+| Generation, texturing, remeshing, conversion, scale, or 2D images | [Pipelines](references/pipelines.md) |
+| Rigging, animation, or generated motion | [Animation](references/animation.md) |
 | Cost, waiting, preview, delivery, or finding a previous model | [Delivery](references/delivery.md) |
 | Failed or uncertain operation | [Troubleshooting](references/troubleshooting.md) |
 

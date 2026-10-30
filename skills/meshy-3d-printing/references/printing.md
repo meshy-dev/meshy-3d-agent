@@ -159,16 +159,17 @@ meshy text-to-3d create --mode refine --preview-task-id TEXT_ID --target-formats
 meshy text-to-3d wait TEXTURED_ID --timeout 600 --format json --no-update-check
 ```
 
-Refine cannot texture an image-to-3d, imported or repaired model. Retexture takes the image task
-or the repair task (its GLB) by `--input-task-id`; if an ID is refused, use the model's URL or
-the downloaded GLB. Read the repaired output URL as CURRENT_MODEL_URL:
+Refine cannot texture an image-to-3d, imported or repaired model. Retexture takes the current task by
+ID: the image task, or after a repair the repair task (its GLB):
 
 ```bash
-meshy retexture create --model-url CURRENT_MODEL_URL --text-style-prompt "Natural owl colors with a warm brown body and cream face" --target-formats glb --async --format json --no-update-check
+meshy retexture create --input-task-id CURRENT_ID --text-style-prompt "Natural owl colors with a warm brown body and cream face" --target-formats glb --async --format json --no-update-check
 meshy retexture wait TEXTURED_ID --timeout 600 --format json --no-update-check
 ```
 
-Replace the style with the user's requested look. Use only one style input. After repair,
+Pass a model URL or the downloaded GLB only when the ID is refused; a URL taken from a task
+expires with it, so use it at once rather than storing it. Replace the style with the user's
+requested look. Use only one style input. After repair,
 CURRENT_ID here is REPAIR_ID; this preserves lineage instead of mistakenly returning to the
 original mesh. After `SUCCEEDED`, an accepted textured task can be passed to multicolor:
 
@@ -215,7 +216,7 @@ the 1–10 parts named in `--prompt`, in any language; name the pieces rather th
 model. Geometry the prompt does not name becomes one more part. When Meshy reads no part names from the
 prompt, it splits along the parts it finds in the model's reference image, still charges, and
 marks the task `prompt_ignored: true`: check that field and tell the user (with no reference
-image the request fails with 400 and no charge). Above 8,000,000 faces, remesh first. `by_color` cuts along named colour regions and needs an image-to-3d or multi-image-to-3d
+image, or fewer than 2 parts found in it, the request fails with 400 and no charge). Above 8,000,000 faces, remesh first. `by_color` cuts along named colour regions and needs an image-to-3d or multi-image-to-3d
 source. GLB always comes back; every other format except STL keeps each part as its own object,
 and STL fuses them into one solid, so do not deliver STL for separate parts. `--layout on_plate`
 lays the parts out ready to slice, `assembled` keeps them in place. `--connectors true` adds

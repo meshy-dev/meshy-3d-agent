@@ -20,7 +20,7 @@ meshy make "MODEL_DESCRIPTION" --dry-run --format json --no-update-check
 ```
 
    Read `steps[]` and `estimated_credits`. The numbers carry over to `text-to-3d`/`image-to-3d`
-   commands you run yourself only with the same settings (standard model, texture up to 4k, no
+   commands you run yourself only with the same settings (the default model, texture up to 4k, no
    `--geometry-resolution`); Smart Topology, 8k texture or the geometry pass are priced from the
    list below.
 
@@ -35,8 +35,8 @@ stage neither source covers — say that the exact price is unknown and give the
 The real number arrives afterwards: `consumed_credits` on the finished task. Report it when it
 is present, and report it as unknown when it is not. Never assume zero. A task that ends
 `FAILED` is refunded. Studio and Enterprise
-teams can also list finished tasks with their charges through the free `meshy usage tasks`; any
-other account gets a permission error there, which says nothing about the job.
+teams can also list finished tasks with their charges through the free `meshy usage tasks` (Creative Lab and
+canceled tasks are not listed); any other account gets a permission error there, which says nothing about the job.
 
 Before starting, know whether the balance can cover the plan. The balance result also splits
 it into monthly credits, which reset on the date it gives, and permanent credits:
@@ -49,7 +49,8 @@ Spend rules: work already authorized by the user proceeds without asking again, 
 to the end of the agreed plan. Ask only for a **new** cost the user has not agreed to — an extra
 stage, a second variant, a rerun after a disappointing result. Exit 9 (`insufficient_credit`)
 stops new paid submissions immediately: keep everything already produced, report what is
-missing, and point at the account page rather than retrying.
+missing and the cause the message gives (balance, plan or a key's credit limit; see
+Troubleshooting), and point at the account page rather than retrying.
 
 ## Waiting: the CLI polls, you narrate
 
@@ -60,7 +61,8 @@ and do not finish your turn while a stage is still unfinished.
 Say what is running before each wait — the stage, the task ID and that generation typically
 takes minutes — and report the outcome after it returns. A stage transition or a real status
 change is worth a line; individual polls are not. A timeout (exit 8) is not a failure: the task
-continues on the server and the same `wait` resumes it.
+continues on the server and the same `wait` resumes it. Keep resuming until about an hour after
+the task was created before reporting it stuck; a busy period can take that long.
 
 ## Previews: look at what came back
 
@@ -80,7 +82,7 @@ to the user. Judge only what a render can show: is it the requested subject, is 
 it obviously untextured when texture was requested. A thumbnail says nothing about back-face
 topology, watertightness, print reliability or polygon count — do not imply otherwise.
 
-Post-processing tasks (convert, resize, repair, multicolor, some builds) often have **no**
+Post-processing tasks (convert, resize, multicolor, some builds) often have **no**
 thumbnail of their own. Walk back along the parent chain you kept (a convert's or repair's
 `--input-task-id`) and run the recipe above on the generation stage's task, with its own
 `RESOURCE` and `TASK_ID`. Never pay for a conversion or a regeneration just to obtain a picture.

@@ -12,7 +12,7 @@ character is a white or multicolor print in [printing](printing.md), not this.
 Each product requires a photo-driven prototype, then a build of that **same product**. A
 text-only request first needs a generated or selected image using the CLI image commands, adding
 its own cost; do not pass text to a lamp prototype. Only successful prototypes created through
-this API with the matching credential are accepted as build inputs; web-app prototypes are not
+the API by the same account are accepted as build inputs; web-app prototypes are not
 interchangeable.
 
 Substitute PRODUCT in the commands below with
@@ -53,7 +53,7 @@ Figure, vinyl figure and brick figure have **no** build `--options` or `--model-
 latter two exactly like the figure, with their own product name. The keycap build needs
 CANDIDATE_ID from the finished prototype's `candidate_ids` (it holds one entry); its `--options`
 take `head_size_mm` and `vertical_offset_mm`. The fidget board builds one 3MF. The default
-32 × 8 mm board is about 26 cm per side: set `grid_size` and `piece_size_mm` from the size the
+32 × 8 mm board is about 26.5 cm per side: set `grid_size` and `piece_size_mm` from the size the
 user wants. Lamp `--image-subject
 character|landscape` belongs on prototype create. With the default preset (`bambu_mh001_60mm`) the STL build
 returns `lamp_stl`, the open-bottom shade with its base plate, and `base_stl`, the separate

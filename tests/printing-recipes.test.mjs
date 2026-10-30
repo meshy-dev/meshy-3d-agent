@@ -178,7 +178,7 @@ test('actual documented create commands submit the expected white/multicolor/rep
           if (request.body.mode === 'preview') assert.deepEqual(request.body.target_formats, ['glb', 'obj']);
           else assert.equal(request.body.preview_task_id, 'text-preview');
         }
-        if (args[1] === 'retexture') { assert.equal(request.body.model_url, f.tokens.CURRENT_MODEL_URL); assert.equal(request.body.input_task_id, undefined); }
+        if (args[1] === 'retexture') { assert.equal(request.body.input_task_id, f.tokens.CURRENT_ID); assert.equal(request.body.model_url, undefined); }
         if (args[1] === 'multi-color-print') { assert.equal(request.body.max_colors, 4); assert.equal(request.body.max_depth, 4); assert.equal(request.body.input_task_id, 'textured-task'); }
         if (args[1].includes('printability')) assert.equal(request.body.input_task_id, 'source-task');
         if (args[1] === 'auto-split') {
@@ -240,7 +240,7 @@ test('documented white-model download and prepare-print preserve source and prod
   assert.deepEqual(bounds, [[-18.75, 18.75], [-56.25, 56.25], [0, 75]]);
 });
 
-test('repair lineage, carried by task ID and URL, feeds retexture and multicolor instead of the original mesh', { skip }, async t => {
+test('repair lineage, carried by task ID, feeds retexture and multicolor instead of the original mesh', { skip }, async t => {
   const f = await fixture(t);
   const analyzed = await f.ok(argv(recipe('analyze-printability create '), f.tokens));
   const report = await f.ok(argv(recipe('analyze-printability wait '), { ...f.tokens, ANALYSIS_ID: analyzed.result.submission.task_id }));
@@ -249,9 +249,7 @@ test('repair lineage, carried by task ID and URL, feeds retexture and multicolor
   const repaired = await f.ok(argv(recipe('repair-printability create '), f.tokens));
   const repairId = repaired.result.submission.task_id;
   const rt = { ...f.tokens, REPAIR_ID: repairId, CURRENT_ID: repairId };
-  const repairResult = await f.ok(argv(recipe('repair-printability wait '), rt));
-  rt.CURRENT_MODEL_URL = repairResult.result.task.model_urls.glb;
-  assert.notEqual(rt.CURRENT_MODEL_URL, f.tokens.CURRENT_MODEL_URL, 'repaired artifact is distinct from the original');
+  await f.ok(argv(recipe('repair-printability wait '), rt));
   const textured = await f.ok(argv(recipe('retexture create '), rt));
   const textureId = textured.result.submission.task_id;
   const tt = { ...rt, TEXTURED_ID: textureId };
@@ -262,8 +260,8 @@ test('repair lineage, carried by task ID and URL, feeds retexture and multicolor
   const download = await f.ok(argv(recipe('download --resource multi-color-print '), mt));
   assert.match(JSON.stringify(download.result.downloads.files), /model\.3mf/);
   const retexturePost = f.requests.find(r => r.method === 'POST' && r.path.endsWith('/retexture'));
-  assert.equal(retexturePost.body.model_url, repairResult.result.task.model_urls.glb);
-  assert.equal(retexturePost.body.input_task_id, undefined);
+  assert.equal(retexturePost.body.input_task_id, repairId, 'retexture takes the repair task, not the original mesh');
+  assert.equal(retexturePost.body.model_url, undefined);
   const multiPost = f.requests.find(r => r.method === 'POST' && r.path.endsWith('/print/multi-color'));
   assert.equal(multiPost.body.input_task_id, textureId);
 });

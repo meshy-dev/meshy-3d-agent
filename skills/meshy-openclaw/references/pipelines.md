@@ -83,7 +83,8 @@ For a draft use `--should-texture false` and omit `--enable-pbr`/`--texture-reso
 controllable low-poly output use smart topology: its default model, meshy-t2.5, takes 100–30,000
 target triangles (default 15,000); `--ai-model meshy-t2`
 takes 100–15,000 (default 10,000). Standard mode needs a later remesh for polygon control.
-`--geometry-resolution 2k|4k` adds a paid high-detail geometry pass to standard mode only; never
+`--geometry-resolution 2k|4k` adds a paid high-detail geometry pass to standard mode on the
+default model (meshy-7.1) only; never
 combine it with smart topology.
 
 ```bash

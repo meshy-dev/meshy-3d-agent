@@ -23,7 +23,8 @@ keeps the model's own textures, and that flag replaces them with one image.
 
 Choose the motion source in this order; stop at the first that gives the requested action:
 
-1. **Walking or running.** The rig task already carries both clips. Download them; no new task.
+1. **Walking or running.** The rig task usually carries both clips (confirm with `download --list`).
+   Download them; no new task.
 2. **Any other action: the preset animation library.** Look the action up, then apply it to the
    rig. Several actions for one character (idle, walk and attack for a game's state machine) go
    into one task with `--action-ids` (1–10 unique IDs): one file with one clip per action, in

@@ -82,6 +82,10 @@
   preparation comes from a convert; a default-textured image-to-3d task goes straight to
   multicolor; the 8,000,000-face limit on multicolor and split; the `--options` fields of the
   Creative Lab builds; Prusa MMU via `--printer-brand prusa`.
+- Checked against the API docs: exit 9 also covers a Free plan, a key's monthly credit limit and
+  a plan-gated model; a create refused with `NoMorePendingTasks` (exit 6) made no task; a wait is
+  resumed for about an hour from creation; retexture after a repair takes the repair task ID
+  rather than a signed URL.
 - `--data` carries an API field the CLI has no flag for; `make --dry-run` prices only the same
   settings; a FAILED task is refunded; rigging limits (320,000 faces, +Z facing for a model URL).
 - China site: `meshy auth login --device --region cn` signs in at `meshy.cn` and the CLI remembers

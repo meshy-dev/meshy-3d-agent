@@ -51,10 +51,10 @@ status does not honor it in 0.7.
 | 3 | Authentication | Use the source-aware checks above; status also uses this for failed network verification. |
 | 4 | Validation | Correct the rejected input or explain the unsupported request. |
 | 5 | Not found | Check the resource, task ID and account; a task older than Meshy's 3-day retention is gone (see Delivery). |
-| 6 | Rate limit | Back off for read/status requests; respect server guidance. |
+| 6 | Rate limit | Back off for read/status requests; respect server guidance. A create refused with a message starting `NoMorePendingTasks` made no task: too many of the account's tasks are queued or running, so wait for one to finish, then submit once. |
 | 7 | Network | Retry safe reads after connectivity recovers; inspect submission state before any create. |
 | 8 | Timeout | Resume waiting on an existing task; a login timeout needs a new authorization flow. |
-| 9 | Insufficient credit | Report balance/top-up requirement; no repeated submissions. A plan-gated model (`nano-banana-pro` below Pro) lands here too, with credits left. |
+| 9 | The account cannot pay for this task | Too few credits, a Free plan (creating tasks needs a paid plan), a per-key monthly credit limit, or a plan-gated model (`nano-banana-pro` below Pro). Read the message, report the actual cause, and do not resubmit. |
 | 10 | Submission outcome unknown | Reconcile first; never automatically resubmit. |
 | 11 | Local I/O | Fix the output path/permissions, or choose another path when the target holds files that are not that task's own; then rerun the same `-o` or `download`. |
 | 12 / 13 | Check failed / unknown | Inspect check details; do not present an unknown result as a pass. |

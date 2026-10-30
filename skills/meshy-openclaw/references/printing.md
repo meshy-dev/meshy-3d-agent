@@ -5,7 +5,7 @@ previews and hand-over, and [Troubleshooting](troubleshooting.md) for recovery. 
 target **meshy-cli@0.7.0** on Node.js 22.12+. Parameter details come from each command's `--help`;
 the skill carries no API client.
 
-Contents: 0 local-only work · state · 1 white prints · 2 analysis and repair · 3 multicolor ·
+Contents: 0 local-only work · state · print size · 1 white prints · 2 analysis and repair · 3 multicolor ·
 4 split into parts. Creative Lab products are in [creative-lab](creative-lab.md).
 
 ## 0. Local-only work needs no account
@@ -46,6 +46,13 @@ them). Never query an image task through text-to-3d. An ID is not interchangeabl
 only for task types the destination command explicitly accepts; otherwise take a supported model
 URL from the completed task, or its downloaded local model. Never pass both source forms and
 hope the right one wins.
+
+## Print size
+
+Only an OBJ is sized here, by `mesh prepare-print`. Cloud print files (a multicolor 3MF, split
+parts, product STLs) arrive in millimetres at a size Meshy chooses, not the user's: scale them
+uniformly in the slicer to the requested size, and in the hand-over say which size to set rather
+than claiming the file already has it.
 
 ## 1. White geometry from text or photo
 
@@ -100,7 +107,8 @@ planned size, `--intended-print-height-mm N` (GLB input only) or `--intended-pri
 N`, to the analysis create. It then also checks wall thickness at that size against the
 printer's minimum (FDM 1.0 mm, SLA 0.8 mm, full colour 2.0 mm) and reports it in
 `printability.thin_walls`; this takes longer. Either one alone is enough: a printer alone is
-checked at 150 mm tall (an STL at its own size), a size alone assumes FDM. Use the user's real
+checked at 150 mm tall (an STL at its own size; an OBJ, FBX or glTF URL at 150 mm on its longest
+side), a size alone assumes FDM. Use the user's real
 size rather than inventing one. Without either, wall thickness is not checked.
 
 Read `result.task.printability`, distinguish task completion from report
@@ -151,9 +159,9 @@ meshy text-to-3d create --mode refine --preview-task-id TEXT_ID --target-formats
 meshy text-to-3d wait TEXTURED_ID --timeout 600 --format json --no-update-check
 ```
 
-Refine cannot texture an image-to-3d, imported or repaired model. For an accepted image task,
-retexture may use `--input-task-id IMAGE_ID`; for a repaired or unsupported task type, use its
-actual model URL or local GLB. Read the repaired output URL as CURRENT_MODEL_URL:
+Refine cannot texture an image-to-3d, imported or repaired model. Retexture takes the image task
+or the repair task (its GLB) by `--input-task-id`; if an ID is refused, use the model's URL or
+the downloaded GLB. Read the repaired output URL as CURRENT_MODEL_URL:
 
 ```bash
 meshy retexture create --model-url CURRENT_MODEL_URL --text-style-prompt "Natural owl colors with a warm brown body and cream face" --target-formats glb --async --format json --no-update-check
@@ -176,6 +184,10 @@ uses `--max-depth`; `--style cartoon` makes flat colour regions and a smaller fi
 `--printer-brand` to the user's printer family (`bambu` by default; also `anycubic`, `creality`,
 `elegoo`, `flashforge`, `prusa`, `qidi`, `snapmaker`, `ankermake`) so the 3MF carries that
 slicer's preset.
+
+Multicolor reads at most 8,000,000 faces (400, no charge, above that): remesh first and pass the
+remesh ID. PrusaSlicer is not detected as multicolor-capable, but `--printer-brand prusa` still
+makes a 3MF for a Prusa MMU.
 
 For a textured Creative Lab build or external model, replace the create source with
 `--model-url TEXTURED_GLB_URL`: an http(s) GLB or FBX URL, or a local GLB. Do not pass a
@@ -200,8 +212,10 @@ meshy download --resource auto-split --task-id SPLIT_ID --model-format 3mf --out
 
 `--mode auto` (the default) lets Meshy choose the cuts and needs no prompt. `by_parts` cuts along
 the 1–10 parts named in `--prompt`, in any language; name the pieces rather than describing the
-model. When Meshy reads no part names from the prompt, it splits along parts of its own choosing,
-still charges, and marks the task `prompt_ignored: true`: check that field and tell the user. `by_color` cuts along named colour regions and needs an image-to-3d or multi-image-to-3d
+model. Geometry the prompt does not name becomes one more part. When Meshy reads no part names from the
+prompt, it splits along the parts it finds in the model's reference image, still charges, and
+marks the task `prompt_ignored: true`: check that field and tell the user (with no reference
+image the request fails with 400 and no charge). Above 8,000,000 faces, remesh first. `by_color` cuts along named colour regions and needs an image-to-3d or multi-image-to-3d
 source. GLB always comes back; every other format except STL keeps each part as its own object,
 and STL fuses them into one solid, so do not deliver STL for separate parts. `--layout on_plate`
 lays the parts out ready to slice, `assembled` keeps them in place. `--connectors true` adds

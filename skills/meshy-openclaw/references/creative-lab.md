@@ -26,8 +26,9 @@ meshy creative-lab PRODUCT prototype wait PROTOTYPE_ID --timeout 600 --format js
 meshy download --resource creative-lab.PRODUCT.prototype --task-id PROTOTYPE_ID --list --format json --no-update-check
 ```
 
-A keychain can carry engraved text: add `--name-text "TEXT"` (up to 10 characters) to its
-prototype; the build inherits it, while `--name` only labels the task. The fidget board's
+A keychain can carry a name: add `--name-text "TEXT"` (up to 10 characters, CJK included) to
+its prototype. It prints as a flat coloured detail on the face, not raised or cut text; the build
+inherits it, while `--name` only labels the task. The fidget board's
 prototype needs the subject type, `person` (a chibi sprite) or `other` (a bead-art icon):
 
 ```bash
@@ -51,16 +52,23 @@ meshy creative-lab fidget-pixel build create --input-task-id PROTOTYPE_ID --asyn
 Figure, vinyl figure and brick figure have **no** build `--options` or `--model-format`; build the
 latter two exactly like the figure, with their own product name. The keycap build needs
 CANDIDATE_ID from the finished prototype's `candidate_ids` (it holds one entry); its `--options`
-take `head_size_mm` and `vertical_offset_mm`. The fidget board builds one 3MF; its `--options`
-(shape, 16 or 32 grid, piece size and height, colour count) are in its build help. The default
+take `head_size_mm` and `vertical_offset_mm`. The fidget board builds one 3MF. The default
 32 × 8 mm board is about 26 cm per side: set `grid_size` and `piece_size_mm` from the size the
 user wants. Lamp `--image-subject
-character|landscape` belongs on prototype create. Lamp STL returns the shade and optionally a
-fixture base when the selected light-source preset provides one: `none` must not be assumed to
-yield `base_stl`; `bambu_mh001_60mm` is a supported preset. Use the user's actual dimensions and
-fixture. `--model-format zip --include-result-json` is the lamp bundle alternative; result JSON
-cannot be requested with STL. Keychain and fridge-magnet accept GLB/OBJ/ZIP and relief options;
-inspect their build help before setting shape, backing or thickness.
+character|landscape` belongs on prototype create. With the default preset (`bambu_mh001_60mm`) the STL build
+returns `lamp_stl`, the open-bottom shade with its base plate, and `base_stl`, the separate
+fixture mount; `none` gives one sealed shade and no `base_stl`. Use the user's actual dimensions
+and fixture. `--model-format zip --include-result-json` is the lamp bundle alternative; result JSON
+cannot be requested with STL. Keychain and fridge-magnet accept GLB/OBJ/ZIP. Build help lists only
+`--options <json>`; the fields are:
+
+| Product | `--options` fields (default; range) |
+|---|---|
+| keychain, fridge-magnet | `size_mm` (keychain 40, magnet 60), `badge_shape` (`circle`, `rounded-rect`, `hexagon`, `shield`, `star`), `relief_height_mm`, `base_thickness_mm` (0–20), `remove_background` (true follows the subject's outline, false uses `badge_shape`) |
+| fidget-pixel | `shape` `square`/`hex`, `grid_size` 16/32 (32), `piece_size_mm` 6/8/10 (8; hex 6 or 8), `color_count` 1–8 (8), `piece_height_mm` 10–80 (15) |
+| lamp | `diameter_mm` 50–400 (150), `thickness_mm` up to 10 (1), `cut_amount_percent` 1–100, `light_source_preset` |
+
+Each product's page at `https://docs.meshy.ai/en/api/creative-lab-PRODUCT` has the rest.
 
 The collapsible fidget has a single stage, straight from the photo, with no prototype to review:
 
@@ -83,7 +91,7 @@ Choose the actual delivered asset, not a guessed filename:
 |---|---|---|
 | Figure | `--model-format obj` or `--model-format glb` | OBJ with MTL/texture dependencies, or GLB |
 | Lamp STL | `--asset model.lamp_stl` | `lamp.stl` |
-| Lamp optional base | `--asset model.base_stl`, **only if listed** | `base.stl` |
+| Lamp fixture mount | `--asset model.base_stl`, **only if listed** | `base.stl` |
 | Lamp ZIP | `--asset model.bundle_zip` | `bundle.zip` |
 | Keychain / fridge-magnet GLB | `--model-format glb` | GLB |
 | Keychain / fridge-magnet OBJ | `--asset model.obj` | **model.obj.zip**, containing OBJ/MTL/texture |

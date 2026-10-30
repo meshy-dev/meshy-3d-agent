@@ -83,8 +83,14 @@ first command**, so generation parameters fit the print. Everything else follows
 | White model from text or photo | Geometry without textures; analyze/repair as needed; prepare the file |
 | Multicolor model | Generate/reuse geometry; analyze/repair as needed; texture; multi-color-print |
 | Print in separate parts (build plate, colours per part, fewer supports) | Generate/reuse geometry; auto-split; slice the parts |
-| Creative Lab figure, vinyl figure, brick figure, lamp, keychain, fridge magnet, keycap or pixel fidget board | Prototype → review → build → select product artifacts |
+| Check or fix an existing model (holes, thin walls), any format | Free analyze-printability by task ID or `--model-url`; repair only if needed |
+| Resize an existing STL, 3MF or GLB | Scale it in the slicer; only an OBJ is resized locally |
+| Creative Lab figure (a stylized collectible from a photo), vinyl figure, brick figure, lamp, keychain, fridge magnet, keycap or pixel fidget board | Prototype → review → build → select product artifacts |
 | Creative Lab collapsible fidget | One create from the photo → STL |
+
+Colour routes differ: multicolor paints one object's surface for a multi-material printer; a
+split cuts it into parts, one filament each, and drops the texture (split before any repair;
+the two do not chain); the pixel fidget board is a product of its own.
 
 A figurine alone does not imply Creative Lab. Ask about size, color or style only when the
 missing choice materially changes the result.

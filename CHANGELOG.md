@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.8.0] - 2026-10-29
+## [0.8.0] - 2026-10-30
 
 ### Changed
 
@@ -14,7 +14,7 @@
   `task_<id>.json` snapshots. The recipes no longer carry a project folder: the lineage is the
   `{resource, task_id, parent_task_id}` you keep, `JOB_DIR` (a fresh `<job>` folder inside the
   workspace) holds previews and intermediate downloads, `download --resource RESOURCE --task-id
-  TASK_ID` fetches fresh signed URLs instead of reading a snapshot, and `create` and `wait` no
+  TASK_ID` fetches the files again instead of reading a snapshot, and `create` and `wait` no
   longer carry `--workspace` because they write nothing. A `metadata.json` from an older version is
   not read; take the task IDs from it by hand.
 - Delivery is `RESOURCE get TASK_ID -o "OUTPUT_FILE"`: the one asset of the requested format plus a
@@ -34,8 +34,8 @@
   `ok: true` with exit 3) and `result.status: "logged_in"` after a login; a failed login is an
   error envelope with `error.details.oauth_error`. `auth status` still ignores `--api-key-file`:
   verify that source with `balance`.
-- `image-to-3d` and `multi-image-to-3d` texture by default, like the API (full PBR maps, 4k base
-  colour). A draft needs `--should-texture false`, and texture settings are refused together with
+- `image-to-3d` and `multi-image-to-3d` texture by default, as the API does, and the CLI also asks
+  for full PBR maps and a 4k base colour. A draft needs `--should-texture false`, and texture settings are refused together with
   it. The white-print recipe keeps `--should-texture false` explicitly.
 - Smart Topology defaults to `meshy-t2.5` (100-30,000 triangles, default 15,000);
   `--ai-model meshy-t2` keeps 100-15,000 with a 10,000 default.
@@ -47,8 +47,37 @@
 - Printability analysis and repair take a model URL of up to 400 MB; local files and inline data
   stay within the CLI's 50 MiB limit.
 
+- **Smaller references.** Rigging, animation and generated motion moved from `pipelines.md` to
+  `animation.md`, and Creative Lab from `printing.md` to `creative-lab.md`, so an ordinary model
+  or print reads less. Repeated recovery rules now live once in Troubleshooting, the printing
+  "Cost and recovery" section that repeated Delivery is gone, and references over 100 lines open
+  with a contents line. The three `description` fields say when to use each skill.
+- Fixed contradictions: OpenClaw's background login and wait no longer clash with the
+  keep-the-turn-alive rule in Setup; a runner is used only when it reports exactly 0.7.0; partial
+  files are not deleted without asking; the OpenClaw security manifest lists what the skill
+  actually runs and reads.
+- 2D examples use the default image model: `nano-banana-pro` needs a Pro plan and otherwise fails
+  like an empty balance (exit 9). `--generate-multi-view` drops `--aspect-ratio`, and a
+  multi-view image task feeds `multi-image-to-3d`, not `image-to-3d`.
+- Keychain names print as a flat coloured detail, not engraving; a lamp's `base_stl` is the
+  fixture mount (the default preset puts the base plate in `lamp_stl`); an unreadable split prompt
+  falls back to the model's reference image.
+
 ### Added
 
+- Asset retention: Meshy keeps a task's files for at most 3 days, after which a follow-up uses the
+  delivered local GLB instead of the task ID. The handover names the `-o` sidecar and what deleting
+  it costs.
+- Routes for several photos of one object, a new look on an existing model (including
+  `--multiview-image-urls`), a UV white model, a motion clip without a character, checking or
+  fixing an existing print model in any format, and resizing an STL/3MF/GLB; a note telling the
+  three colour routes apart.
+- Printing: cloud print files are scaled in the slicer; repair output is GLB, so OBJ for local
+  preparation comes from a convert; a default-textured image-to-3d task goes straight to
+  multicolor; the 8,000,000-face limit on multicolor and split; the `--options` fields of the
+  Creative Lab builds; Prusa MMU via `--printer-brand prusa`.
+- `--data` carries an API field the CLI has no flag for; `make --dry-run` prices only the same
+  settings; a FAILED task is refunded; rigging limits (320,000 faces, +Z facing for a model URL).
 - China site: `meshy auth login --device --region cn` signs in at `meshy.cn` and the CLI remembers
   the region, so later commands call `api.meshy.cn`; `--region global` switches back, and
   `MESHY_REGION=cn` covers an API-key session. The OpenClaw security manifest lists the China

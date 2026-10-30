@@ -98,7 +98,11 @@ Deliver four things, every time:
 3. **The task trail**: the producing task ID(s) and the resource each belongs to. That is what
    makes the next request cheap. The sidecar the CLI wrote beside the model (`chest_meta.json`
    next to `chest.glb`, or `meta.json` in a directory) records the same resource and task ID; the
-   file's own location comes from `result.downloads.files`.
+   file's own location comes from `result.downloads.files`. Name the sidecar in the handover so
+   the extra file is no surprise: it records which Meshy task made the model, so a later "now as
+   FBX" continues from that task instead of generating again. The user may delete it; then
+   follow-ups fall back to the account's task list, and the same `-o` no longer replaces that
+   model, so a new delivery needs a new path.
 4. **What it cost**: `consumed_credits` when reported, otherwise stated as unknown, plus any
    warnings that affect use.
 

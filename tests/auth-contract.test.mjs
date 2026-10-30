@@ -216,6 +216,48 @@ test('explicit key-file uses balance verification without requiring a stored pro
   assert.ok(!output.stdout.includes('msy_synthetic_key_file'));
 });
 
+// setup.md "Remote chat": step one returns at once with the link and a flow id and prints no
+// device code (the agent relays it to a chat); step two finishes that flow after the approval.
+test('two-step sign-in returns the link without the device code, then --device-flow finishes it', { skip }, async t => {
+  const DEVICE_CODE = 'synthetic-two-step-device-code';
+  let approved = false;
+  const f = await fixture(t, (req, res) => {
+    const reply = (status, body) => { res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(body)); };
+    if (req.url === '/openapi/v1/oauth/device_authorization') {
+      return reply(200, {
+        device_code: DEVICE_CODE, user_code: 'TWOS-TEP1',
+        verification_uri: 'https://www.meshy.ai/device',
+        verification_uri_complete: 'https://www.meshy.ai/device?user_code=TWOS-TEP1',
+        expires_in: 300, interval: 1,
+      });
+    }
+    if (req.url === '/openapi/v1/oauth/token') {
+      if (!approved) return reply(400, { error: 'authorization_pending' });
+      return reply(200, { access_token: 'synthetic-two-step-access', refresh_token: 'synthetic-two-step-refresh', token_type: 'Bearer', expires_in: 3600, user_id: 'synthetic-user' });
+    }
+    if (req.url === '/openapi/v1/balance') return balance(res);
+    reply(404, {});
+  });
+
+  const start = await f.run(['auth', 'login', '--device', '--no-wait']);
+  assert.equal(start.code, 0, start.stderr);
+  assert.equal(start.data.result.status, 'device_flow_started');
+  assert.equal(start.data.result.verification_url, 'https://www.meshy.ai/device?user_code=TWOS-TEP1', 'the link carries the code');
+  assert.equal(start.data.result.user_code, 'TWOS-TEP1');
+  assert.ok(!`${start.stdout}${start.stderr}`.includes(DEVICE_CODE), 'step one prints no device code');
+
+  approved = true; // the user approved on their phone and replied
+  const finish = await f.run(['auth', 'login', '--device-flow', start.data.result.flow_id]);
+  assert.equal(finish.code, 0, finish.stderr);
+  assert.equal(finish.data.result.status, 'logged_in');
+  assert.equal(finish.data.result.verified, true);
+  for (const secret of [DEVICE_CODE, 'synthetic-two-step-access', 'synthetic-two-step-refresh']) {
+    assert.ok(!`${finish.stdout}${finish.stderr}`.includes(secret), 'no bearer secret is printed');
+  }
+  const status = await f.run(['auth', 'status'], f.cwdB);
+  assert.equal(status.data.result.verified, true);
+});
+
 // CLI-level contract only: delayed synthetic approval completes the original process.
 // This does NOT prove an agent keeps its turn alive; that needs a host behavioral check.
 test('device login publishes the verification URL and code before it exits, then stores a verified session', { skip }, async t => {

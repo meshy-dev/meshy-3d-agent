@@ -54,7 +54,8 @@ Cloud work reuses a verified session. If login is needed, keep `auth login --dev
 user in mainland China),
 show its URL and user code in **commentary/progress, never a final answer**, and await the
 same tool session in this turn. After it exits, verify `auth status` and resume the print job.
-Do not ask for a "done" message or credentials in chat; Setup has the host wait procedure.
+Never ask for credentials in chat, nor for a "done" message except in Setup's two-step sign-in for a
+user on a remote chat (a phone through a chat bot); Setup has the host wait procedure.
 
 ## Printing-specific constraints
 

@@ -35,7 +35,8 @@ needed, follow Setup and run `auth login --device` (adding `--region cn` for a u
 China) in a persistent tool session. Show its
 verification URL and user code in **commentary/progress, not a final answer**. Await that same
 session in this turn until it exits, verify `auth status`, then continue the original request.
-A background process cannot resume a finished turn; do not require a "done" chat message.
+A background process cannot resume a finished turn; do not require a "done" chat message, except in
+Setup's two-step sign-in for a user on a remote chat (a phone through a chat bot).
 Browser approval stays with the user; credentials never belong in chat.
 
 ## Execution boundaries

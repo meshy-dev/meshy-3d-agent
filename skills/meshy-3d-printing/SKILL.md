@@ -2,6 +2,7 @@
 name: meshy-3d-printing
 description: "Generates and prepares models for physical 3D printing with the Meshy CLI: white and multicolor prints (3MF, STL, OBJ), printability analysis and repair, splitting into parts, Creative Lab products such as figures, lamps and keychains, sizing, and slicer handoff (Bambu Studio, OrcaSlicer, PrusaSlicer, Cura). Use when the user wants something 3D-printed or asks for print or slicer files."
 license: MIT
+compatibility: "Needs Node.js 22.12+ and the Meshy CLI 0.7.1 (npm install -g meshy-cli@0.7.1); network access to the Meshy API."
 ---
 
 # Meshy 3D Printing
@@ -46,8 +47,9 @@ local dimension check cannot establish full printability.
 
 ## Cloud authorization
 
-Resolve the runner as Setup describes: `meshy` 0.7.1, installed with
-`npm install -g meshy-cli@0.7.1` when it is missing or older. Local-only work stops at runner setup.
+Before the first command run `meshy --version`; no need to ask. When `meshy` is missing or
+older than 0.7.1, install it with `npm install -g meshy-cli@0.7.1` and say so in one line;
+Setup covers a refused install and a newer CLI. Local-only work stops at runner setup.
 Cloud work reuses a verified session. If login is needed, keep `auth login --device` running,
 show its URL and user code in **commentary/progress, never a final answer**, and await the
 same tool session in this turn. After it exits, verify `auth status` and resume the print job.

@@ -2,6 +2,7 @@
 name: meshy-3d-generation
 description: "Generates and edits digital 3D assets with the Meshy CLI: text-to-3D and image-to-3D models, texturing, remeshing and LODs, UV unwrapping, format conversion (GLB, FBX, OBJ, USDZ, STL, 3MF, Blender), rigging, animation, motion clips from text and reference images. Use when the user asks to make, texture, rig, animate or convert a 3D model or game asset. For physical 3D printing use meshy-3d-printing."
 license: MIT
+compatibility: "Needs Node.js 22.12+ and the Meshy CLI 0.7.1 (npm install -g meshy-cli@0.7.1); network access to the Meshy API."
 ---
 
 # Meshy 3D Generation
@@ -27,8 +28,9 @@ existing GLB needs no extra format conversion. Use command help when parameters 
 
 ## First use and authorization
 
-Resolve the runner as Setup describes: `meshy` 0.7.1, installed with
-`npm install -g meshy-cli@0.7.1` when it is missing or older. Reuse a verified session. If login is
+Before the first command run `meshy --version`; no need to ask. When `meshy` is missing or
+older than 0.7.1, install it with `npm install -g meshy-cli@0.7.1` and say so in one line;
+Setup covers a refused install and a newer CLI. Reuse a verified session. If login is
 needed, follow Setup and run `auth login --device` in a persistent tool session. Show its
 verification URL and user code in **commentary/progress, not a final answer**. Await that same
 session in this turn until it exits, verify `auth status`, then continue the original request.

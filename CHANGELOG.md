@@ -56,8 +56,8 @@
   keep-the-turn-alive rule in Setup; a runner is used only when it reports exactly 0.7.0; partial
   files are not deleted without asking; the OpenClaw security manifest lists what the skill
   actually runs and reads.
-- 2D examples use the default image model: `nano-banana-pro` needs a Pro plan and otherwise fails
-  like an empty balance (exit 9). `--generate-multi-view` drops `--aspect-ratio`, and a
+- 2D images default to `gpt-image-2-5-flare`. `nano-banana-pro` needs a Pro plan and otherwise
+  fails like an empty balance (exit 9). `--generate-multi-view` drops `--aspect-ratio`, and a
   multi-view image task feeds `multi-image-to-3d`, not `image-to-3d`.
 - Keychain names print as a flat coloured detail, not engraving; a lamp's `base_stl` is the
   fixture mount (the default preset puts the base plate in `lamp_stl`); an unreadable split prompt
@@ -65,7 +65,8 @@
 
 - The runner installs the pinned CLI (`npm install -g meshy-cli@0.7.1`) when `meshy` is missing
   or older; the temporary `npm exec` package is the fallback when the install is refused or a
-  newer CLI must stay.
+  newer CLI must stay. Each SKILL.md declares the requirement in `compatibility` and checks
+  `meshy --version` without asking.
 
 ### Added
 

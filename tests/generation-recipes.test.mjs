@@ -186,8 +186,8 @@ test('every documented generation create submits once with the intended payload 
         else if (p.motion_task_id) { assert.equal(p.motion_task_id, 'MOTION_ID'); assert.equal(p.action_id, undefined); }
         else assert.equal(p.action_id, 1);
         break;
-      case 'text-to-image': assert.equal(p.ai_model, 'gpt-image-2'); assert.equal(p.aspect_ratio, '1:1'); assert.equal(p.prompt, 'DESIGN_DESCRIPTION'); break;
-      case 'image-to-image': assert.equal(p.ai_model, 'gpt-image-2'); assert.deepEqual(p.reference_image_urls, [f.imageUri]); assert.equal(p.prompt, 'EDIT_DESCRIPTION'); break;
+      case 'text-to-image': assert.equal(p.ai_model, 'gpt-image-2-5-flare'); assert.equal(p.aspect_ratio, '1:1'); assert.equal(p.prompt, 'DESIGN_DESCRIPTION'); break;
+      case 'image-to-image': assert.equal(p.ai_model, 'gpt-image-2-5-flare'); assert.deepEqual(p.reference_image_urls, [f.imageUri]); assert.equal(p.prompt, 'EDIT_DESCRIPTION'); break;
       case 'text-to-motion': assert.equal(p.mode, 'prime'); assert.equal(p.duration, 3); assert.equal(p.prompt, 'MOTION_DESCRIPTION'); break;
       default: assert.fail(`unreviewed recipe resource: ${args[0]}`);
     }

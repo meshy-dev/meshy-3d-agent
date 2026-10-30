@@ -26,7 +26,7 @@ meshy --version
 npm install -g meshy-cli@0.7.1
 ```
 
-Say in one line that you are installing it. Never use `sudo` or change system policy: when the
+Check and install without asking first; say in one line that you are installing it. Never use `sudo` or change system policy: when the
 install is refused (permissions, a managed machine, a sandbox), use the pinned temporary package
 instead. It runs the same CLI without installing anything: put `npm exec --yes
 --package=meshy-cli@0.7.1 --` in front of the same arguments, and the exit code and the JSON on

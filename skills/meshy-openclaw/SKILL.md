@@ -2,6 +2,7 @@
 name: meshy-openclaw
 description: "Generates 3D models, textures, format conversions, reference images, rigging, animation and motion clips with the Meshy CLI, and prepares them for physical 3D printing: white or multicolor prints, printability repair, Creative Lab products, sizing and slicer handoff (Bambu Studio, OrcaSlicer, PrusaSlicer, Cura). Use when the user asks to make, texture, rig, animate or convert a 3D model, or wants something 3D-printed. Signs in through the browser; no API key required."
 license: MIT-0
+compatibility: "Needs Node.js 22.12+ and the Meshy CLI 0.7.1 (npm install -g meshy-cli@0.7.1); network access to the Meshy API."
 metadata:
   openclaw:
     emoji: "🧊"
@@ -97,8 +98,9 @@ missing choice materially changes the result.
 
 ## First use and sign-in on OpenClaw
 
-Resolve the runner as Setup describes: `meshy` 0.7.1, installed with
-`npm install -g meshy-cli@0.7.1` when it is missing or older. Local-only print work stops there. Everything else reuses a verified `auth status`
+Before the first command run `meshy --version`; no need to ask. When `meshy` is missing or
+older than 0.7.1, install it with `npm install -g meshy-cli@0.7.1` and say so in one line;
+Setup covers a refused install and a newer CLI. Local-only print work stops there. Everything else reuses a verified `auth status`
 session; only when there is none, sign in:
 
 1. Start `meshy auth login --device --format json --no-update-check` with `exec` and a short

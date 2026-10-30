@@ -153,14 +153,14 @@ new download and check. An unknown count is not a pass, and not a reason for a s
 
 Text-to-image makes a design or reference image. Image-to-image edits an existing reference; keep
 the edit prompt specific. These may be final deliverables, or approved pre-steps to 3D — offer
-them, never insert them silently into a 3D request. The default model needs no `--ai-model`; any
-other comes from `create --help`, not memory. `nano-banana-pro` needs a Pro plan or higher, and
-on a lower plan it fails like an empty balance (exit 9) with credits left: retry once on the
-default model rather than reporting a low balance.
+them, never insert them silently into a 3D request. Use `gpt-image-2-5-flare` unless the user names
+another model from `create --help`. `nano-banana-pro` needs a Pro plan or higher, and
+on a lower plan it fails like an empty balance (exit 9) with credits left: retry once on
+`gpt-image-2-5-flare` rather than reporting a low balance.
 
 ```bash
-meshy text-to-image create --prompt "DESIGN_DESCRIPTION" --aspect-ratio 1:1 --async --format json --no-update-check
-meshy image-to-image create --prompt "EDIT_DESCRIPTION" --reference-image-urls "IMAGE_PATH" --async --format json --no-update-check
+meshy text-to-image create --ai-model gpt-image-2-5-flare --prompt "DESIGN_DESCRIPTION" --aspect-ratio 1:1 --async --format json --no-update-check
+meshy image-to-image create --ai-model gpt-image-2-5-flare --prompt "EDIT_DESCRIPTION" --reference-image-urls "IMAGE_PATH" --async --format json --no-update-check
 ```
 
 Wait on the selected resource as above. A character concept from text-to-image can use

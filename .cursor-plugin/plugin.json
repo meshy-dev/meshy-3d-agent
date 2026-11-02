@@ -1,7 +1,7 @@
 {
   "name": "meshy-3d-agent",
   "version": "0.9.1",
-  "description": "Generate 3D models, textures, and images, rig and animate characters, and prepare models for 3D printing with the Meshy AI API.",
+  "description": "Generate 3D models, textures, and images, rig and animate characters, and prepare models for 3D printing with the Meshy AI API. Requires a paid Meshy plan (Pro or above). Sign in with your Meshy account; no API key needed.",
   "author": {
     "name": "Meshy"
   },

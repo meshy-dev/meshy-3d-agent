@@ -1,10 +1,13 @@
 {
   "name": "meshy-3d-agent",
+  "displayName": "Meshy",
   "version": "0.9.1",
   "description": "Generate 3D models, textures, and images, rig and animate characters, and prepare models for 3D printing with the Meshy AI API.",
   "author": {
-    "name": "Meshy"
+    "name": "Meshy",
+    "email": "support@meshy.ai"
   },
+  "publisher": "Meshy",
   "homepage": "https://www.meshy.ai",
   "repository": "https://github.com/meshy-dev/meshy-3d-agent",
   "license": "MIT",
@@ -16,5 +19,16 @@
     "3d-printing",
     "rigging",
     "animation"
+  ],
+  "tags": [
+    "3d",
+    "3d-printing",
+    "game-assets",
+    "rigging",
+    "animation"
+  ],
+  "skills": [
+    "./skills/meshy-3d-generation",
+    "./skills/meshy-3d-printing"
   ]
 }

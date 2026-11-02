@@ -2,6 +2,7 @@
 """Validate the three independently installable CLI skills and the plugin manifests that list them."""
 import argparse
 import json
+import jsonschema
 from pathlib import Path
 import re
 import shlex
@@ -10,6 +11,11 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 SKILLS = ("meshy-3d-generation", "meshy-3d-printing", "meshy-openclaw")
+# meshy-openclaw repeats both of these in one skill for OpenClaw, so the Cursor plugin lists only these.
+CURSOR_SKILLS = ("meshy-3d-generation", "meshy-3d-printing")
+# Pinned copy of cursor/plugins@5229aad76c37451561c5b81a9b5072ae1c549a5b schemas/plugin.schema.json.
+CURSOR_SCHEMA = ROOT / "scripts" / "cursor-plugin.schema.json"
+PATH_KEYS = ("composerIcon", "logo", "skills", "icon_small", "icon_large")
 VERSION = "0.9.1"
 # The Meshy CLI the skills are written for: any 0.8.x from MIN_CLI. Package specs use the range.
 CLI = "0.8"
@@ -105,17 +111,30 @@ def validate_skill(folder):
     for needle in ("thumbnail.primary", "docs.meshy.ai/en/api/pricing", "--dry-run", "_meta.json"):
         require(needle in delivery, f"{folder}: delivery.md does not document {needle!r}")
 
+def safe_path(child, root):
+    path = (root / child).resolve()
+    require(path.is_relative_to(root.resolve()) and path.exists(), f"Missing/escaping package path: {child}")
+
 def safe_paths(value, root):
     if isinstance(value, dict):
         for key, child in value.items():
-            if isinstance(child, str) and (key in ("composerIcon", "logo", "skills", "icon_small", "icon_large") or child.startswith("./assets/")):
-                path = (root / child).resolve()
-                require(path.is_relative_to(root.resolve()) and path.exists(), f"Missing/escaping package path: {child}")
+            if isinstance(child, str) and (key in PATH_KEYS or child.startswith("./assets/")):
+                safe_path(child, root)
+            elif key in PATH_KEYS and isinstance(child, list):
+                for item in child:
+                    safe_path(item, root)
             else:
                 safe_paths(child, root)
     elif isinstance(value, list):
         for child in value:
             safe_paths(child, root)
+
+def validate_cursor(manifest):
+    for error in jsonschema.Draft7Validator(json.loads(CURSOR_SCHEMA.read_text())).iter_errors(manifest):
+        raise ValueError(f".cursor-plugin/plugin.json: {error.json_path}: {error.message}")
+    # Cursor scans a string as a folder of skills, which would also load meshy-openclaw; a list
+    # entry whose folder holds a SKILL.md loads exactly that skill.
+    require(manifest.get("skills") == [f"./skills/{name}" for name in CURSOR_SKILLS], ".cursor-plugin/plugin.json: skills must list exactly the generation and printing skills")
 
 def validate(root):
     for name in SKILLS:
@@ -125,6 +144,7 @@ def validate(root):
         require(manifest.get("version") == VERSION, f"{name}: version mismatch")
         require(manifest.get("name"), f"{name}: missing name")
         safe_paths(manifest, root)
+    validate_cursor(json.loads((root / ".cursor-plugin" / "plugin.json").read_text()))
     market = json.loads((root / ".claude-plugin" / "marketplace.json").read_text())
     listed = {s for plugin in market["plugins"] for s in plugin.get("skills", [])}
     require(all(f"./skills/{name}" in listed for name in SKILLS), "Marketplace does not expose every CLI skill")

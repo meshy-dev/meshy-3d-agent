@@ -9,7 +9,7 @@ import { test } from 'node:test';
 // Set MESHY_CLI_BIN to a built CLI entrypoint (.js/.mjs/.cjs) or executable.
 // No install, real account, browser, paid endpoint, or personal config is used.
 const cli = process.env.MESHY_CLI_BIN;
-const skip = cli ? false : 'Set MESHY_CLI_BIN to test the real Meshy CLI 0.7.x';
+const skip = cli ? false : 'Set MESHY_CLI_BIN to test the real Meshy CLI 0.8.x';
 
 async function fixture(t, handler) {
   const root = await mkdtemp(join(tmpdir(), 'meshy-skill-auth-'));
@@ -41,7 +41,7 @@ async function fixture(t, handler) {
     MESHY_BASE_URL_V1: `${origin}/openapi/v1`,
     MESHY_BASE_URL_V2: `${origin}/openapi/v2`,
     MESHY_BASE_URL_CREATIVE_LAB: `${origin}/openapi/creative-lab`,
-    MESHY_CLI_NO_UPDATE_NOTIFIER: '1', MESHY_CLI_NO_BROWSER: '1',
+    MESHY_CLI_NO_UPDATE_NOTIFIER: '1', MESHY_KEYRING: 'file', MESHY_CLI_NO_BROWSER: '1',
     MESHY_READ_TIMEOUT_MS: '2000',
   });
   const bin = resolve(cli);
@@ -79,7 +79,7 @@ async function fixture(t, handler) {
   }
   const version = await run(['--version']);
   assert.equal(version.code, 0);
-  assert.match(version.data, /^0\.7\.([3-9]|[1-9]\d+)$/, 'these contracts target Meshy CLI 0.7.3 or a later 0.7.x');
+  assert.match(version.data, /^0\.8\.\d+$/, 'these contracts target Meshy CLI 0.8.x');
   async function storeOauth(expiresAt = Date.now() + 3600000) {
     await writeFile(env.MESHY_CREDENTIALS_PATH, JSON.stringify({
       auth_version: 1, active_profile: 'shared', profiles: {
@@ -175,10 +175,12 @@ test('expired OAuth refreshes once and another working directory reuses the rota
   assert.equal(first.data.result.verified, true);
   const stored = await f.readStore();
   assert.equal(stored.active_profile, 'shared');
-  assert.equal(stored.profiles.shared.access_token, 'synthetic-rotated-access');
-  assert.equal(stored.profiles.shared.refresh_token, 'synthetic-rotated-refresh');
   assert.equal(stored.profiles.shared.login_id, 'synthetic-login');
   assert.ok(stored.profiles.shared.expires_at > startedAt + 3500000);
+  const raw = await readFile(f.env.MESHY_CREDENTIALS_PATH, 'utf8');
+  for (const secret of ['synthetic-rotated-access', 'synthetic-rotated-refresh']) {
+    assert.ok(!raw.includes(secret), 'the rotated tokens are stored encrypted, never in the clear');
+  }
 
   const second = await f.run(['balance'], f.cwdB);
   assert.equal(second.code, 0);

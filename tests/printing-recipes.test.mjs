@@ -11,7 +11,7 @@ import { test } from 'node:test';
 // Exercises commands extracted from shipped documentation, not handwritten recipe copies.
 // CLI under test is supplied by the maintainer; no npm install or real account is used.
 const cli = process.env.MESHY_CLI_BIN;
-const skip = cli ? false : 'Set MESHY_CLI_BIN to a Meshy CLI 0.7.x executable or JS entrypoint';
+const skip = cli ? false : 'Set MESHY_CLI_BIN to a Meshy CLI 0.8.x executable or JS entrypoint';
 const doc = (await Promise.all(['printing.md', 'creative-lab.md']
   .map(name => readFile(new URL(`../skills/meshy-3d-printing/references/${name}`, import.meta.url), 'utf8'))))
   .join('\n');
@@ -93,7 +93,7 @@ async function fixture(t) {
     MESHY_CREDENTIALS_PATH: join(config, 'credentials.json'), MESHY_API_KEY: 'synthetic-printing-test-key',
     MESHY_BASE_URL_V1: `${origin}/openapi/v1`, MESHY_BASE_URL_V2: `${origin}/openapi/v2`,
     MESHY_BASE_URL_CREATIVE_LAB: `${origin}/openapi/creative-lab`,
-    MESHY_CLI_NO_UPDATE_NOTIFIER: '1', MESHY_CLI_NO_BROWSER: '1', MESHY_READ_TIMEOUT_MS: '2000' });
+    MESHY_CLI_NO_UPDATE_NOTIFIER: '1', MESHY_KEYRING: 'file', MESHY_CLI_NO_BROWSER: '1', MESHY_READ_TIMEOUT_MS: '2000' });
   const bin = resolve(cli), js = ['.js', '.mjs', '.cjs'].includes(extname(bin));
   async function run(args) {
     return new Promise((done, reject) => {
@@ -106,7 +106,7 @@ async function fixture(t) {
     });
   }
   async function ok(args) { const r = await run(args); assert.equal(r.code, 0, r.stdout + r.stderr); return r.json; }
-  const version = await run(['--version']); assert.match(version.stdout.trim(), /^0\.7\.([3-9]|[1-9]\d+)$/); assert.equal(version.code, 0);
+  const version = await run(['--version']); assert.match(version.stdout.trim(), /^0\.8\.\d+$/); assert.equal(version.code, 0);
   // The documented default job location, resolved the same way a user-named directory would be.
   const workspace = join(root, 'job output');
   await mkdir(workspace);
@@ -123,7 +123,7 @@ test('printing recipes carry stable JSON flags and explicit workspace on writes'
   for (const line of lines) {
     const a = words(line);
     for (const flag of flags) assert.ok(a.includes(flag), `${flag}: ${line}`);
-    for (const removed of ['--output-schema', '--project', '--stage', 'project']) assert.ok(!a.includes(removed), `0.7 refuses ${removed}: ${line}`);
+    for (const removed of ['--output-schema', '--project', '--stage', 'project']) assert.ok(!a.includes(removed), `the CLI refuses ${removed}: ${line}`);
     if (a.some(x => ['prepare-print', '--output-dir', '--output', '-o', '--save-json'].includes(x))) {
       assert.ok(a.includes('--workspace'), line);
       assert.equal(a[a.indexOf('--workspace') + 1], 'WORKSPACE', `the workspace is resolved from the request, not hardcoded: ${line}`);
@@ -284,7 +284,7 @@ test('the documented local-only route runs with no credential and makes no reque
     MESHY_CREDENTIALS_PATH: join(config, 'credentials.json'),
     MESHY_BASE_URL_V1: `${origin}/openapi/v1`, MESHY_BASE_URL_V2: `${origin}/openapi/v2`,
     MESHY_BASE_URL_CREATIVE_LAB: `${origin}/openapi/creative-lab`,
-    MESHY_CLI_NO_UPDATE_NOTIFIER: '1', MESHY_CLI_NO_BROWSER: '1', MESHY_READ_TIMEOUT_MS: '2000' });
+    MESHY_CLI_NO_UPDATE_NOTIFIER: '1', MESHY_KEYRING: 'file', MESHY_CLI_NO_BROWSER: '1', MESHY_READ_TIMEOUT_MS: '2000' });
   const bin = resolve(cli), js = ['.js', '.mjs', '.cjs'].includes(extname(bin));
   const run = args => new Promise((done, reject) => {
     const child = spawn(js ? process.execPath : bin, [...(js ? [bin] : []), ...args], { cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'] });

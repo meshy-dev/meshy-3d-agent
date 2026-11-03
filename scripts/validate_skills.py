@@ -10,10 +10,10 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 SKILLS = ("meshy-3d-generation", "meshy-3d-printing", "meshy-openclaw")
-VERSION = "0.8.1"
-# The Meshy CLI the skills are written for: any 0.7.x from MIN_CLI. Package specs use the range.
-CLI = "0.7"
-MIN_CLI = "0.7.3"
+VERSION = "0.9.0"
+# The Meshy CLI the skills are written for: any 0.8.x from MIN_CLI. Package specs use the range.
+CLI = "0.8"
+MIN_CLI = "0.8.0"
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 # The pinned temporary-package runner documented in setup.md; recipes stay written as `meshy ...`.
 RUNNER = ["npm", "exec", "--yes", f"--package=meshy-cli@{MIN_CLI}", "--"]

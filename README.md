@@ -1,8 +1,8 @@
 # Meshy 3D Agent
 
 Meshy skills for creating digital assets and preparing 3D prints. All three skills drive
-**Meshy CLI 0.7** (0.7.3 or later, `meshy`) on **Node.js 22.12+**. They are instructions and references only —
-no bundled runtime scripts. Current release: **0.8.1**.
+**Meshy CLI 0.8** (0.8.0 or later, `meshy`) on **Node.js 22.12+**. They are instructions and references only —
+no bundled runtime scripts. Current release: **0.9.0**.
 
 ## Let your agent install it
 
@@ -31,16 +31,16 @@ name none — with a rendered preview alongside it and the task IDs for whatever
 Two more things worth knowing:
 
 - **The agent installs the CLI.** With Node 22.12+ and no `meshy` (or an older one), it runs
-  `npm install -g meshy-cli@0.7`. Where a global install is not allowed, or a newer CLI is
+  `npm install -g meshy-cli@0.8`. Where a global install is not allowed, or a newer CLI is
   already installed, it runs the pinned package temporarily instead
-  (`npm exec --yes --package=meshy-cli@0.7.3 -- meshy …`).
+  (`npm exec --yes --package=meshy-cli@0.8.0 -- meshy …`).
 - **Local print work needs no account.** Rescaling an OBJ or opening a 3MF in a slicer runs
   entirely on your machine — no login, no balance check, no credits.
 
 ### Doing it by hand instead
 
 ```bash
-npm install -g meshy-cli@0.7
+npm install -g meshy-cli@0.8
 meshy --version
 meshy auth login
 meshy auth status --format json --no-update-check
@@ -105,7 +105,8 @@ contact their media hosts without the API credential. npm is contacted when the 
 or run as a temporary package; workflow commands disable the update notifier. An unexpected
 custom API or login origin must be resolved before credentials are sent.
 
-CLI profiles normally live in `~/.config/meshy/credentials.json` with mode 0600.
+CLI profiles normally live in `~/.config/meshy/credentials.v2.json` with mode 0600, their keys
+and tokens encrypted under a key the OS keeps (Keychain, DPAPI or the Secret Service).
 `MESHY_CONFIG_DIR` moves the config root, including operation and device-flow state;
 `MESHY_CREDENTIALS_PATH` overrides only the credential file. The skills never read or copy tokens,
 and never print a token, device code or signed URL.

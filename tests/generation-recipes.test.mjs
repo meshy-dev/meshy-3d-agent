@@ -10,7 +10,7 @@ import { test } from 'node:test';
 // Run with MESHY_CLI_BIN=/absolute/path/to/meshy-or-dist/index.js node --test tests/generation-recipes.test.mjs
 // No install or production requests. The command text comes from the shipped recipe.
 const cli = process.env.MESHY_CLI_BIN;
-const skip = cli ? false : 'Set MESHY_CLI_BIN to the Meshy CLI 0.7.x executable or JS entrypoint';
+const skip = cli ? false : 'Set MESHY_CLI_BIN to the Meshy CLI 0.8.x executable or JS entrypoint';
 const markdown = ['pipelines.md', 'animation.md']
   .map(name => readFileSync(new URL(`../skills/meshy-3d-generation/references/${name}`, import.meta.url), 'utf8'))
   .join('\n');
@@ -94,7 +94,7 @@ async function fixture(t, respond) {
     MESHY_API_KEY: 'synthetic-generation-test-key',
     MESHY_BASE_URL_V1: `${origin}/openapi/v1`, MESHY_BASE_URL_V2: `${origin}/openapi/v2`,
     MESHY_BASE_URL_CREATIVE_LAB: `${origin}/openapi/creative-lab`,
-    MESHY_CLI_NO_UPDATE_NOTIFIER: '1', MESHY_CLI_NO_BROWSER: '1', MESHY_READ_TIMEOUT_MS: '2000',
+    MESHY_CLI_NO_UPDATE_NOTIFIER: '1', MESHY_KEYRING: 'file', MESHY_CLI_NO_BROWSER: '1', MESHY_READ_TIMEOUT_MS: '2000',
   });
   const bin = resolve(cli);
   const isJs = ['.js', '.mjs', '.cjs'].includes(extname(bin));
@@ -111,7 +111,7 @@ async function fixture(t, respond) {
   }
   const version = await run(['--version']);
   assert.equal(version.code, 0, version.stderr);
-  assert.match(version.stdout.trim(), /^0\.7\.([3-9]|[1-9]\d+)$/, 'these recipes require Meshy CLI 0.7.3 or a later 0.7.x');
+  assert.match(version.stdout.trim(), /^0\.8\.\d+$/, 'these recipes require Meshy CLI 0.8.x');
   const image = join(cwd, 'reference photo.png');
   const png = Buffer.from('89504e470d0a1a0a0000000000000000', 'hex');
   await writeFile(image, png);

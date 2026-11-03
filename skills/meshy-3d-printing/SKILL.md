@@ -63,6 +63,12 @@ same tool session in this turn. After it exits, verify `auth status` and resume 
 Never ask for credentials in chat, nor for a "done" message except in Setup's two-step sign-in for a
 user on a remote chat (a phone through a chat bot); Setup has the host wait procedure.
 
+Only the CLI touches `~/.config/meshy`: never read, copy, edit or delete a file there (an old
+`credentials.json` included), and never look for credentials anywhere else. When a sandboxed
+shell blocks the network (`auth login` fails with `oauth_network` or `fetch failed`), run the
+same command again with network access or outside the sandbox, asking the user to allow it if
+the host requires. Do not probe with `curl` or switch to `--with-key` (Setup, section 3).
+
 ## Printing-specific constraints
 
 - Repair changes geometry and drops textures. Use repaired geometry downstream and retexture

@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Both skills now say up front that only the CLI touches `~/.config/meshy`: an agent never
+  reads, copies, edits or deletes a credential file there, an older `credentials.json` included.
+  Found in a Cursor test, where an agent whose sign-in had failed read the old store's token
+  fields and wrote a copy of it to `credentials.v2.json`. The rule was in Setup, section 5,
+  past the part the agent read.
+- A sign-in that fails because a sandbox blocks the network (`oauth_network`, `fetch failed`)
+  has its own recovery in Setup: run the same command again with network access or outside the
+  sandbox. The agent no longer follows the error's `--with-key` hint, probes with `curl`, or
+  looks for another credential. In the Cursor test, the agent's sandbox blocked the network.
+
 ## [0.9.1] - 2026-11-03
 
 ### Changed

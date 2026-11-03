@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.9.0] - 2026-11-03
+
+### Changed
+
+- Meshy CLI 0.8 (`meshy-cli@0.8`; the temporary package is `meshy-cli@0.8.0`). 0.8 encrypts the
+  stored sign-in under a key the OS keeps (Keychain, DPAPI or the Secret Service) in
+  `credentials.v2.json`, and moves a 0.7 login over on its first write; a 0.7 CLI on the same
+  machine then signs in once on its own. Setup describes the new store.
+- A shell that cannot write the CLI's store (a sandbox) no longer loses the login: 0.8 skips the
+  refresh there and says the directory is not writable. Setup says to run the command outside the
+  sandbox rather than sign in again inside it.
+
+### Added
+
+- DeepSeek Harness with the Meshy plugin: the plugin ships the CLI and keeps the sign-in. Setup
+  checks `DSH_MESHY_CLI` first, runs recipes as `"$DSH_MESHY_NODE" "$DSH_MESHY_CLI" …`, installs
+  nothing, and signs in through the `meshy_sign_in` tool (or Settings → Meshy) instead of
+  `auth login` in the shell.
+- `auth status` reports `result.account`, who is signed in, when the site reports it.
+- The skills say that the China site is the same account with the same credits.
+
 ## [0.8.1] - 2026-10-30
 
 ### Changed

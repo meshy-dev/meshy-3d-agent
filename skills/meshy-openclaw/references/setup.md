@@ -2,13 +2,29 @@
 
 Shared by the generation and print workflows. Three things are settled before any job
 starts: **how to run the CLI**, **whether a session already exists**, and **where files go**.
-The supported CLI is **0.7.x, from 0.7.3,** on **Node.js 22.12 or newer**. No Python, request wrapper or
+The supported CLI is **0.8.x, from 0.8.0,** on **Node.js 22.12 or newer**. No Python, request wrapper or
 separate token store is involved.
 
 Contents: 1 runner · 2 reuse a session · 3 first login · 4 where files go · 5 one session
 everywhere · 6 API keys · 7 the China site.
 
 ## 1. Resolve the runner
+
+In DeepSeek Harness with the Meshy plugin the plugin ships the CLI and holds the sign-in. Check
+for it first:
+
+```bash
+test -n "$DSH_MESHY_CLI" && echo meshy-dsh
+```
+
+When that prints `meshy-dsh`, run every recipe as `"$DSH_MESHY_NODE" "$DSH_MESHY_CLI" …` in
+place of `meshy …` (PowerShell: `& $env:DSH_MESHY_NODE $env:DSH_MESHY_CLI …`), keep both paths
+quoted, install nothing, and go on to section 2. The shell there cannot store a login, so never
+run `auth login`, set `MESHY_CONFIG_DIR` or copy a credential file in it: when `auth status`
+reports no usable credential, or a command reports a rejected session, call the
+`meshy_sign_in` tool (`region: "cn"` for the China site), show the user its link and code, and
+retry once they say they approved; or ask them to sign in from Settings → Meshy. Everywhere
+else:
 
 ```bash
 node --version
@@ -17,25 +33,25 @@ meshy --version
 
 | Observation | What to do |
 |---|---|
-| `meshy --version` prints 0.7.3 or a later 0.7.x | run `meshy` |
-| no `meshy` command, or a version older than 0.7.3 | install the newest 0.7.x (below), then run `meshy` |
-| 0.8 or newer | keep it, since something else may rely on it, and run the temporary package |
+| `meshy --version` prints 0.8.0 or a later 0.8.x | run `meshy` |
+| no `meshy` command, or a version older than 0.8.0 | install the newest 0.8.x (below), then run `meshy` |
+| 0.9 or newer | keep it, since something else may rely on it, and run the temporary package |
 | no Node.js, or Node older than 22.12 | stop and report it: the user installs Node.js 22.12+ |
 
 ```bash
-npm install -g meshy-cli@0.7
+npm install -g meshy-cli@0.8
 ```
 
 Check and install without asking first; say in one line that you are installing it. Install at
-most once: when `meshy --version` still reports a version older than 0.7.3 afterwards, the
+most once: when `meshy --version` still reports a version older than 0.8.0 afterwards, the
 registry this machine uses lags npm, so report that instead of installing again. Never use `sudo`
 or change system policy: when the install is refused (permissions, a managed machine, a sandbox), use the temporary package
 instead. It runs the same CLI without installing anything: put `npm exec --yes
---package=meshy-cli@0.7.3 --` in front of the same arguments, and the exit code and the JSON on
+--package=meshy-cli@0.8.0 --` in front of the same arguments, and the exit code and the JSON on
 stdout are forwarded unchanged. Recipes are written as `meshy …`; example:
 
 ```bash
-npm exec --yes --package=meshy-cli@0.7.3 -- meshy auth status --format json --no-update-check
+npm exec --yes --package=meshy-cli@0.8.0 -- meshy auth status --format json --no-update-check
 ```
 
 The first such call downloads the package into the npm cache; later calls reuse it. It names an
@@ -55,12 +71,15 @@ Every command, auth included, prints one `meshy.cli/v1` envelope on stdout (`ok`
 the unauthenticated and unverified answers below are `ok: true` with exit 3.
 
 - `authenticated: true`, `verified: true`, exit 0: continue with this account. **No new login.**
+  `result.account` names who is signed in when the site reports it (`null` for an API key, a
+  login made before CLI 0.8, and the China site for now).
 - `authenticated: false`, exit 3: no usable credential; log in (next section).
 - `authenticated: true`, `verified: false`, exit 3: a credential exists but verification failed —
   which includes network and server errors, not just rejection. Do not start a login or delete
   credentials; see [troubleshooting.md](troubleshooting.md).
 
-`auth status --offline` skips the balance call but can still refresh OAuth over the network.
+`auth status --offline` skips the balance and account calls but can still refresh OAuth over the
+network.
 Use local `doctor` for a diagnostic that must avoid the network entirely.
 
 ## 3. First login: one browser approval, then resume the original request
@@ -165,9 +184,9 @@ meshy auth login --device-flow FLOW_ID --format json --no-update-check
 
 It waits while the approval is still pending, saves the session and prints
 `result.status: "logged_in"`; verify `auth status` and continue the original request. An expired
-or unknown flow means running step one again. A host whose question tool reaches the user
-(dsh's `ask_user_question` is forwarded by its chat bridges) can instead ask with the link and
-wait for the answer in the same turn, then run step two.
+or unknown flow means running step one again. A host whose question tool reaches the user can
+instead ask with the link and wait for the answer in the same turn, then run step two. In
+DeepSeek Harness the `meshy_sign_in` tool replaces both steps (section 1).
 
 Do not use `--manual` from an agent — it prompts on stdin for a pasted code. Never show a token, a device
 code or a signed URL to the user or copy one into chat or a file: task results and sidecars
@@ -206,31 +225,37 @@ to delete.
 
 ## 5. One session, both skills, any directory
 
-The default store is `~/.config/meshy/credentials.json` (mode 0600). Generation and printing,
-in either plugin, reuse it when run as the same OS user with the same CLI configuration.
-Changing the working directory does not require another login. Different users, machines,
-containers or configuration directories do not automatically share sessions.
+The default store is `~/.config/meshy/credentials.v2.json` (mode 0600); the key or tokens in it
+are encrypted under a key the OS keeps (Keychain, DPAPI or the Secret Service; a `master.key`
+file where none is usable). Generation and printing, in either plugin, reuse it when run as the
+same OS user with the same CLI configuration. Changing the working directory does not require
+another login. Different users, machines, containers or configuration directories do not
+automatically share sessions. A CLI before 0.8 kept `credentials.json` instead; 0.8 moves that
+login over on its first write, and an older CLI then signs in once on its own.
 
 `MESHY_CONFIG_DIR` changes the config directory; `MESHY_CREDENTIALS_PATH` overrides the
-credential file. Non-production API hosts use `credentials.dev.json` by default. Keep these
+credential file. Non-production API hosts use `credentials.v2.dev.json` by default. Keep these
 settings consistent; do not copy tokens between plugins or read the credential file.
 `auth list` reports profile kinds with masked credentials. `auth use <name>` changes the shared
 active profile, so do not switch it independently in concurrent workflows.
 
-The CLI refreshes stored OAuth tokens near expiry on its own.
+The CLI refreshes stored OAuth tokens near expiry on its own. Where it cannot write the store (a
+sandboxed shell) it leaves the login alone instead: a still-valid token keeps working, and an
+expired one is exit 3 saying the directory is not writable — run the command outside the sandbox
+rather than signing in again inside it.
 
 ## 6. Existing API keys remain supported
 
-Credential priority is `--api-key` > `MESHY_API_KEY` > explicit `--api-key-file` > stored
-active profile. An existing environment key overrides browser login; report `source` when
+Credential priority is `--api-key` > `MESHY_API_KEY` > explicit `--api-key-file` > the DeepSeek
+Harness plugin's session > stored active profile. An existing environment key overrides browser login; report `source` when
 diagnosing account selection, and do not change the user's environment or account implicitly.
 
 DeepSeek Harness (`DSH_SHELL=1`) removes credential-shaped variables such as `MESHY_API_KEY`
 from every shell call, so a key the user exported before starting dsh never reaches the CLI.
-There, use the stored browser login (`meshy auth login`) or an explicit `--api-key-file`.
+There the Meshy plugin's sign-in is used (section 1), or an explicit `--api-key-file`.
 
 There is no automatic `.env` discovery. If the user chooses a project key file, pass its
-explicit path on authenticated commands. In 0.7 **`auth status` ignores `--api-key-file`**,
+explicit path on authenticated commands. **`auth status` ignores `--api-key-file`**,
 so verify that branch with a free balance call instead:
 
 ```bash
@@ -243,7 +268,8 @@ shell profiles or a new skill-managed file. Share masked status and actionable e
 
 ## 7. The China site
 
-One Meshy account works on both sites; only the hosts differ. When the user is in mainland China
+One Meshy account works on both sites with the same credits; only the hosts differ. When the user
+is in mainland China
 or asks for the China site, sign in with `--region cn` instead of the plain device login in
 section 3, with the same persistent-session procedure (the code is entered at `meshy.cn`):
 

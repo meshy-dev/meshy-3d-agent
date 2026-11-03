@@ -2,12 +2,12 @@
 name: meshy-3d-printing
 description: "Generates and prepares models for physical 3D printing with the Meshy CLI: white and multicolor prints (3MF, STL, OBJ), printability analysis and repair, splitting into parts, Creative Lab products such as figures, lamps and keychains, sizing, and slicer handoff (Bambu Studio, OrcaSlicer, PrusaSlicer, Cura). Use when the user wants something 3D-printed or asks for print or slicer files."
 license: MIT
-compatibility: "Needs Node.js 22.12+ and the Meshy CLI 0.7.x, 0.7.3 or later (npm install -g meshy-cli@0.7); network access to the Meshy API."
+compatibility: "Needs Node.js 22.12+ and the Meshy CLI 0.8.x, 0.8.0 or later (npm install -g meshy-cli@0.8); network access to the Meshy API."
 ---
 
 # Meshy 3D Printing
 
-Use Meshy CLI **0.7** (0.7.3 or later) to deliver the requested print files at the intended size, with
+Use Meshy CLI **0.8** (0.8.0 or later) to deliver the requested print files at the intended size, with
 analysis/repair results where applicable and a slicer handoff when requested. This skill is
 self-contained. Ordinary digital assets belong to meshy-3d-generation.
 
@@ -47,11 +47,17 @@ local dimension check cannot establish full printability.
 
 ## Cloud authorization
 
+**DeepSeek Harness with the Meshy plugin** (`DSH_MESHY_CLI` is set; check with
+`test -n "$DSH_MESHY_CLI"`): the plugin ships the CLI and keeps the sign-in. Run every command as
+`"$DSH_MESHY_NODE" "$DSH_MESHY_CLI" …` in place of `meshy …` — never a `meshy` on PATH, which
+cannot see that sign-in — install nothing, and when a command reports that nobody is signed in,
+call the `meshy_sign_in` tool instead of `auth login` (Setup, section 1). Everywhere else:
+
 Before the first command run `meshy --version`; no need to ask. When `meshy` is missing or
-older than 0.7.3, install the newest 0.7.x with `npm install -g meshy-cli@0.7` and say so in
-one line; Setup covers a refused install and a CLI of 0.8 or newer. Local-only work stops at runner setup.
+older than 0.8.0, install the newest 0.8.x with `npm install -g meshy-cli@0.8` and say so in
+one line; Setup covers a refused install and a CLI of 0.9 or newer. Local-only work stops at runner setup.
 Cloud work reuses a verified session. If login is needed, keep `auth login --device` running (with `--region cn` for a
-user in mainland China),
+user in mainland China: the same account and credits as the global site),
 show its URL and user code in **commentary/progress, never a final answer**, and await the
 same tool session in this turn. After it exits, verify `auth status` and resume the print job.
 Never ask for credentials in chat, nor for a "done" message except in Setup's two-step sign-in for a

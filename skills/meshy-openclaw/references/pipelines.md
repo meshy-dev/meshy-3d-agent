@@ -129,8 +129,14 @@ These are alternatives, not an automatic four-step chain. Each is the answer to 
 follow-up: a polygon budget or an LOD level (remesh), a format (convert), a physical size
 (resize), a new look (retexture). Retexture can use `--image-style-url "STYLE_PATH"` instead of
 the text-style prompt, or `--multiview-image-urls` (1–4 photos of the real object, front first)
-to match that object; use exactly one of the three. Remesh supports quad topology and an
-adaptive `--decimation-mode` instead of a fixed polygon count. Convert only changes formats.
+to match that object; use exactly one of the three. With either image input, `--ai-model meshy-n1`
+(Meshy N1) textures from the images alone (a single style image is read as the front view): a 2K
+base color texture, no PBR maps. Drop `--text-style-prompt`, `--enable-pbr` and
+`--texture-resolution` from the recipe; the CLI refuses a prompt, PBR, 4K/8K and
+`--remove-lighting` with it (exit 2) before anything is sent. The API refuses a model over
+7,999,999 triangles for it; a file it cannot count first (an STL URL) fails and is refunded
+instead. Remesh supports quad topology and an adaptive `--decimation-mode` instead of a fixed
+polygon count. Convert only changes formats.
 Resize uses **metres**: 0.15 is 15 cm; choose one of height, longest-side or auto-size. Consult
 each resource's `create --help` for further options.
 

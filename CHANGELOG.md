@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.1] - 2026-11-03
+
+### Changed
+
+- Meshy CLI 0.8.2 or later (still the `meshy-cli@0.8` range); the temporary package names
+  `meshy-cli@0.8.2` exactly. `npm exec` users also get 0.8.1's sign-in fixes: one process's
+  refresh no longer ends another's token.
+
+### Added
+
+- Retexture with Meshy N1 (`--ai-model meshy-n1`): a 2K base color texture from a style image
+  (read as the front view) or 1–4 views, with no text prompt and no PBR maps. The pipelines
+  reference says which recipe flags to drop and what the CLI refuses with it.
+
 ## [0.9.0] - 2026-11-03
 
 ### Changed

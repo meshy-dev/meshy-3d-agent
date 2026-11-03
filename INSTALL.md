@@ -21,7 +21,7 @@ If Node.js is missing or older, stop and ask the user to install a current Node.
 meshy --version
 ```
 
-- It prints 0.8.0 or a later 0.8.x: keep it. The skills are written for 0.8, and another minor
+- It prints 0.8.2 or a later 0.8.x: keep it. The skills are written for 0.8, and another minor
   version can change flags and output.
 - It prints an older version, or there is no `meshy`: install the newest 0.8.x.
 
@@ -30,7 +30,7 @@ npm install -g meshy-cli@0.8
 ```
 
 - It prints 0.9 or newer: do not downgrade it, since something else may rely on it. Use the
-  temporary package `npm exec --yes --package=meshy-cli@0.8.0 -- meshy …` as `meshy` in the
+  temporary package `npm exec --yes --package=meshy-cli@0.8.2 -- meshy …` as `meshy` in the
   steps below.
 
 If the global install is refused (permissions, a managed machine), leave it and use the same

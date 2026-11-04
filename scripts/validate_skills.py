@@ -25,7 +25,7 @@ CURSOR_SCHEMAS = {
     "marketplace": "50c85058bf329588401fd2fc93180a574fa64abbb6c2606400febfb6f4d094e8",
 }
 PATH_KEYS = ("composerIcon", "logo", "skills", "icon_small", "icon_large")
-VERSION = "0.9.1"
+VERSION = "0.9.2"
 # The Meshy CLI the skills are written for: any 0.8.x from MIN_CLI. Package specs use the range.
 CLI = "0.8"
 MIN_CLI = "0.8.2"

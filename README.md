@@ -2,7 +2,7 @@
 
 Meshy skills for creating digital assets and preparing 3D prints. All three skills drive
 **Meshy CLI 0.8** (0.8.2 or later, `meshy`) on **Node.js 22.12+**. They are instructions and references only —
-no bundled runtime scripts. Current release: **0.9.1**.
+no bundled runtime scripts. Current release: **0.9.2**.
 
 **Requires a paid Meshy plan (Pro or above),** and generation spends Meshy credits. Sign in with
 your Meshy account; no API key needed. A Free account can sign in, but creating tasks is refused

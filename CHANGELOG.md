@@ -14,6 +14,16 @@
   sandbox. The agent no longer follows the error's `--with-key` hint, probes with `curl`, or
   looks for another credential. In the Cursor test, the agent's sandbox blocked the network.
 
+### Added
+
+- `.cursor-plugin/marketplace.json`, listing the one Cursor plugin at the repository root. Without
+  it, adding the repository to a Cursor team marketplace by link read
+  `.claude-plugin/marketplace.json` and offered the plugin three times, once per Claude Code entry,
+  all named `meshy-3d-agent`. `validate_skills.py` checks the file against a pinned copy of
+  Cursor's marketplace schema (`scripts/cursor-marketplace.schema.json`, cursor/plugins@5229aad).
+  It also requires a single entry whose name matches `.cursor-plugin/plugin.json` and whose source
+  is the repository root.
+
 ## [0.9.1] - 2026-11-03
 
 ### Changed

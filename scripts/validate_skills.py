@@ -13,8 +13,10 @@ ROOT = Path(__file__).resolve().parent.parent
 SKILLS = ("meshy-3d-generation", "meshy-3d-printing", "meshy-openclaw")
 # meshy-openclaw repeats both of these in one skill for OpenClaw, so the Cursor plugin lists only these.
 CURSOR_SKILLS = ("meshy-3d-generation", "meshy-3d-printing")
-# Pinned copy of cursor/plugins@5229aad76c37451561c5b81a9b5072ae1c549a5b schemas/plugin.schema.json.
+# Pinned copies of cursor/plugins@5229aad76c37451561c5b81a9b5072ae1c549a5b schemas/plugin.schema.json
+# and schemas/marketplace.schema.json.
 CURSOR_SCHEMA = ROOT / "scripts" / "cursor-plugin.schema.json"
+CURSOR_MARKETPLACE_SCHEMA = ROOT / "scripts" / "cursor-marketplace.schema.json"
 PATH_KEYS = ("composerIcon", "logo", "skills", "icon_small", "icon_large")
 VERSION = "0.9.1"
 # The Meshy CLI the skills are written for: any 0.8.x from MIN_CLI. Package specs use the range.
@@ -136,6 +138,16 @@ def validate_cursor(manifest):
     # entry whose folder holds a SKILL.md loads exactly that skill.
     require(manifest.get("skills") == [f"./skills/{name}" for name in CURSOR_SKILLS], ".cursor-plugin/plugin.json: skills must list exactly the generation and printing skills")
 
+def validate_cursor_marketplace(market, manifest, root):
+    for error in jsonschema.Draft7Validator(json.loads(CURSOR_MARKETPLACE_SCHEMA.read_text())).iter_errors(market):
+        raise ValueError(f".cursor-plugin/marketplace.json: {error.json_path}: {error.message}")
+    # Without this file, Cursor's "Add to Marketplace" read .claude-plugin/marketplace.json and
+    # listed the root plugin once per Claude Code entry: three plugins named meshy-3d-agent.
+    entries = market["plugins"]
+    require(len(entries) == 1, ".cursor-plugin/marketplace.json: list exactly one plugin, the one at the repository root")
+    require(entries[0]["name"] == manifest["name"], ".cursor-plugin/marketplace.json: the entry's name must match .cursor-plugin/plugin.json")
+    require((root / entries[0]["source"]).resolve() == root.resolve(), ".cursor-plugin/marketplace.json: the entry's source must be the repository root")
+
 def validate(root):
     for name in SKILLS:
         validate_skill(root / "skills" / name)
@@ -144,7 +156,9 @@ def validate(root):
         require(manifest.get("version") == VERSION, f"{name}: version mismatch")
         require(manifest.get("name"), f"{name}: missing name")
         safe_paths(manifest, root)
-    validate_cursor(json.loads((root / ".cursor-plugin" / "plugin.json").read_text()))
+    cursor_manifest = json.loads((root / ".cursor-plugin" / "plugin.json").read_text())
+    validate_cursor(cursor_manifest)
+    validate_cursor_marketplace(json.loads((root / ".cursor-plugin" / "marketplace.json").read_text()), cursor_manifest, root)
     market = json.loads((root / ".claude-plugin" / "marketplace.json").read_text())
     listed = {s for plugin in market["plugins"] for s in plugin.get("skills", [])}
     require(all(f"./skills/{name}" in listed for name in SKILLS), "Marketplace does not expose every CLI skill")

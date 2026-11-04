@@ -102,9 +102,9 @@ meshy auth status --format json --no-update-check
 meshy balance --format json --no-update-check
 ```
 
-Tell the user the setup is done and how many credits they have. Nothing has been spent. Remind
-them that creating tasks needs a Pro plan or above (plans and prices:
-<https://www.meshy.ai/pricing>). On a Free plan, stop there: don't suggest a first request or an
-upgrade. If your agent loads skills only at startup, ask the user to start a new session. Then suggest a first
-request, for example: *"Make a 3D model of a lovely baby husky"* or *"Help me 3D print a small
-dragon figurine"*.
+Tell the user the setup is done and how many credits they have. Nothing has been spent. If your
+agent loads skills only at startup, ask the user to start a new session. Tell every user that
+creating tasks needs a Pro plan or above (plans and prices: <https://www.meshy.ai/pricing>):
+neither command above shows the plan, so a Free account looks the same here. Don't suggest an
+upgrade. Then suggest a first request, for example: *"Make a 3D model of a lovely baby husky"* or
+*"Help me 3D print a small dragon figurine"*.

@@ -160,3 +160,7 @@ submitting again.
 ## License
 
 [MIT](LICENSE)
+
+This repository contains only skills and references; it does not include the Meshy CLI or any of
+its dependencies. Setup installs the [Meshy CLI](https://www.npmjs.com/package/meshy-cli) from npm
+as a separate tool, under its own MIT license.

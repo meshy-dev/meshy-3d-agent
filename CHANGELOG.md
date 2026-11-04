@@ -23,6 +23,10 @@
   Cursor's marketplace schema (`scripts/cursor-marketplace.schema.json`, cursor/plugins@5229aad).
   It also requires a single entry whose name matches `.cursor-plugin/plugin.json` and whose source
   is the repository root.
+- A Cursor logo, `assets/logo.png`: the Meshy app icon from Meshy's brand assets, scaled to
+  512 × 512. Its dark background keeps it legible on light and dark themes. Before this, the
+  Marketplace tile showed Cursor's generic box. `validate_skills.py` requires the logo to be a
+  square PNG of at least 512 px.
 
 ## [0.9.1] - 2026-11-03
 

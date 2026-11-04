@@ -131,12 +131,18 @@ def safe_paths(value, root):
         for child in value:
             safe_paths(child, root)
 
-def validate_cursor(manifest):
+def validate_cursor(manifest, root):
     for error in jsonschema.Draft7Validator(json.loads(CURSOR_SCHEMA.read_text())).iter_errors(manifest):
         raise ValueError(f".cursor-plugin/plugin.json: {error.json_path}: {error.message}")
     # Cursor scans a string as a folder of skills, which would also load meshy-openclaw; a list
     # entry whose folder holds a SKILL.md loads exactly that skill.
     require(manifest.get("skills") == [f"./skills/{name}" for name in CURSOR_SKILLS], ".cursor-plugin/plugin.json: skills must list exactly the generation and printing skills")
+    # The Marketplace tile shows the logo as a square; a PNG keeps its own dark background on light themes.
+    logo = root / manifest.get("logo", "")
+    require(logo.suffix == ".png" and logo.is_file(), ".cursor-plugin/plugin.json: logo must be a PNG in the repository")
+    header = logo.read_bytes()[:24]
+    width, height = int.from_bytes(header[16:20], "big"), int.from_bytes(header[20:24], "big")
+    require(header[:8] == b"\x89PNG\r\n\x1a\n" and width == height >= 512, ".cursor-plugin/plugin.json: logo must be a square PNG of at least 512 px")
 
 def validate_cursor_marketplace(market, manifest, root):
     for error in jsonschema.Draft7Validator(json.loads(CURSOR_MARKETPLACE_SCHEMA.read_text())).iter_errors(market):
@@ -157,7 +163,7 @@ def validate(root):
         require(manifest.get("name"), f"{name}: missing name")
         safe_paths(manifest, root)
     cursor_manifest = json.loads((root / ".cursor-plugin" / "plugin.json").read_text())
-    validate_cursor(cursor_manifest)
+    validate_cursor(cursor_manifest, root)
     validate_cursor_marketplace(json.loads((root / ".cursor-plugin" / "marketplace.json").read_text()), cursor_manifest, root)
     market = json.loads((root / ".claude-plugin" / "marketplace.json").read_text())
     listed = {s for plugin in market["plugins"] for s in plugin.get("skills", [])}

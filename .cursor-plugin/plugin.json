@@ -11,6 +11,7 @@
   "homepage": "https://www.meshy.ai",
   "repository": "https://github.com/meshy-dev/meshy-3d-agent",
   "license": "MIT",
+  "logo": "assets/logo.png",
   "keywords": [
     "meshy",
     "3d-generation",

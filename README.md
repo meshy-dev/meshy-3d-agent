@@ -101,10 +101,8 @@ skills are listed. Clone into that folder rather than symlinking to it: Cursor s
 that points outside `~/.cursor/plugins/local`. On Enterprise plans an admin has to allow local
 plugin imports first.
 
-You need Node.js 22.12+ and a paid Meshy plan (Pro or above): a Free account can sign in, but
-it can't create tasks. Generation spends credits from that account at the
-[published prices](https://docs.meshy.ai/en/api/pricing); the skills quote an estimate and stay
-within the budget you approve before starting a paid task.
+You need Node.js 22.12+ and the paid Meshy plan described at the top of this page. The skills
+quote an estimate in credits and stay within the budget you approve before starting a paid task.
 
 ### OpenClaw and Hermes Agent
 
@@ -160,9 +158,10 @@ MESHY_CLI_BIN=/absolute/path/to/meshy node --test tests/*.test.mjs
 printing so each skill directory installs on its own; `--check` fails when a copy is stale.
 `validate_skills.py` checks frontmatter, link closure, the absence of bundled runtime files, the
 JSON envelope and resolved workspace placeholder on every documented CLI command, and the plugin
-manifests, for all three skills. It also checks the Cursor manifest against a pinned copy of
-Cursor's plugin schema (`scripts/cursor-plugin.schema.json`) and requires it to list exactly the
-generation and printing skills.
+manifests, for all three skills. It also checks the Cursor manifests against Cursor's plugin and
+marketplace schemas, downloaded from a pinned commit of cursor/plugins and checked by hash (set
+`CURSOR_SCHEMA_CACHE` to keep them in a folder of your choice), and requires the plugin manifest
+to list exactly the generation and printing skills.
 
 Tests use a loopback API, synthetic credentials and temporary config/workspace directories.
 `tests/runner-contract.test.mjs` additionally runs the documented `npm exec` entry point, so it

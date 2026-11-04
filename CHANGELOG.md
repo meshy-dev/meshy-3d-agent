@@ -36,6 +36,11 @@
   512 × 512. Its dark background keeps it legible on light and dark themes. Before this, the
   Marketplace tile showed Cursor's generic box. `validate_skills.py` requires the logo to be a
   square PNG of at least 512 px.
+- `category` "design" in the Cursor manifest. Cursor places listings in its Marketplace sections
+  itself; Design is where 3D and media generation plugins appear.
+- README: how to let the Meshy CLI through Cursor's terminal sandbox with a `sandbox.json`
+  network allowlist (`api.meshy.ai`, `www.meshy.ai`, `assets.meshy.ai`). A plugin can't ship
+  that allowlist itself.
 - `minClientVersions.cursor` 3.28.0 in the Cursor manifest, the oldest Cursor the plugin was
   tested on. Grok Bot is left unset until the plugin is tested there.
 - `validate_skills.py` downloads Cursor's plugin and marketplace schemas from cursor/plugins at

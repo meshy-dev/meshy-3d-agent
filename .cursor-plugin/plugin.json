@@ -11,6 +11,7 @@
   "homepage": "https://www.meshy.ai",
   "repository": "https://github.com/meshy-dev/meshy-3d-agent",
   "license": "MIT",
+  "category": "design",
   "logo": "assets/logo.png",
   "minClientVersions": {
     "cursor": "3.28.0"

@@ -104,6 +104,22 @@ plugin imports first.
 You need Node.js 22.12+ and the paid Meshy plan described at the top of this page. The skills
 quote an estimate in credits and stay within the budget you approve before starting a paid task.
 
+Cursor's agent runs terminal commands in a sandbox that blocks most network access, so the first
+sign-in or task asks to run outside it. To let the Meshy CLI through, add Meshy's domains to
+`.cursor/sandbox.json` in your project (or `~/.cursor/sandbox.json` for every project):
+
+```json
+{
+  "networkPolicy": {
+    "allow": ["api.meshy.ai", "www.meshy.ai", "assets.meshy.ai"]
+  }
+}
+```
+
+On the China site, use `api.meshy.cn` and `meshy.cn` instead. A team admin can set the same
+allowlist for everyone in Cursor's dashboard. See
+[Cursor's sandbox reference](https://cursor.com/docs/reference/sandbox).
+
 ### OpenClaw and Hermes Agent
 
 OpenClaw installs one skill per listing, so `meshy-openclaw` carries both workflows and the same

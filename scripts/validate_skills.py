@@ -10,7 +10,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 SKILLS = ("meshy-3d-generation", "meshy-3d-printing", "meshy-openclaw")
-VERSION = "0.9.1"
+VERSION = "0.9.2"
 # The Meshy CLI the skills are written for: any 0.8.x from MIN_CLI. Package specs use the range.
 CLI = "0.8"
 MIN_CLI = "0.8.2"

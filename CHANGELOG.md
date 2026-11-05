@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.9.2] - 2026-11-04
+
+### Added
+
+- Choose the models by project. The pipelines reference carries the Models page's geometry +
+  texture guide (the same six rows as the Meshy CLI's help and the MCP servers), with its link,
+  and says how the CLI reaches each pair: standard mode for `meshy-7.1`,
+  `--model-type smart-topology` for `meshy-t2.5` or `meshy-t2`, `--data` for `meshy-6-lite`, and
+  `--texture-model` for the texture. It lists what each texture model takes and that the CLI
+  refuses the rest before sending.
+- Recipes for the game rows and drafts: a character to rig (`meshy-t2.5` with `meshy-n1`, in an
+  A-pose), many props or user-generated content (`meshy-t2` with `meshy-n1`), and many low-cost
+  drafts (`meshy-6-lite` with `meshy-6-lite`). The hero and multi-image recipes name `meshy-7`,
+  and the route table sends game characters, props and drafts to these recipes.
+- Delivery: the texture model does not change the price at a given resolution; Meshy 6 Lite is
+  priced from the list. Printing: the CLI's default texture is already the color-print pair.
+
 ## [0.9.1] - 2026-11-03
 
 ### Changed

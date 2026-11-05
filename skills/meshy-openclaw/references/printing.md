@@ -151,7 +151,9 @@ not an assumed install. Default to 4 colors/depth 4 unless the request specifies
 supported colors 1–16 and depth 3–6.
 
 The input must carry textures. An unrepaired image-to-3d task made with the CLI's default
-texturing already does: pass it straight to `multi-color-print`. If an unrepaired text-to-3d preview is still the current geometry,
+texturing already does: pass it straight to `multi-color-print`. That default is `meshy-7.1`
+geometry with the `meshy-7` texture, the pair for printing in color
+(<https://docs.meshy.ai/en/api/models>), so it needs no `--texture-model`. If an unrepaired text-to-3d preview is still the current geometry,
 texture it using its own preview ID:
 
 ```bash

@@ -15,6 +15,10 @@ npm --version
 If Node.js is missing or older, stop and ask the user to install a current Node.js LTS from
 <https://nodejs.org>. Do not try to install it yourself.
 
+A **paid Meshy plan (Pro or above)** is required to create anything. A Free account can sign in,
+but every task it creates is refused with HTTP 402 `plan_upgrade_required` (CLI exit 9). Tell
+the user this before Step 3, so they know before they sign in.
+
 ## Step 1: Install the CLI
 
 ```bash
@@ -99,6 +103,8 @@ meshy balance --format json --no-update-check
 ```
 
 Tell the user the setup is done and how many credits they have. Nothing has been spent. If your
-agent loads skills only at startup, ask the user to start a new session. Then suggest a first
-request, for example: *"Make a 3D model of a lovely baby husky"* or *"Help me 3D print a small
-dragon figurine"*.
+agent loads skills only at startup, ask the user to start a new session. Tell every user that
+creating tasks needs a Pro plan or above (plans and prices: <https://www.meshy.ai/pricing>):
+neither command above shows the plan, so a Free account looks the same here. Don't suggest an
+upgrade. Then suggest a first request, for example: *"Make a 3D model of a lovely baby husky"* or
+*"Help me 3D print a small dragon figurine"*.

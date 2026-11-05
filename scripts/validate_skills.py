@@ -1,16 +1,31 @@
 #!/usr/bin/env python3
 """Validate the three independently installable CLI skills and the plugin manifests that list them."""
 import argparse
+import hashlib
 import json
+import os
+import jsonschema
 from pathlib import Path
 import re
 import shlex
 import sys
+import tempfile
+import urllib.request
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 SKILLS = ("meshy-3d-generation", "meshy-3d-printing", "meshy-openclaw")
-VERSION = "0.9.2"
+# meshy-openclaw repeats both of these in one skill for OpenClaw, so the Cursor plugin lists only these.
+CURSOR_SKILLS = ("meshy-3d-generation", "meshy-3d-printing")
+# Cursor's schemas, fetched at a pinned commit and checked by hash. cursor/plugins has no license,
+# and the repository root is the plugin package, so no copy is kept here.
+CURSOR_SCHEMA_URL = "https://raw.githubusercontent.com/cursor/plugins/5229aad76c37451561c5b81a9b5072ae1c549a5b/schemas/{}.schema.json"
+CURSOR_SCHEMAS = {
+    "plugin": "31db124b1c7e43c22abb13ebf7e7c74556482e480fd492b80638d815c85b96b1",
+    "marketplace": "50c85058bf329588401fd2fc93180a574fa64abbb6c2606400febfb6f4d094e8",
+}
+PATH_KEYS = ("composerIcon", "logo", "skills", "icon_small", "icon_large")
+VERSION = "0.9.3"
 # The Meshy CLI the skills are written for: any 0.8.x from MIN_CLI. Package specs use the range.
 CLI = "0.8"
 MIN_CLI = "0.8.2"
@@ -105,17 +120,60 @@ def validate_skill(folder):
     for needle in ("thumbnail.primary", "docs.meshy.ai/en/api/pricing", "--dry-run", "_meta.json"):
         require(needle in delivery, f"{folder}: delivery.md does not document {needle!r}")
 
+def safe_path(child, root):
+    path = (root / child).resolve()
+    require(path.is_relative_to(root.resolve()) and path.exists(), f"Missing/escaping package path: {child}")
+
 def safe_paths(value, root):
     if isinstance(value, dict):
         for key, child in value.items():
-            if isinstance(child, str) and (key in ("composerIcon", "logo", "skills", "icon_small", "icon_large") or child.startswith("./assets/")):
-                path = (root / child).resolve()
-                require(path.is_relative_to(root.resolve()) and path.exists(), f"Missing/escaping package path: {child}")
+            if isinstance(child, str) and (key in PATH_KEYS or child.startswith("./assets/")):
+                safe_path(child, root)
+            elif key in PATH_KEYS and isinstance(child, list):
+                for item in child:
+                    safe_path(item, root)
             else:
                 safe_paths(child, root)
     elif isinstance(value, list):
         for child in value:
             safe_paths(child, root)
+
+def cursor_schema(name):
+    """Cursor's schema `name`, from the cache outside the repository or downloaded once."""
+    cache = Path(os.environ.get("CURSOR_SCHEMA_CACHE", Path(tempfile.gettempdir()) / "meshy-3d-agent-cursor-schemas"))
+    path = cache / f"{name}.schema.json"
+    if not path.is_file():
+        with urllib.request.urlopen(CURSOR_SCHEMA_URL.format(name), timeout=30) as response:
+            data = response.read()
+        cache.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+    data = path.read_bytes()
+    require(hashlib.sha256(data).hexdigest() == CURSOR_SCHEMAS[name], f"Cursor {name} schema does not match the pinned commit: {path}")
+    return json.loads(data)
+
+def validate_cursor(manifest, root):
+    for error in jsonschema.Draft7Validator(cursor_schema("plugin")).iter_errors(manifest):
+        raise ValueError(f".cursor-plugin/plugin.json: {error.json_path}: {error.message}")
+    # Cursor scans a string as a folder of skills, which would also load meshy-openclaw; a list
+    # entry whose folder holds a SKILL.md loads exactly that skill.
+    require(manifest.get("skills") == [f"./skills/{name}" for name in CURSOR_SKILLS], ".cursor-plugin/plugin.json: skills must list exactly the generation and printing skills")
+    # The Marketplace tile shows the logo as a square; a PNG keeps its own dark background on light themes.
+    logo = root / manifest.get("logo", "")
+    require(logo.suffix == ".png" and logo.is_file(), ".cursor-plugin/plugin.json: logo must be a PNG in the repository")
+    header = logo.read_bytes()[:24]
+    width, height = int.from_bytes(header[16:20], "big"), int.from_bytes(header[20:24], "big")
+    require(header[:8] == b"\x89PNG\r\n\x1a\n" and width == height >= 512, ".cursor-plugin/plugin.json: logo must be a square PNG of at least 512 px")
+
+def validate_cursor_marketplace(market, manifest, root):
+    for error in jsonschema.Draft7Validator(cursor_schema("marketplace")).iter_errors(market):
+        raise ValueError(f".cursor-plugin/marketplace.json: {error.json_path}: {error.message}")
+    # Without this file, Cursor's "Add to Marketplace" read .claude-plugin/marketplace.json and
+    # listed the root plugin once per Claude Code entry: three plugins named meshy-3d-agent.
+    entries = market["plugins"]
+    require(len(entries) == 1, ".cursor-plugin/marketplace.json: list exactly one plugin, the one at the repository root")
+    require(entries[0]["name"] == manifest["name"], ".cursor-plugin/marketplace.json: the entry's name must match .cursor-plugin/plugin.json")
+    require((root / entries[0]["source"]).resolve() == root.resolve(), ".cursor-plugin/marketplace.json: the entry's source must be the repository root")
+    require(entries[0].get("description") == manifest["description"], ".cursor-plugin/marketplace.json: the entry's description must match .cursor-plugin/plugin.json")
 
 def validate(root):
     for name in SKILLS:
@@ -125,6 +183,9 @@ def validate(root):
         require(manifest.get("version") == VERSION, f"{name}: version mismatch")
         require(manifest.get("name"), f"{name}: missing name")
         safe_paths(manifest, root)
+    cursor_manifest = json.loads((root / ".cursor-plugin" / "plugin.json").read_text())
+    validate_cursor(cursor_manifest, root)
+    validate_cursor_marketplace(json.loads((root / ".cursor-plugin" / "marketplace.json").read_text()), cursor_manifest, root)
     market = json.loads((root / ".claude-plugin" / "marketplace.json").read_text())
     listed = {s for plugin in market["plugins"] for s in plugin.get("skills", [])}
     require(all(f"./skills/{name}" in listed for name in SKILLS), "Marketplace does not expose every CLI skill")

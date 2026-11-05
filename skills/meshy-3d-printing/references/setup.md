@@ -160,6 +160,13 @@ Failure branches — each is a different recovery, so read the error rather than
 - **`device_flow_not_supported`**: this API host has no device endpoint. Ask the user to run
   `meshy auth login` in their own desktop terminal (loopback + browser), or to store their own
   key with `meshy auth login --with-key <key>` privately. Never ask for the key in chat.
+- **Network blocked by a sandbox** (the login fails within a second with `error.details.code:
+  "oauth_network"` and a `fetch failed` message, before any URL or code appears): the shell
+  cannot reach Meshy, so no login can finish there. Run the *same* command again with network
+  access or outside the sandbox, asking the user to allow it if the host requires approval. Do
+  not follow the error's `--with-key` hint, probe the network with `curl`, or go looking for a
+  credential to reuse: an older `credentials.json` is the CLI's to move over, never yours to
+  read, copy or edit (section 5).
 - **Host cannot keep a process alive at all**: use the two-step sign-in below.
 
 ### Remote chat: sign in across two turns
@@ -235,7 +242,9 @@ login over on its first write, and an older CLI then signs in once on its own.
 
 `MESHY_CONFIG_DIR` changes the config directory; `MESHY_CREDENTIALS_PATH` overrides the
 credential file. Non-production API hosts use `credentials.v2.dev.json` by default. Keep these
-settings consistent; do not copy tokens between plugins or read the credential file.
+settings consistent. Only the CLI touches the config directory: never read, copy, move, edit or
+delete a credential file there (the older `credentials.json` included, even to inspect its
+fields), and do not copy tokens between plugins.
 `auth list` reports profile kinds with masked credentials. `auth use <name>` changes the shared
 active profile, so do not switch it independently in concurrent workflows.
 

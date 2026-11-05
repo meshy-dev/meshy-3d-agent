@@ -23,6 +23,12 @@
   has its own recovery in Setup: run the same command again with network access or outside the
   sandbox. The agent no longer follows the error's `--with-key` hint, probes with `curl`, or
   looks for another credential. In the Cursor test, the agent's sandbox blocked the network.
+- Exit 9 with `error.details.body.code` `plan_upgrade_required` (HTTP 402) is read as a plan
+  refusal, not an empty balance, even when the CLI's hint says out of credits and suggests a
+  top-up: credits don't lift it. When the refused task used a model that needs Pro or above
+  (`nano-banana-pro`, or `--pose-mode` on an older nano-banana model), the agent retries once on
+  `gpt-image-2-5-flare`. Otherwise it tells the user that creating tasks needs Pro or above, links
+  plans and prices, and doesn't suggest a top-up or an upgrade.
 
 ### Added
 

@@ -12,7 +12,7 @@
   "repository": "https://github.com/meshy-dev/meshy-3d-agent",
   "license": "MIT",
   "category": "design",
-  "logo": "assets/logo.png",
+  "logo": "https://raw.githubusercontent.com/meshy-dev/meshy-3d-agent/main/assets/logo.png",
   "minClientVersions": {
     "cursor": "3.28.0"
   },

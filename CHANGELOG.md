@@ -34,8 +34,9 @@
   is the repository root.
 - A Cursor logo, `assets/logo.png`: the Meshy app icon from Meshy's brand assets, scaled to
   512 × 512. Its dark background keeps it legible on light and dark themes. Before this, the
-  Marketplace tile showed Cursor's generic box. `validate_skills.py` requires the logo to be a
-  square PNG of at least 512 px.
+  Marketplace tile showed Cursor's generic box. The manifest gives it as an absolute URL to the
+  file on `main`: a team marketplace imported from GitHub still showed the generic box for the
+  relative path. `validate_skills.py` requires that URL and a square PNG of at least 512 px.
 - `category` "design" in the Cursor manifest. Cursor places listings in its Marketplace sections
   itself; Design is where 3D and media generation plugins appear.
 - README: how to let the Meshy CLI through Cursor's terminal sandbox with a `sandbox.json`

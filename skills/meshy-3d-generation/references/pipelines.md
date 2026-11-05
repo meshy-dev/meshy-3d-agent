@@ -155,7 +155,10 @@ new download and check. An unknown count is not a pass, and not a reason for a s
 Text-to-image makes a design or reference image. Image-to-image edits an existing reference; keep
 the edit prompt specific. These may be final deliverables, or approved pre-steps to 3D — offer
 them, never insert them silently into a 3D request. Use `gpt-image-2-5-flare` unless the user names
-another model from `create --help`.
+another model from `create --help`. `nano-banana-pro`, and `--pose-mode` on the older nano-banana
+models, need a Pro plan or above. On a lower plan the create fails with exit 9 and
+`plan_upgrade_required` even with credits left: retry once on `gpt-image-2-5-flare` rather than
+reporting a plan or balance problem.
 
 ```bash
 meshy text-to-image create --ai-model gpt-image-2-5-flare --prompt "DESIGN_DESCRIPTION" --aspect-ratio 1:1 --async --format json --no-update-check

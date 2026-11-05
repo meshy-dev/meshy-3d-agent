@@ -45,6 +45,13 @@ A background process cannot resume a finished turn; do not require a "done" chat
 Setup's two-step sign-in for a user on a remote chat (a phone through a chat bot).
 Browser approval stays with the user; credentials never belong in chat.
 
+Only the CLI touches its config directory (`~/.config/meshy` by default): never read, copy,
+edit or delete a file there (an old `credentials.json` included), and never look for credentials
+anywhere else. When a sandboxed shell blocks the network (`auth login` fails with `oauth_network`
+or `fetch failed`), run the same command again with network access or outside the sandbox, asking
+the user to allow it if the host requires. Do not probe with `curl` or switch to `--with-key`
+(Setup, section 3).
+
 ## Execution boundaries
 
 - Run API, upload, download and mesh operations through the CLI. Local inputs have a 50 MiB

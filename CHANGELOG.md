@@ -1,5 +1,52 @@
 # Changelog
 
+## [0.9.2] - 2026-11-04
+
+### Changed
+
+- The plugin descriptions, README and INSTALL say up front that creating tasks needs a paid
+  Meshy plan (Pro or above) and spends credits, with a link to plans and prices and no upgrade
+  prompt. A Free account can sign in, but its first task is refused (HTTP 402
+  `plan_upgrade_required`, CLI exit 9). The README also says setup installs the Meshy CLI from
+  npm as a separate tool under its own license.
+- The Cursor manifest lists only `meshy-3d-generation` and `meshy-3d-printing`, so
+  `meshy-openclaw`, which repeats both, no longer loads beside them in Cursor. It adds the
+  display name "Meshy", the publisher, a support email and tags. The README covers installing
+  it as a Cursor plugin, plus terms, privacy and support.
+- All three skills now say up front that only the CLI touches its config directory
+  (`~/.config/meshy` by default): an agent never reads, copies, edits or deletes a credential file
+  there, an older `credentials.json` included.
+  Found in a Cursor test, where an agent whose sign-in had failed read the old store's token
+  fields and wrote a copy of it to `credentials.v2.json`. The rule was in Setup, section 5,
+  past the part the agent read.
+- A sign-in that fails because a sandbox blocks the network (`oauth_network`, `fetch failed`)
+  has its own recovery in Setup: run the same command again with network access or outside the
+  sandbox. The agent no longer follows the error's `--with-key` hint, probes with `curl`, or
+  looks for another credential. In the Cursor test, the agent's sandbox blocked the network.
+
+### Added
+
+- `.cursor-plugin/marketplace.json`, listing the one Cursor plugin at the repository root. Without
+  it, adding the repository to a Cursor team marketplace by link read
+  `.claude-plugin/marketplace.json` and offered the plugin three times, once per Claude Code entry,
+  all named `meshy-3d-agent`. `validate_skills.py` checks the file against Cursor's
+  marketplace schema. It also requires a single entry whose name matches `.cursor-plugin/plugin.json` and whose source
+  is the repository root.
+- A Cursor logo, `assets/logo.png`: the Meshy app icon from Meshy's brand assets, scaled to
+  512 × 512. Its dark background keeps it legible on light and dark themes. Before this, the
+  Marketplace tile showed Cursor's generic box. `validate_skills.py` requires the logo to be a
+  square PNG of at least 512 px.
+- `category` "design" in the Cursor manifest. Cursor places listings in its Marketplace sections
+  itself; Design is where 3D and media generation plugins appear.
+- README: how to let the Meshy CLI through Cursor's terminal sandbox with a `sandbox.json`
+  network allowlist (`api.meshy.ai`, `www.meshy.ai`, `assets.meshy.ai`). A plugin can't ship
+  that allowlist itself.
+- `minClientVersions.cursor` 3.28.0 in the Cursor manifest, the oldest Cursor the plugin was
+  tested on. Grok Bot is left unset until the plugin is tested there.
+- `validate_skills.py` downloads Cursor's plugin and marketplace schemas from cursor/plugins at
+  a pinned commit (5229aad) and checks their SHA-256, instead of keeping copies in `scripts/`.
+  cursor/plugins has no license, and everything in this repository ships in the plugin package.
+
 ## [0.9.1] - 2026-11-03
 
 ### Changed

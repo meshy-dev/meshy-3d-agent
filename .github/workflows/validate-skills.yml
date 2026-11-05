@@ -23,8 +23,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install pyyaml
-        run: pip install pyyaml
+      - name: Install validator dependencies
+        run: pip install pyyaml jsonschema
 
       - uses: actions/setup-node@v4
         with:

@@ -2,7 +2,7 @@
 
 Meshy skills for creating digital assets and preparing 3D prints. All three skills drive
 **Meshy CLI 0.8** (0.8.2 or later, `meshy`) on **Node.js 22.12+**. They are instructions and references only —
-no bundled runtime scripts. Current release: **0.9.1**.
+no bundled runtime scripts. Current release: **0.9.2**.
 
 **Requires a paid Meshy plan (Pro or above),** and generation spends Meshy credits. Sign in with
 your Meshy account; no API key needed. A Free account can sign in, but creating tasks is refused
@@ -78,13 +78,47 @@ the task's own `consumed_credits`. No live spending happens during install.
 Install these directories with your host's skills installer, or copy each **whole directory**:
 
 - Claude Code: `.claude/skills/` (the repository also retains its Claude plugin manifest).
-- Cursor: `.cursor/skills/` (Cursor plugin manifest retained).
+- Cursor: `.cursor/skills/`, or the whole repository as a plugin (see [Cursor plugin](#cursor-plugin)).
 - Codex: `.agents/skills/`.
 
 Replace a prior managed skill directory rather than merging files, so old `scripts/` files are
 removed. Back up personal edits before replacement. Do not remove model projects or CLI state.
 Host discovery and browser interaction require a real host smoke test; local contract tests
 alone do not certify a host or operating system.
+
+### Cursor plugin
+
+The repository is also a Cursor plugin. [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json)
+loads `meshy-3d-generation` and `meshy-3d-printing`, and leaves out `meshy-openclaw`, which repeats
+both. To load it from a clone instead of the marketplace:
+
+```bash
+git clone https://github.com/meshy-dev/meshy-3d-agent.git ~/.cursor/plugins/local/meshy-3d-agent
+```
+
+Restart Cursor or run **Developer: Reload Window**, then check under **Customize** that both
+skills are listed. Clone into that folder rather than symlinking to it: Cursor skips a symlink
+that points outside `~/.cursor/plugins/local`. On Enterprise plans an admin has to allow local
+plugin imports first.
+
+You need Node.js 22.12+ and the paid Meshy plan described at the top of this page. The skills
+quote an estimate in credits and stay within the budget you approve before starting a paid task.
+
+Cursor's agent runs terminal commands in a sandbox that blocks most network access, so the first
+sign-in or task asks to run outside it. To let the Meshy CLI through, add Meshy's domains to
+`.cursor/sandbox.json` in your project (or `~/.cursor/sandbox.json` for every project):
+
+```json
+{
+  "networkPolicy": {
+    "allow": ["api.meshy.ai", "www.meshy.ai", "assets.meshy.ai"]
+  }
+}
+```
+
+On the China site, use `api.meshy.cn` and `meshy.cn` instead. A team admin can set the same
+allowlist for everyone in Cursor's dashboard. See
+[Cursor's sandbox reference](https://cursor.com/docs/reference/sandbox).
 
 ### OpenClaw and Hermes Agent
 
@@ -126,7 +160,8 @@ installed application; a launch request is not proof the model was imported.
 
 ## Development and validation
 
-Only maintainers need Python 3.11+ and PyYAML. None of these tools ships in the CLI skill folders.
+Only maintainers need Python 3.11+, PyYAML and jsonschema. None of these tools ships in the CLI
+skill folders.
 
 ```bash
 python3 scripts/build.py
@@ -139,7 +174,10 @@ MESHY_CLI_BIN=/absolute/path/to/meshy node --test tests/*.test.mjs
 printing so each skill directory installs on its own; `--check` fails when a copy is stale.
 `validate_skills.py` checks frontmatter, link closure, the absence of bundled runtime files, the
 JSON envelope and resolved workspace placeholder on every documented CLI command, and the plugin
-manifests, for all three skills.
+manifests, for all three skills. It also checks the Cursor manifests against Cursor's plugin and
+marketplace schemas, downloaded from a pinned commit of cursor/plugins and checked by hash (set
+`CURSOR_SCHEMA_CACHE` to keep them in a folder of your choice), and requires the plugin manifest
+to list exactly the generation and printing skills.
 
 Tests use a loopback API, synthetic credentials and temporary config/workspace directories.
 `tests/runner-contract.test.mjs` additionally runs the documented `npm exec` entry point, so it
@@ -156,6 +194,15 @@ are gone), so a `metadata.json` or `history.json` left by an older version is no
 task IDs from it by hand. Returning to an old Python skill requires its old runtime and API-key
 setup; it cannot use the CLI OAuth store. Keep the CLI for inspecting in-flight tasks rather than
 submitting again.
+
+## Terms, privacy and support
+
+Using Meshy through these skills is covered by Meshy's
+[Terms of Use](https://www.meshy.ai/terms-of-use) and
+[Privacy Policy](https://www.meshy.ai/privacy-policy).
+[Data and local effects](#data-and-local-effects) lists what the CLI sends and writes. For account
+or billing help, email support@meshy.ai. Report problems with the skills in
+[GitHub issues](https://github.com/meshy-dev/meshy-3d-agent/issues).
 
 ## License
 

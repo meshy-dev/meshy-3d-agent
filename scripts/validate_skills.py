@@ -34,6 +34,10 @@ LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 RUNNER = ["npm", "exec", "--yes", f"--package=meshy-cli@{MIN_CLI}", "--"]
 # Written paths are placeholders resolved from the user's request, never a hardcoded directory.
 WORKSPACE_FLAGS = ("--workspace", "WORKSPACE")
+# A team marketplace imported from GitHub showed Cursor's generic box for the relative path, so the
+# manifest gives the logo as an absolute URL to the file on main.
+LOGO_FILE = "assets/logo.png"
+LOGO_URL = f"https://raw.githubusercontent.com/meshy-dev/meshy-3d-agent/main/{LOGO_FILE}"
 
 def require(condition, message):
     if not condition:
@@ -127,7 +131,9 @@ def safe_path(child, root):
 def safe_paths(value, root):
     if isinstance(value, dict):
         for key, child in value.items():
-            if isinstance(child, str) and (key in PATH_KEYS or child.startswith("./assets/")):
+            if key == "logo" and child == LOGO_URL:
+                safe_path(LOGO_FILE, root)
+            elif isinstance(child, str) and (key in PATH_KEYS or child.startswith("./assets/")):
                 safe_path(child, root)
             elif key in PATH_KEYS and isinstance(child, list):
                 for item in child:
@@ -158,8 +164,9 @@ def validate_cursor(manifest, root):
     # entry whose folder holds a SKILL.md loads exactly that skill.
     require(manifest.get("skills") == [f"./skills/{name}" for name in CURSOR_SKILLS], ".cursor-plugin/plugin.json: skills must list exactly the generation and printing skills")
     # The Marketplace tile shows the logo as a square; a PNG keeps its own dark background on light themes.
-    logo = root / manifest.get("logo", "")
-    require(logo.suffix == ".png" and logo.is_file(), ".cursor-plugin/plugin.json: logo must be a PNG in the repository")
+    require(manifest.get("logo") == LOGO_URL, f".cursor-plugin/plugin.json: logo must be {LOGO_URL}")
+    logo = root / LOGO_FILE
+    require(logo.is_file(), f"{LOGO_FILE} is missing")
     header = logo.read_bytes()[:24]
     width, height = int.from_bytes(header[16:20], "big"), int.from_bytes(header[20:24], "big")
     require(header[:8] == b"\x89PNG\r\n\x1a\n" and width == height >= 512, ".cursor-plugin/plugin.json: logo must be a square PNG of at least 512 px")

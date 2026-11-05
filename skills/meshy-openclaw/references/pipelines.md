@@ -1,9 +1,10 @@
 # Digital asset pipelines — CLI 0.8
 
-Contents: route choice; shared lifecycle; text/image models; texture/topology/size; 2D images;
-downloads and recovery. Rigging, animation and generated motion are in [animation](animation.md);
-cost, previews, hand-over and follow-up requests in [delivery](delivery.md); the runner, login and
-the meaning of `WORKSPACE`/`JOB_DIR` in [setup](setup.md).
+Contents: route choice; models by project; shared lifecycle; text/image models;
+texture/topology/size; 2D images; downloads and recovery. Rigging, animation and generated
+motion are in [animation](animation.md); cost, previews, hand-over and follow-up requests in
+[delivery](delivery.md); the runner, login and the meaning of `WORKSPACE`/`JOB_DIR` in
+[setup](setup.md).
 
 Commands are templates: replace uppercase placeholders with values from the user's inputs or
 the preceding JSON, quoting paths and text as individual shell arguments. Each command is a
@@ -16,10 +17,13 @@ text.
 | What the user wants | Route | Notes |
 |---|---|---|
 | A model to look at / a digital prop | text-to-3d preview, then refine when texture is wanted | GLB unless they name a format |
-| A model of a specific object in a photo | image-to-3d, textured by default (`--should-texture false` for a draft) | one clean reference, whole subject visible |
+| A model of a specific object in a photo | image-to-3d, textured by default (`--should-texture false` for a draft) | one clean reference, whole subject visible; pick the models by project (below) |
 | A model from multi-view images of one object (front, side, back) | multi-image-to-3d | every view shows the same object; front first |
+| A game character to rig and animate, from an image | image-to-3d with smart topology (`meshy-t2.5`) and `--texture-model meshy-n1` in A/T pose, then rigging | set `--target-polycount`; see [animation](animation.md) |
+| Many props for a game scene, or user-generated content, from images | image-to-3d with smart topology `--ai-model meshy-t2` and `--texture-model meshy-n1` | one task per prop |
+| Many drafts at a low cost | image-to-3d with `meshy-6-lite` geometry and texture | recipe under *Single image* below |
 | A new look for a model that exists | retexture that task or file | text style, style image, or photos of the real object |
-| A low-poly / game-ready asset on a budget | image-to-3d or text-to-3d preview with `--model-type smart-topology --target-polycount N`, or remesh after a standard model | ranges under *Single image* below; mobile/web budgets sit at the low end |
+| A low-poly / game-ready asset on a budget | image-to-3d as in the game rows above, or text-to-3d preview with `--model-type smart-topology --target-polycount N`, or remesh after a standard model | ranges under *Single image* below; mobile/web budgets sit at the low end |
 | An LOD chain from a model that exists | remesh the **existing** task, once per level | never regenerate for a second LOD |
 | A character that must move, or new actions for a rig | textured humanoid in A/T pose → rigging → bundled walk/run, a library action, or a generated motion | see [animation](animation.md) |
 | A motion clip without a character | text-to-motion | see [animation](animation.md) |
@@ -30,6 +34,40 @@ text.
 
 Prefer the shortest chain that satisfies the request. An untextured mesh does not need refine;
 a GLB does not need a convert step; a plain preview does not need a 2D concept first.
+
+## Choose the models by project
+
+Image-to-3d and multi-image-to-3d make a model with two AI models: a geometry model builds the
+mesh and a texture model paints it. Choose models by project (geometry `ai_model` + `texture_model`):
+
+| Project | Geometry | Texture |
+|---|---|---|
+| Detailed hero asset, product render, cinematic prop | `meshy-7.1` | `meshy-7` (PBR, up to 8K) |
+| Game character to rig and animate | `meshy-t2.5` (smart topology, set `target_polycount`) | `meshy-n1` |
+| Many props for a game scene, or user-generated content | `meshy-t2` (smart topology) | `meshy-n1` |
+| A real object from 2 to 4 photos | `meshy-7.1` on Multi-Image to 3D | `meshy-7` |
+| A model to 3D print | `meshy-7.1` | none, or `meshy-7` to print in color |
+| Many drafts at a low cost | `meshy-6-lite` | `meshy-6-lite` |
+
+More: <https://docs.meshy.ai/en/api/models>
+
+How the CLI sets each one:
+
+- **Geometry.** `meshy-7.1` is standard mode, the default, so it needs no flag. Smart topology is
+  `--model-type smart-topology`, on `meshy-t2.5` unless you add `--ai-model meshy-t2`.
+  `meshy-6-lite` has no flag: send it as `--data '{"ai_model":"meshy-6-lite"}'`.
+- **Texture.** `--texture-model meshy-7`, `meshy-n1` or `meshy-6-lite`; multi-image-to-3d takes
+  `meshy-7` or `meshy-n1` only. Left out, the API uses the geometry's own default: Meshy 7 for
+  `meshy-7.1`, `meshy-t2.5` and `meshy-t2`, Meshy 6 Lite for `meshy-6-lite`. At a given texture
+  resolution the texture model does not change the price. An untextured run
+  (`--should-texture false`) has no texture model, and the CLI refuses the flag with it.
+- **What each texture model takes.** Meshy 7: PBR maps, a 2k, 4k or 8k base color, a texture
+  prompt. Meshy N1: a 2k base color painted from the reference images alone, so no
+  `--enable-pbr true`, no 4k or 8k, no `--texture-prompt` and no `--remove-lighting`; a model
+  over 7,999,999 triangles fails with it and is refunded, so do not pair it with
+  `--geometry-resolution 4k`. Meshy 6 Lite: 2k only, PBR allowed, no `--remove-lighting`. The CLI's
+  texture defaults follow the texture model, and it refuses a setting that model does not take
+  (exit 2) before anything is sent, so drop that flag rather than retrying.
 
 ## Shared lifecycle
 
@@ -70,33 +108,46 @@ Without `--texture-resolution` refine uses the server's 2k; 4k and 8k need a mes
 for one.
 
 **Single image:** use a clean reference with the whole subject visible. The CLI textures by
-default, as the API does, and also asks for full PBR maps and a 4k base colour; texturing is
-billed, so say which you want:
-`--should-texture false` gives the untextured draft. Texture settings (`--enable-pbr`,
-`--texture-resolution`, `--texture-prompt`) are refused together with `--should-texture false`.
+default, as the API does, and with Meshy 7 also asks for full PBR maps and a 4k base colour;
+texturing is billed, so say which you want:
+`--should-texture false` gives the untextured draft. Texture settings (`--texture-model`,
+`--enable-pbr`, `--texture-resolution`, `--texture-prompt`) are refused together with
+`--should-texture false`. The detailed hero asset (`meshy-7.1` with `meshy-7`):
 
 ```bash
-meshy image-to-3d create --image-url "PHOTO_PATH" --model-type standard --should-texture true --enable-pbr true --texture-resolution 4k --target-formats glb --async --format json --no-update-check
+meshy image-to-3d create --image-url "PHOTO_PATH" --model-type standard --should-texture true --texture-model meshy-7 --enable-pbr true --texture-resolution 4k --target-formats glb --async --format json --no-update-check
 ```
 
-For a draft use `--should-texture false` and omit `--enable-pbr`/`--texture-resolution`. For
-controllable low-poly output use smart topology: its default model, meshy-t2.5, takes 100–30,000
+For a draft use `--should-texture false` and omit `--texture-model`, `--enable-pbr` and
+`--texture-resolution`. For controllable low-poly output use smart topology: its default model, meshy-t2.5, takes 100–30,000
 target triangles (default 15,000); `--ai-model meshy-t2`
 takes 100–15,000 (default 10,000). Standard mode needs a later remesh for polygon control.
 `--geometry-resolution 2k|4k` adds a paid high-detail geometry pass to standard mode on the
 default model (meshy-7.1) only; never
-combine it with smart topology.
+combine it with smart topology. A game character to rig (`meshy-t2.5` with `meshy-n1`), then
+many props or user-generated content (`meshy-t2` with `meshy-n1`):
 
 ```bash
-meshy image-to-3d create --image-url "PHOTO_PATH" --model-type smart-topology --target-polycount 10000 --should-texture false --target-formats glb --async --format json --no-update-check
+meshy image-to-3d create --image-url "PHOTO_PATH" --model-type smart-topology --target-polycount 10000 --texture-model meshy-n1 --pose-mode a-pose --target-formats glb --async --format json --no-update-check
+meshy image-to-3d create --image-url "PHOTO_PATH" --model-type smart-topology --ai-model meshy-t2 --texture-model meshy-n1 --target-formats glb --async --format json --no-update-check
+```
+
+Add `--should-texture false` and drop `--texture-model` for an untextured low-poly mesh. Many
+drafts at a low cost (`meshy-6-lite` with `meshy-6-lite`): it remeshes to 30,000 faces by default
+and textures at 2k, and the API refuses `--image-enhancement` and `--geometry-resolution` with it.
+
+```bash
+meshy image-to-3d create --image-url "PHOTO_PATH" --data '{"ai_model":"meshy-6-lite"}' --texture-model meshy-6-lite --target-formats glb --async --format json --no-update-check
 ```
 
 **Multiple views:** supply consistent views of the same object; it is textured by default like a
 single image. Use `--data` with an `image_urls` JSON array for paths containing commas.
-`--geometry-resolution 2k` is the paid high-detail pass here (no 4k).
+`--geometry-resolution 2k` is the paid high-detail pass here (no 4k). A real object from 2 to 4
+photos is `meshy-7.1` with `meshy-7`; `--texture-model meshy-n1` also paints from every view, and
+`meshy-6-lite` is not offered here.
 
 ```bash
-meshy multi-image-to-3d create --image-urls "FRONT_PATH,SIDE_PATH,BACK_PATH" --should-texture true --enable-pbr true --texture-resolution 4k --target-formats glb --async --format json --no-update-check
+meshy multi-image-to-3d create --image-urls "FRONT_PATH,SIDE_PATH,BACK_PATH" --should-texture true --texture-model meshy-7 --enable-pbr true --texture-resolution 4k --target-formats glb --async --format json --no-update-check
 ```
 
 A completed text-to-image or image-to-image task can supply the reference without downloading

@@ -145,7 +145,8 @@ const routes = {
 test('every documented generation create submits once with the intended payload and owning resource', { skip }, async t => {
   const f = await fixture(t, (req, res, count) => json(res, req.method === 'POST' ? 200 : 500, { result: `accepted-${count}` }));
   const creates = commands.filter(line => /^meshy \S+ create /.test(line));
-  assert.equal(creates.length, 18, 'review workflow coverage when adding/removing a recipe');
+  assert.equal(creates.length, 20, 'review workflow coverage when adding/removing a recipe');
+  const pairs = new Set(); // geometry + texture model of each image recipe, checked against the guide below
   for (const line of creates) {
     const args = argv(line, f.replacements);
     const count = f.requests.length;
@@ -169,11 +170,31 @@ test('every documented generation create submits once with the intended payload 
         if (p.input_task_id) { assert.equal(p.input_task_id, 'IMAGE_TASK_ID'); assert.equal(p.should_texture, false); }
         else {
           assert.equal(p.image_url, f.imageUri);
-          if (p.model_type === 'smart-topology') { assert.equal(p.target_polycount, 10000); assert.equal(p.ai_model, 'meshy-t2.5', 'smart topology defaults to meshy-t2.5'); assert.equal(p.should_texture, false); assert.equal(p.enable_pbr, undefined); }
-          else { assert.equal(p.model_type, 'standard'); assert.equal(p.should_texture, true); assert.equal(p.enable_pbr, true); assert.equal(p.texture_resolution, '4k'); }
+          if (p.model_type === 'smart-topology') {
+            // The game rows: Smart Topology painted by Meshy N1, a 2k base color with no PBR maps.
+            assert.equal(p.texture_model, 'meshy-n1', line);
+            assert.notEqual(p.enable_pbr, true, 'Meshy N1 makes no PBR maps');
+            assert.ok([undefined, '2k'].includes(p.texture_resolution), 'Meshy N1 makes 2k only');
+            assert.equal(p.target_polycount, 10000);
+            if (p.ai_model === 'meshy-t2.5') assert.equal(p.pose_mode, 'a-pose', 'the character to rig is posed');
+            else assert.equal(p.ai_model, 'meshy-t2', line);
+            pairs.add(`image-to-3d ${p.ai_model} ${p.texture_model}`);
+          } else if (p.ai_model === 'meshy-6-lite') {
+            assert.equal(p.texture_model, 'meshy-6-lite');
+            assert.ok([undefined, '2k'].includes(p.texture_resolution), 'Meshy 6 Lite makes 2k only');
+            pairs.add(`image-to-3d ${p.ai_model} ${p.texture_model}`);
+          } else {
+            assert.equal(p.model_type, 'standard'); assert.equal(p.ai_model, undefined, 'standard runs the default meshy-7.1');
+            assert.equal(p.texture_model, 'meshy-7'); assert.equal(p.should_texture, true); assert.equal(p.enable_pbr, true); assert.equal(p.texture_resolution, '4k');
+            pairs.add(`image-to-3d meshy-7.1 ${p.texture_model}`);
+          }
         }
         break;
-      case 'multi-image-to-3d': assert.deepEqual(p.image_urls, [f.imageUri, f.imageUri, f.imageUri]); assert.equal(p.should_texture, true); break;
+      case 'multi-image-to-3d':
+        assert.deepEqual(p.image_urls, [f.imageUri, f.imageUri, f.imageUri]); assert.equal(p.should_texture, true);
+        assert.equal(p.ai_model, undefined, 'the default meshy-7.1'); assert.equal(p.texture_model, 'meshy-7'); assert.equal(p.enable_pbr, true); assert.equal(p.texture_resolution, '4k');
+        pairs.add(`multi-image-to-3d meshy-7.1 ${p.texture_model}`);
+        break;
       case 'retexture': assert.equal(p.input_task_id, 'source'); assert.equal(p.text_style_prompt, 'TEXTURE_DESCRIPTION'); assert.equal(p.enable_original_uv, true); break;
       case 'remesh': assert.equal(p.input_task_id, 'source'); assert.equal(p.target_polycount, 30000); assert.equal(p.topology, 'triangle'); break;
       case 'convert': assert.equal(p.input_task_id, 'source'); assert.deepEqual(p.target_formats, ['fbx', 'obj']); break;
@@ -192,7 +213,31 @@ test('every documented generation create submits once with the intended payload 
       default: assert.fail(`unreviewed recipe resource: ${args[0]}`);
     }
   }
-  assert.equal(f.requests.filter(req => req.method === 'POST').length, 18);
+  assert.equal(f.requests.filter(req => req.method === 'POST').length, 20);
+  // Every digital row of the models guide has a recipe; the print row lives in the print workflow.
+  assert.deepEqual([...pairs].sort(), [
+    'image-to-3d meshy-6-lite meshy-6-lite', 'image-to-3d meshy-7.1 meshy-7', 'image-to-3d meshy-t2 meshy-n1',
+    'image-to-3d meshy-t2.5 meshy-n1', 'multi-image-to-3d meshy-7.1 meshy-7',
+  ]);
+});
+
+// The "choose models by project" guide is the same in every Meshy integration (PRO-4335): wording
+// changes go through the Models page owners, not one integration. No CLI needed.
+test('pipelines.md carries the models-by-project guide row for row, with the Models page link', () => {
+  const section = markdown.split('## Choose the models by project')[1]?.split('\n## ')[0];
+  assert.ok(section, 'pipelines.md has a "Choose the models by project" section');
+  assert.ok(section.includes('Choose models by project (geometry `ai_model` + `texture_model`):'));
+  const rows = section.split('\n').filter(line => line.startsWith('| ') && !line.startsWith('| Project'))
+    .map(line => line.split('|').slice(1, -1).map(cell => cell.trim()));
+  assert.deepEqual(rows, [
+    ['Detailed hero asset, product render, cinematic prop', '`meshy-7.1`', '`meshy-7` (PBR, up to 8K)'],
+    ['Game character to rig and animate', '`meshy-t2.5` (smart topology, set `target_polycount`)', '`meshy-n1`'],
+    ['Many props for a game scene, or user-generated content', '`meshy-t2` (smart topology)', '`meshy-n1`'],
+    ['A real object from 2 to 4 photos', '`meshy-7.1` on Multi-Image to 3D', '`meshy-7`'],
+    ['A model to 3D print', '`meshy-7.1`', 'none, or `meshy-7` to print in color'],
+    ['Many drafts at a low cost', '`meshy-6-lite`', '`meshy-6-lite`'],
+  ]);
+  assert.ok(section.includes('More: <https://docs.meshy.ai/en/api/models>'));
 });
 
 test('a documented download refuses a target outside its explicit workspace', { skip }, async t => {
@@ -373,6 +418,44 @@ test('image generators texture by default, a draft refuses texture settings, and
   const posed = output(await f.run(['text-to-image', 'create', '--ai-model', 'nano-banana-pro', '--prompt', 'a knight', '--pose-mode', 't-pose', '--aspect-ratio', '16:9', ...flags]));
   assert.deepEqual(posed.warnings.map(item => item.code), ['pose_aspect_ratio']);
   assert.equal(f.requests.at(-1).payload.aspect_ratio, '16:9', 'the request is still sent as asked');
+});
+
+// pipelines.md, "Choose the models by project": what --texture-model sends, the defaults that follow it,
+// and the settings the CLI refuses before anything is sent.
+test('the texture model is sent only when set, its defaults follow it, and what it cannot take is refused before a POST', { skip }, async t => {
+  const f = await fixture(t, (req, res) => json(res, 200, { result: 'accepted' }));
+  const photo = f.replacements.PHOTO_PATH;
+  const flags = ['--async', '--format', 'json', '--no-update-check'];
+  const sent = async (...args) => { output(await f.run([...args, ...flags])); return f.requests.at(-1).payload; };
+
+  const plain = await sent('image-to-3d', 'create', '--image-url', photo);
+  assert.equal('texture_model' in plain, false, 'left out, the API runs the geometry\'s own texture model');
+  const n1 = await sent('image-to-3d', 'create', '--image-url', photo, '--texture-model', 'meshy-n1');
+  assert.equal(n1.texture_model, 'meshy-n1'); assert.notEqual(n1.enable_pbr, true); assert.ok([undefined, '2k'].includes(n1.texture_resolution));
+  const lite = await sent('image-to-3d', 'create', '--image-url', photo, '--texture-model', 'meshy-6-lite');
+  assert.equal(lite.texture_model, 'meshy-6-lite'); assert.ok([undefined, '2k'].includes(lite.texture_resolution));
+  const liteGeometry = await sent('image-to-3d', 'create', '--image-url', photo, '--data', '{"ai_model":"meshy-6-lite"}');
+  assert.equal(liteGeometry.ai_model, 'meshy-6-lite');
+  assert.ok([undefined, '2k'].includes(liteGeometry.texture_resolution), 'Meshy 6 Lite geometry runs its own 2k texture model');
+  const smart = await sent('image-to-3d', 'create', '--image-url', photo, '--model-type', 'smart-topology', '--texture-model', 'meshy-n1');
+  assert.equal(smart.ai_model, 'meshy-t2.5', 'smart topology defaults to meshy-t2.5');
+  const multi = await sent('multi-image-to-3d', 'create', '--image-urls', `${photo},${photo}`, '--texture-model', 'meshy-n1');
+  assert.equal(multi.texture_model, 'meshy-n1'); assert.notEqual(multi.enable_pbr, true);
+
+  const posts = f.requests.length;
+  for (const args of [
+    ['image-to-3d', 'create', '--image-url', photo, '--texture-model', 'meshy-n1', '--enable-pbr', 'true'],
+    ['image-to-3d', 'create', '--image-url', photo, '--texture-model', 'meshy-n1', '--texture-resolution', '4k'],
+    ['image-to-3d', 'create', '--image-url', photo, '--texture-model', 'meshy-n1', '--texture-prompt', 'worn leather'],
+    ['image-to-3d', 'create', '--image-url', photo, '--texture-model', 'meshy-n1', '--remove-lighting', 'true'],
+    ['image-to-3d', 'create', '--image-url', photo, '--texture-model', 'meshy-6-lite', '--texture-resolution', '8k'],
+    ['image-to-3d', 'create', '--image-url', photo, '--texture-model', 'meshy-n1', '--should-texture', 'false'],
+    ['multi-image-to-3d', 'create', '--image-urls', `${photo},${photo}`, '--texture-model', 'meshy-6-lite'],
+  ]) {
+    const refused = output(await f.run([...args, ...flags]), 2);
+    assert.equal(refused.error.code, 'usage', args.join(' '));
+  }
+  assert.equal(f.requests.length, posts, 'a refused texture setting sends nothing');
 });
 
 // `-o` is described in pipelines.md: primary files only, the rest listed as skipped, --all-assets for everything.

@@ -21,13 +21,15 @@ meshy make "MODEL_DESCRIPTION" --dry-run --format json --no-update-check
 
    Read `steps[]` and `estimated_credits`. The numbers carry over to `text-to-3d`/`image-to-3d`
    commands you run yourself only with the same settings (the default model, texture up to 4k, no
-   `--geometry-resolution`); Smart Topology, 8k texture or the geometry pass are priced from the
-   list below.
+   `--geometry-resolution`); Smart Topology, Meshy 6 Lite, 8k texture or the geometry pass are
+   priced from the list below. The texture model alone does not change the price: a task costs
+   the mesh plus the texture at its resolution.
 
 2. **The published price list**, <https://docs.meshy.ai/en/api/pricing>, for everything else —
    retexture, remesh, convert, resize, UV, rigging, animation, 2D, motion, print analysis and
    repair, multicolor, auto split, Creative Lab. Quote it with the date you read it and call it an estimate.
-   Smart Topology is the `meshy-t2.5` (or `meshy-t2`) column; the page is also served as
+   Smart Topology is the `meshy-t2.5` (or `meshy-t2`) column, and a pair with a texture model
+   other than the default is in its *Texture models* table; the page is also served as
    Markdown at <https://docs.meshy.ai/api/pricing.md>.
 
 Nothing else is a quote. `meshy balance` reports the **balance**, not a price. Do not invent a

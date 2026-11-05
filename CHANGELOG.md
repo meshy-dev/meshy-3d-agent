@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.9.3] - 2026-11-05
+
+### Added
+
+- Choose the models by project. The pipelines reference carries the Models page's geometry +
+  texture guide (the same six rows as the Meshy CLI's help and the MCP servers), with its link,
+  and says how the CLI reaches each pair: standard mode for `meshy-7.1`,
+  `--model-type smart-topology` for `meshy-t2.5` or `meshy-t2`, `--data` for `meshy-6-lite`, and
+  `--texture-model` for the texture. It lists what each texture model takes and that the CLI
+  refuses the rest before sending.
+- Recipes for the game rows and drafts: a character to rig (`meshy-t2.5` with `meshy-n1`, in an
+  A-pose), many props or user-generated content (`meshy-t2` with `meshy-n1`), and many low-cost
+  drafts (`meshy-6-lite` with `meshy-6-lite`). The hero and multi-image recipes name `meshy-7`,
+  and the route table sends game characters, props and drafts to these recipes.
+- Delivery: the texture model does not change the price at a given resolution; Meshy 6 Lite is
+  priced from the list. Printing: the CLI's default texture is already the color-print pair.
+
+### Changed
+
+- Meshy CLI 0.8.3 or later (still the `meshy-cli@0.8` range), the first with `--texture-model`;
+  the temporary package names `meshy-cli@0.8.3` exactly.
+
 ## [0.9.2] - 2026-11-04
 
 ### Changed
@@ -58,8 +80,8 @@
 
 ### Changed
 
-- Meshy CLI 0.8.2 or later (still the `meshy-cli@0.8` range); the temporary package names
-  `meshy-cli@0.8.2` exactly. `npm exec` users also get 0.8.1's sign-in fixes: one process's
+- Meshy CLI 0.8.3 or later (still the `meshy-cli@0.8` range); the temporary package names
+  `meshy-cli@0.8.3` exactly. `npm exec` users also get 0.8.1's sign-in fixes: one process's
   refresh no longer ends another's token.
 
 ### Added

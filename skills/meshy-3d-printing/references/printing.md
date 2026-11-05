@@ -2,7 +2,7 @@
 
 Use [Setup](setup.md) for the runner, login and path rules, [Delivery](delivery.md) for cost,
 previews and hand-over, and [Troubleshooting](troubleshooting.md) for recovery. These recipes
-target **Meshy CLI 0.8** (0.8.2 or later) on Node.js 22.12+. Parameter details come from each command's `--help`;
+target **Meshy CLI 0.8** (0.8.3 or later) on Node.js 22.12+. Parameter details come from each command's `--help`;
 the skill carries no API client.
 
 Contents: 0 local-only work · state · print size · 1 white prints · 2 analysis and repair · 3 multicolor ·
@@ -151,7 +151,9 @@ not an assumed install. Default to 4 colors/depth 4 unless the request specifies
 supported colors 1–16 and depth 3–6.
 
 The input must carry textures. An unrepaired image-to-3d task made with the CLI's default
-texturing already does: pass it straight to `multi-color-print`. If an unrepaired text-to-3d preview is still the current geometry,
+texturing already does: pass it straight to `multi-color-print`. That default is `meshy-7.1`
+geometry with the `meshy-7` texture, the pair for printing in color
+(<https://docs.meshy.ai/en/api/models>), so it needs no `--texture-model`. If an unrepaired text-to-3d preview is still the current geometry,
 texture it using its own preview ID:
 
 ```bash

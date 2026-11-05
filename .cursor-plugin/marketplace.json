@@ -11,7 +11,7 @@
     {
       "name": "meshy-3d-agent",
       "source": "./",
-      "description": "Requires a paid Meshy plan (Pro or above); generation spends Meshy credits. Generate 3D models, textures, and images, rig and animate characters, and prepare models for 3D printing with the Meshy AI API. Sign in with your Meshy account; no API key needed."
+      "description": "Generate 3D models, textures, images and animations with Meshy, and prepare them for 3D printing. Sign in with your Meshy account on Pro or above; generation spends credits."
     }
   ]
 }

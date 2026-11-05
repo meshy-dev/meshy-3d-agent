@@ -12,6 +12,10 @@
 ### Changed
 
 - The route table offers a remesh only for a standard model the user already has.
+- The plugin description leads with what the plugin does, so marketplace tiles that truncate
+  after a few words show "Generate 3D models, textures, images…" instead of the plan
+  requirement. The Meshy account, Pro-or-above plan and credit spend still follow in the same
+  sentence pair, in every manifest.
 
 ## [0.9.3] - 2026-11-05
 

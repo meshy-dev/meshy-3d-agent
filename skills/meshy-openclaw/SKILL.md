@@ -136,6 +136,10 @@ the user to allow it if the host requires. Do not probe with `curl` or switch to
 - Every command uses `--format json --no-update-check` and prints one `meshy.cli/v1` envelope,
   auth included. Resolve `WORKSPACE` from the user's
   output path and pass it to every write.
+- Know what the model is for before the first paid create: a game asset, a character to rig, a
+  render, a 3D print. If the user hasn't said, ask once; the answer picks the route and the models
+  ([Pipelines](references/pipelines.md)). A game asset or a face-count budget means smart topology,
+  not a standard model remeshed down.
 - Submit once with `create --async`, keep the owning resource and task ID, then `wait` on that
   task. Timeouts and unknown submissions follow Troubleshooting; they never authorize another
   paid create.

@@ -23,7 +23,7 @@ text.
 | Many props for a game scene, or user-generated content, from images | image-to-3d with smart topology `--ai-model meshy-t2` and `--texture-model meshy-n1` | one task per prop |
 | Many drafts at a low cost | image-to-3d with `meshy-6-lite` geometry and texture | recipe under *Single image* below |
 | A new look for a model that exists | retexture that task or file | text style, style image, or photos of the real object |
-| A low-poly / game-ready asset on a budget | image-to-3d as in the game rows above, or text-to-3d preview with `--model-type smart-topology --target-polycount N`, or remesh after a standard model | ranges under *Single image* below; mobile/web budgets sit at the low end |
+| A low-poly / game-ready asset on a budget | image-to-3d as in the game rows above, or text-to-3d preview with `--model-type smart-topology --target-polycount N`, or remesh a standard model the user already has | ranges under *Single image* below; mobile/web budgets sit at the low end |
 | An LOD chain from a model that exists | remesh the **existing** task, once per level | never regenerate for a second LOD |
 | A character that must move, or new actions for a rig | textured humanoid in A/T pose → rigging → bundled walk/run, a library action, or a generated motion | see [animation](animation.md) |
 | A motion clip without a character | text-to-motion | see [animation](animation.md) |

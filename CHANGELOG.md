@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.9.4] - 2026-11-05
+
+### Added
+
+- Ask what the model is for. Before the first paid create, the generation and OpenClaw skills
+  find out whether the user wants a game asset, a character to rig, a render or a 3D print, and
+  ask once when the request doesn't say. A game asset or a face-count budget goes to smart
+  topology, not a standard model remeshed down.
+
+### Changed
+
+- The route table offers a remesh only for a standard model the user already has.
+
 ## [0.9.3] - 2026-11-05
 
 ### Added

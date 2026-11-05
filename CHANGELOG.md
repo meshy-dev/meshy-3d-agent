@@ -17,6 +17,11 @@
 - Delivery: the texture model does not change the price at a given resolution; Meshy 6 Lite is
   priced from the list. Printing: the CLI's default texture is already the color-print pair.
 
+### Changed
+
+- Meshy CLI 0.8.3 or later (still the `meshy-cli@0.8` range), the first with `--texture-model`;
+  the temporary package names `meshy-cli@0.8.3` exactly.
+
 ## [0.9.2] - 2026-11-04
 
 ### Changed
@@ -68,8 +73,8 @@
 
 ### Changed
 
-- Meshy CLI 0.8.2 or later (still the `meshy-cli@0.8` range); the temporary package names
-  `meshy-cli@0.8.2` exactly. `npm exec` users also get 0.8.1's sign-in fixes: one process's
+- Meshy CLI 0.8.3 or later (still the `meshy-cli@0.8` range); the temporary package names
+  `meshy-cli@0.8.3` exactly. `npm exec` users also get 0.8.1's sign-in fixes: one process's
   refresh no longer ends another's token.
 
 ### Added

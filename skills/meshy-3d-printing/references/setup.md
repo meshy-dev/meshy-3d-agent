@@ -46,7 +46,7 @@ Check and install without asking first; say in one line that you are installing 
 most once: when `meshy --version` still reports a version older than 0.8.3 afterwards, the
 registry this machine uses lags npm, so report that instead of installing again. Never use `sudo`
 or change system policy: when the install is refused (permissions, a managed machine, a sandbox), use the temporary package
-instead. It runs the same CLI without installing anything: put `npm exec --yes
+instead and say so in one line. It runs the same CLI without installing anything: put `npm exec --yes
 --package=meshy-cli@0.8.3 --` in front of the same arguments, and the exit code and the JSON on
 stdout are forwarded unchanged. Recipes are written as `meshy …`; example:
 
@@ -58,6 +58,17 @@ The first such call downloads the package into the npm cache; later calls reuse 
 exact version because `npm exec` keeps reusing whatever matching version it cached first. On Windows
 both commands go through `npm.cmd`. A missing `npm` with a working Node.js means the host
 stripped npm: report that and ask the user to install the CLI themselves.
+
+In Cursor, and on any host whose shell sets `https_proxy` or `HTTPS_PROXY`, put
+`NODE_USE_ENV_PROXY=1` in front of every command, in both forms (PowerShell:
+`$env:NODE_USE_ENV_PROXY = "1"` once per shell). Cursor's sandbox admits allowlisted domains
+through an HTTP proxy it sets in that variable, and Node's `fetch`, which the CLI uses, ignores
+the proxy unless Node starts with `NODE_USE_ENV_PROXY=1` (honored by Node.js 22.21 and 24.0 or
+newer; a no-op where no proxy is set). Section 3 has the allowlist. Example:
+
+```bash
+NODE_USE_ENV_PROXY=1 meshy auth status --format json --no-update-check
+```
 
 ## 2. Reuse a working session before logging in
 
@@ -100,7 +111,7 @@ to consume its result. Do not detach it with `&`, `nohup`, or a terminal launch 
 return. The CLI writes the verification instruction to **stderr**, before it starts polling:
 
 ```text
-Enter code WXYZ-1234 at https://www.meshy.ai/device
+Enter code WXYZ-1234 at https://www.meshy.ai/oauth/device
 ```
 
 Read that instruction as soon as it appears (ignore preceding npm notices) and show the URL
@@ -162,11 +173,37 @@ Failure branches — each is a different recovery, so read the error rather than
   key with `meshy auth login --with-key <key>` privately. Never ask for the key in chat.
 - **Network blocked by a sandbox** (the login fails within a second with `error.details.code:
   "oauth_network"` and a `fetch failed` message, before any URL or code appears): the shell
-  cannot reach Meshy, so no login can finish there. Run the *same* command again with network
+  cannot reach Meshy, so no login can finish there. In Cursor, first make sure the command ran
+  with `NODE_USE_ENV_PROXY=1` (section 1). Then run the *same* command again with network
   access or outside the sandbox, asking the user to allow it if the host requires approval. Do
   not follow the error's `--with-key` hint, probe the network with `curl`, or go looking for a
   credential to reuse: an older `credentials.json` is the CLI's to move over, never yours to
   read, copy or edit (section 5).
+- **Cursor's sandbox**: Cursor's agent blocks most network access by default, so every Meshy
+  command, not only the login, needs either the allowlist below or a run outside the sandbox,
+  and Cursor may decline the latter without showing the user a prompt. The allowlist only
+  reaches the CLI when the command carries `NODE_USE_ENV_PROXY=1` (section 1): Cursor passes
+  allowlisted traffic through a proxy that Node ignores otherwise, so without the variable the
+  CLI fails with `oauth_network` even on an allowlisted machine, and on Node older than 22.21
+  the variable itself is ignored (ask the user to update Node). At the first block, give the
+  user the allowlist that ends this, for `.cursor/sandbox.json` in the project or
+  `~/.cursor/sandbox.json` for every project (on the China site, `api.meshy.cn`, `meshy.cn` and
+  `assets.meshy.cn`):
+
+  ```json
+  {
+    "networkPolicy": {
+      "allow": ["api.meshy.ai", "www.meshy.ai", "assets.meshy.ai"]
+    }
+  }
+  ```
+
+  The user adds it, or a team admin sets it in Cursor's dashboard; don't edit sandbox settings
+  yourself. Ask them to start a new chat afterwards, since a running chat may keep the old
+  policy, and resume there. Retry outside the sandbox at most once in the meantime; if that is
+  blocked too, stop and wait for the user. Never open Terminal or another app to run the command
+  around the sandbox, and don't offer a sign-in in the user's own terminal as the fix: every
+  later command needs the network too, so only the allowlist unblocks the job.
 - **Host cannot keep a process alive at all**: use the two-step sign-in below.
 
 ### Remote chat: sign in across two turns

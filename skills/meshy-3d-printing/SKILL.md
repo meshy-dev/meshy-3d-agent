@@ -55,7 +55,8 @@ call the `meshy_sign_in` tool instead of `auth login` (Setup, section 1). Everyw
 
 Before the first command run `meshy --version`; no need to ask. When `meshy` is missing or
 older than 0.8.3, install the newest 0.8.x with `npm install -g meshy-cli@0.8` and say so in
-one line; Setup covers a refused install and a CLI of 0.9 or newer. Local-only work stops at runner setup.
+one line. When the install is refused, use Setup's temporary package and say that in one line
+too; Setup also covers a CLI of 0.9 or newer. Local-only work stops at runner setup.
 Cloud work reuses a verified session. If login is needed, keep `auth login --device` running (with `--region cn` for a
 user in mainland China: the same account and credits as the global site),
 show its URL and user code in **commentary/progress, never a final answer**, and await the
@@ -65,10 +66,15 @@ user on a remote chat (a phone through a chat bot); Setup has the host wait proc
 
 Only the CLI touches its config directory (`~/.config/meshy` by default): never read, copy,
 edit or delete a file there (an old `credentials.json` included), and never look for credentials
-anywhere else. When a sandboxed shell blocks the network (`auth login` fails with `oauth_network`
-or `fetch failed`), run the same command again with network access or outside the sandbox, asking
-the user to allow it if the host requires. Do not probe with `curl` or switch to `--with-key`
-(Setup, section 3).
+anywhere else. In Cursor, and on any host whose shell sets `https_proxy` or `HTTPS_PROXY`, run
+every Meshy command as `NODE_USE_ENV_PROXY=1 meshy …` (Setup, section 1): Cursor's sandbox
+allowlist works through that proxy, which the CLI's Node runtime ignores without the variable.
+When a sandboxed shell still blocks the network (any command fails with `oauth_network`,
+`fetch failed` or another network error), run the same command again once with network access or
+outside the sandbox, asking the user to allow it if the host requires. If it is still blocked or
+the approval is declined, stop and tell the user; in Cursor, give them Setup's allowlist at the
+first block. Never route around a sandbox or a declined approval by opening another app or
+terminal, and never probe the network (`curl`, `ping`) or switch to `--with-key` (Setup, section 3).
 
 ## Printing-specific constraints
 

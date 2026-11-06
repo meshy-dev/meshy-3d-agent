@@ -44,6 +44,9 @@ def commands(text):
         body = fence.group(1).replace("\\\n", " ")
         for line in body.splitlines():
             argv = shlex.split(line, comments=True)
+            # `NODE_USE_ENV_PROXY=1 meshy …` is the documented form in Cursor; check the command behind it.
+            while argv and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*=.*", argv[0]):
+                argv.pop(0)
             if argv:
                 yield argv
 
@@ -63,6 +66,7 @@ def validate_skill(folder):
         installs = meta["metadata"]["openclaw"].get("install") or []
         require([spec.get("package") for spec in installs] == [f"meshy-cli@{CLI}"], f"{entry}: the OpenClaw install hint must pin meshy-cli@{CLI}")
     require(MIN_CLI in text, f"{entry}: missing minimum CLI version")
+    require("NODE_USE_ENV_PROXY=1 meshy" in text, f"{entry}: missing the Cursor sandbox proxy form")
     require(len(text.splitlines()) <= 300, f"{entry}: move detail into references")
     markdown = set()
     for file in folder.rglob("*"):
@@ -112,7 +116,7 @@ def validate_skill(folder):
     require(markdown <= reachable, f"{folder}: unreachable documents {markdown - reachable}")
     # The first-run contract each skill must be able to answer on its own.
     setup = (folder / "references" / "setup.md").read_text()
-    for needle in (f"npm exec --yes --package=meshy-cli@{MIN_CLI} -- meshy", "auth login --device", "--region cn", "./meshy_output", "WORKSPACE", "JOB_DIR"):
+    for needle in (f"npm exec --yes --package=meshy-cli@{MIN_CLI} -- meshy", "NODE_USE_ENV_PROXY=1 meshy", "auth login --device", "--region cn", "./meshy_output", "WORKSPACE", "JOB_DIR"):
         require(needle in setup, f"{folder}: setup.md does not document {needle!r}")
     # --no-wait only in the two-step sign-in, which resumes by flow_id (CLI 0.7.3 no longer prints the device code).
     require("--no-wait" not in setup or "--device-flow FLOW_ID" in setup, f"{folder}: --no-wait without the --device-flow resume")

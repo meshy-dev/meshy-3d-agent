@@ -2,7 +2,7 @@
 
 Meshy skills for creating digital assets and preparing 3D prints. All three skills drive
 **Meshy CLI 0.8** (0.8.3 or later, `meshy`) on **Node.js 22.12+**. They are instructions and references only —
-no bundled runtime scripts. Current release: **0.9.2**.
+no bundled runtime scripts. Current release: **0.9.4**.
 
 **Requires a paid Meshy plan (Pro or above),** and generation spends Meshy credits. Sign in with
 your Meshy account; no API key needed. A Free account can sign in, but creating tasks is refused
@@ -116,7 +116,7 @@ sign-in or task asks to run outside it. To let the Meshy CLI through, add Meshy'
 }
 ```
 
-On the China site, use `api.meshy.cn` and `meshy.cn` instead. A team admin can set the same
+On the China site, use `api.meshy.cn`, `meshy.cn` and `assets.meshy.cn` instead. A team admin can set the same
 allowlist for everyone in Cursor's dashboard. See
 [Cursor's sandbox reference](https://cursor.com/docs/reference/sandbox).
 

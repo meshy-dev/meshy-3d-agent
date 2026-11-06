@@ -1,5 +1,25 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Cursor's sandbox allowlist now reaches the CLI. Cursor admits allowlisted domains through an
+  HTTP proxy it sets in the sandboxed shell as `https_proxy`, which Node's `fetch` ignores, so
+  the CLI still failed with `oauth_network` on an allowlisted machine. In Cursor, and wherever
+  the shell sets that variable, the skills now run every Meshy command as
+  `NODE_USE_ENV_PROXY=1 meshy …`, which Node.js 22.21 and 24.0 or newer honor (the README
+  states that requirement for the allowlist). This is the interim until meshy-cli honors the
+  proxy on its own.
+- Cursor's sandbox. When a Meshy command can't reach the network, the skills now treat any
+  command's network error the same way, not only the login's, and in Cursor give the user the
+  `sandbox.json` allowlist from the README at the first block. They retry outside the sandbox
+  at most once, then stop and wait, and never open another app or terminal to get around the
+  sandbox. The README notes the new chat Cursor may need and the npm domain for "sandbox.json
+  Only". The China allowlist in the skills adds `assets.meshy.cn`, matching the README.
+- A refused CLI install is reported. When `npm install -g` is refused and the skills fall back to
+  the temporary package, they say so in one line instead of switching silently.
+
 ## [0.9.4] - 2026-11-06
 
 ### Added

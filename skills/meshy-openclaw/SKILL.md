@@ -100,14 +100,15 @@ missing choice materially changes the result.
 
 Before the first command run `meshy --version`; no need to ask. When `meshy` is missing or
 older than 0.8.3, install the newest 0.8.x with `npm install -g meshy-cli@0.8` and say so in
-one line; Setup covers a refused install and a CLI of 0.9 or newer. Local-only print work stops there. Everything else reuses a verified `auth status`
+one line. When the install is refused, use Setup's temporary package and say that in one line
+too; Setup also covers a CLI of 0.9 or newer. Local-only print work stops there. Everything else reuses a verified `auth status`
 session; only when there is none, sign in:
 
 1. Start `meshy auth login --device --format json --no-update-check` (add `--region cn` for a
    user in mainland China: the same account and credits as the global site) with `exec` and a short
    `yieldMs` (about 3000) and `timeoutSeconds: 900`, so it keeps running in the background and
    returns a `sessionId`.
-2. The CLI prints `Enter code … at https://www.meshy.ai/device` on stderr within seconds. If the
+2. The CLI prints `Enter code … at https://www.meshy.ai/oauth/device` on stderr within seconds. If the
    first output holds only npm notices, `process poll` that same `sessionId`. Send the user the
    URL as a link and the code **verbatim**, plus what to do: open it, sign in to Meshy if asked,
    type the code, approve. Nothing needs to be sent back in chat.
@@ -123,10 +124,15 @@ than re-submitting or looping on `sleep`.
 
 Only the CLI touches its config directory (`~/.config/meshy` by default): never read, copy,
 edit or delete a file there (an old `credentials.json` included), and never look for credentials
-anywhere else. When a sandboxed shell blocks the network (`auth login` fails with `oauth_network`
-or `fetch failed`), run the same command again with network access or outside the sandbox, asking
-the user to allow it if the host requires. Do not probe with `curl` or switch to `--with-key`
-(Setup, section 3).
+anywhere else. In Cursor, and on any host whose shell sets `https_proxy` or `HTTPS_PROXY`, run
+every Meshy command as `NODE_USE_ENV_PROXY=1 meshy …` (Setup, section 1): Cursor's sandbox
+allowlist works through that proxy, which the CLI's Node runtime ignores without the variable.
+When a sandboxed shell still blocks the network (any command fails with `oauth_network`,
+`fetch failed` or another network error), run the same command again once with network access or
+outside the sandbox, asking the user to allow it if the host requires. If it is still blocked or
+the approval is declined, stop and tell the user; in Cursor, give them Setup's allowlist at the
+first block. Never route around a sandbox or a declined approval by opening another app or
+terminal, and never probe the network (`curl`, `ping`) or switch to `--with-key` (Setup, section 3).
 
 ## Execution boundaries
 

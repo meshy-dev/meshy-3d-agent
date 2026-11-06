@@ -116,8 +116,14 @@ sign-in or task asks to run outside it. To let the Meshy CLI through, add Meshy'
 }
 ```
 
-On the China site, use `api.meshy.cn`, `meshy.cn` and `assets.meshy.cn` instead. A team admin can set the same
-allowlist for everyone in Cursor's dashboard. See
+On the China site, use `api.meshy.cn`, `meshy.cn` and `assets.meshy.cn` instead. Start a new
+chat after adding it. Cursor admits allowlisted traffic through a proxy it sets in the sandbox,
+and the skills start the CLI with `NODE_USE_ENV_PROXY=1` so Node routes through it; that needs
+Node.js 22.21 or 24.0 and newer, since older Node ignores the variable and the sandbox still
+blocks the CLI. This works with Cursor's default network setting, "sandbox.json + Defaults",
+which already allows npm; if you chose "sandbox.json Only", also add `registry.npmjs.org` so the
+skills can fetch the CLI. A team admin can set the same allowlist for everyone in Cursor's
+dashboard. See
 [Cursor's sandbox reference](https://cursor.com/docs/reference/sandbox).
 
 ### OpenClaw and Hermes Agent

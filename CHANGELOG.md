@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.9.4] - 2026-11-05
+## [0.9.4] - 2026-11-06
 
 ### Added
 
@@ -16,6 +16,8 @@
   after a few words show "Generate 3D models, textures, images…" instead of the plan
   requirement. The Meshy account, Pro-or-above plan and credit spend still follow in the same
   sentence pair, in every manifest.
+- README: the Cursor sandbox allowlist for the China site adds `assets.meshy.cn`, where
+  results download from. `validate_skills.py` checks the README's current release.
 
 ## [0.9.3] - 2026-11-05
 

@@ -178,6 +178,7 @@ def validate_cursor_marketplace(market, manifest, root):
 def validate(root):
     for name in SKILLS:
         validate_skill(root / "skills" / name)
+    require(f"Current release: **{VERSION}**" in (root / "README.md").read_text(), "README.md: current release is not " + VERSION)
     for name in (".claude-plugin/plugin.json", ".cursor-plugin/plugin.json"):
         manifest = json.loads((root / name).read_text())
         require(manifest.get("version") == VERSION, f"{name}: version mismatch")

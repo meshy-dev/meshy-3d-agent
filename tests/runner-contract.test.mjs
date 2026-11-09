@@ -17,7 +17,7 @@ const documented = [...setupDoc.matchAll(/```bash\n([\s\S]*?)```/g)]
   .filter(line => line.startsWith('npm exec '));
 assert.equal(documented.length, 1, 'setup.md documents exactly one temporary-package invocation');
 const RUNNER = documented[0].split(' ').slice(0, 5);
-assert.deepEqual(RUNNER, ['npm', 'exec', '--yes', '--package=meshy-cli@0.8.3', '--'], RUNNER.join(' '));
+assert.deepEqual(RUNNER, ['npm', 'exec', '--yes', '--package=meshy-cli@0.8.5', '--'], RUNNER.join(' '));
 const DOCUMENTED_ARGS = documented[0].split(' ').slice(5);
 // Shared between runs so only the first execution on a machine downloads the package.
 const NPM_CACHE = join(tmpdir(), 'meshy-skill-runner-npm-cache');

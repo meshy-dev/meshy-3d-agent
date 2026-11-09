@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.5] - 2026-11-09
+
+### Changed
+
+- Meshy CLI 0.8.4 or later (still the `meshy-cli@0.8` range); the temporary package names
+  `meshy-cli@0.8.4` exactly. 0.8.4 names the AI agent running a command (Cursor, Claude Code,
+  Codex and others, from the variables each agent sets) in the User-Agent of its requests to
+  Meshy, so Meshy can tell usage apart by agent. Nothing else changes for the skills. A machine
+  that already has 0.8.3 installed upgrades on the skill's version check, as with earlier
+  minimums.
+
 ## [0.9.4] - 2026-11-06
 
 ### Added

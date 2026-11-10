@@ -25,7 +25,7 @@ CURSOR_SCHEMAS = {
     "marketplace": "50c85058bf329588401fd2fc93180a574fa64abbb6c2606400febfb6f4d094e8",
 }
 PATH_KEYS = ("composerIcon", "logo", "skills", "icon_small", "icon_large")
-VERSION = "0.9.5"
+VERSION = "0.9.6"
 # The Meshy CLI the skills are written for: any 0.8.x from MIN_CLI. Package specs use the range.
 CLI = "0.8"
 MIN_CLI = "0.8.5"
@@ -154,9 +154,20 @@ def cursor_schema(name):
 def validate_cursor(manifest, root):
     for error in jsonschema.Draft7Validator(cursor_schema("plugin")).iter_errors(manifest):
         raise ValueError(f".cursor-plugin/plugin.json: {error.json_path}: {error.message}")
-    # Cursor scans a string as a folder of skills, which would also load meshy-openclaw; a list
-    # entry whose folder holds a SKILL.md loads exactly that skill.
-    require(manifest.get("skills") == [f"./skills/{name}" for name in CURSOR_SKILLS], ".cursor-plugin/plugin.json: skills must list exactly the generation and printing skills")
+    # A dedicated folder avoids Grok's observed array discovery failures and excludes OpenClaw.
+    require(manifest.get("skills") == "./cursor/skills/", ".cursor-plugin/plugin.json: skills must use the dedicated Cursor root")
+    folder = root / "cursor" / "skills"
+    require(not folder.is_symlink(), "Cursor skills root must not be a symlink")
+    require({p.name for p in folder.iterdir()} == set(CURSOR_SKILLS), "Cursor root must contain exactly generation and printing")
+    for name in CURSOR_SKILLS:
+        packaged = folder / name
+        source = root / "skills" / name
+        validate_skill(packaged)
+        original = {p.relative_to(source): p.read_bytes() for p in source.rglob("*") if p.is_file()}
+        copied = {p.relative_to(packaged): p.read_bytes() for p in packaged.rglob("*") if p.is_file()}
+        require(copied == original, f"Cursor skill copy is stale: {name}; run scripts/build.py")
+    versions = manifest.get("minClientVersions", {})
+    require(all(versions.get(client) != "never" for client in ("grokbot", "sand")), "Cursor plugin must remain available to Grok Bot")
     # The Marketplace tile shows the logo as a square; a PNG keeps its own dark background on light themes.
     logo = root / manifest.get("logo", "")
     require(logo.suffix == ".png" and logo.is_file(), ".cursor-plugin/plugin.json: logo must be a PNG in the repository")

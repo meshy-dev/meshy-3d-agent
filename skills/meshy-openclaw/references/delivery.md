@@ -122,6 +122,21 @@ Deliver four things, every time:
 4. **What it cost**: `consumed_credits` when reported, otherwise stated as unknown, plus any
    warnings that affect use.
 
+### Host attachment limits
+
+A successful download can still exceed the host's attachment size limit. Grok Bot rejected
+files above 25 MB in our smoke test; use the current tool's reported limit rather than assume
+that number applies to every host. Keep the original model and task IDs. Do not regenerate,
+pay for conversion, or reduce geometry or texture quality merely to fit an attachment.
+
+First provide the host's supported download or file-delivery route when it can carry the
+original. If no such route is available, split the downloaded binary into numbered parts
+below the reported limit, attach every part, and give the exact reconstruction command and
+original SHA-256. Rejoin and verify the parts locally before delivery. Clearly state that the
+parts must be reconstructed before opening the model. Attach the thumbnail separately and
+show it inline. Report a delivery limitation if any part cannot be delivered; cloud task
+success alone does not mean the user received the model.
+
 If the result is wrong, report it and offer the concrete fix (a rerun, a different reference
 image, different parameters) with its cost. Do not silently rerun a paid stage.
 

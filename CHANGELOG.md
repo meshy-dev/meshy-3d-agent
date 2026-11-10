@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.9.6] - 2026-11-10
+
+### Changed
+
+- Cursor and Grok Bot use one dedicated `cursor/skills/` root containing only the two
+  intended skills. Array/root/array discovery probes failed, passed, then failed in fresh
+  Grok Bots; cached revisions differed from refreshed metadata, so the precise loader cause
+  remains unconfirmed.
+- Generate the Cursor skill copies from canonical sources and validate exact contents in CI.
+- Explain host attachment limits and verified split-file delivery without paid regeneration
+  or silent quality reduction.
+
 ## [0.9.5] - 2026-11-09
 
 ### Changed

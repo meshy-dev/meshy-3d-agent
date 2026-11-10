@@ -1,7 +1,7 @@
 {
   "name": "meshy-3d-agent",
   "displayName": "Meshy",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "description": "Generate 3D models, textures, images and animations with Meshy, and prepare them for 3D printing. Sign in with your Meshy account on Pro or above; generation spends credits.",
   "author": {
     "name": "Meshy",
@@ -32,8 +32,5 @@
     "rigging",
     "animation"
   ],
-  "skills": [
-    "./skills/meshy-3d-generation",
-    "./skills/meshy-3d-printing"
-  ]
+  "skills": "./cursor/skills/"
 }

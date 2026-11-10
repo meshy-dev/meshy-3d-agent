@@ -2,7 +2,7 @@
 
 Meshy skills for creating digital assets and preparing 3D prints. All three skills drive
 **Meshy CLI 0.8** (0.8.5 or later, `meshy`) on **Node.js 22.12+**. They are instructions and references only —
-no bundled runtime scripts. Current release: **0.9.5**.
+no bundled runtime scripts. Current release: **0.9.6**.
 
 **Requires a paid Meshy plan (Pro or above),** and generation spends Meshy credits. Sign in with
 your Meshy account; no API key needed. A Free account can sign in, but creating tasks is refused
@@ -89,8 +89,10 @@ alone do not certify a host or operating system.
 ### Cursor plugin
 
 The repository is also a Cursor plugin. [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json)
-loads `meshy-3d-generation` and `meshy-3d-printing`, and leaves out `meshy-openclaw`, which repeats
-both. To load it from a clone instead of the marketplace:
+loads `meshy-3d-generation` and `meshy-3d-printing` from the dedicated `cursor/skills/` root,
+and leaves out `meshy-openclaw`, which repeats both. `scripts/build.py` generates these
+byte-identical copies from the canonical `skills/` directories; edit the canonical files only.
+The same plugin supports Grok Bot, with no `grokbot` or `sand` exclusion in its manifest. To load it from a clone instead of the marketplace:
 
 ```bash
 git clone https://github.com/meshy-dev/meshy-3d-agent.git ~/.cursor/plugins/local/meshy-3d-agent
@@ -170,14 +172,14 @@ python3 scripts/validate_skills.py
 MESHY_CLI_BIN=/absolute/path/to/meshy node --test tests/*.test.mjs
 ```
 
-`build.py` copies the shared setup, delivery and troubleshooting references from generation to
-printing so each skill directory installs on its own; `--check` fails when a copy is stale.
+`build.py` copies shared references between the canonical skills, then copies generation and
+printing into `cursor/skills/` so Cursor and Grok load a single root with exactly two skills; `--check` fails when a copy is stale.
 `validate_skills.py` checks frontmatter, link closure, the absence of bundled runtime files, the
 JSON envelope and resolved workspace placeholder on every documented CLI command, and the plugin
 manifests, for all three skills. It also checks the Cursor manifests against Cursor's plugin and
 marketplace schemas, downloaded from a pinned commit of cursor/plugins and checked by hash (set
 `CURSOR_SCHEMA_CACHE` to keep them in a folder of your choice), and requires the plugin manifest
-to list exactly the generation and printing skills.
+to use the dedicated root with exactly the generation and printing skills, matching their canonical copies.
 
 Tests use a loopback API, synthetic credentials and temporary config/workspace directories.
 `tests/runner-contract.test.mjs` additionally runs the documented `npm exec` entry point, so it

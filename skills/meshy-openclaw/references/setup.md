@@ -2,8 +2,7 @@
 
 Shared by the generation and print workflows. Three things are settled before any job
 starts: **how to run the CLI**, **whether a session already exists**, and **where files go**.
-The supported CLI is **0.8.x, from 0.8.5,** on **Node.js 22.12 or newer**. No Python, request wrapper or
-separate token store is involved.
+The supported CLI is **0.8.x, from 0.8.5,** on **Node.js 22.12 or newer**.
 
 Contents: 1 runner · 2 reuse a session · 3 first login · 4 where files go · 5 one session
 everywhere · 6 API keys · 7 the China site.
@@ -71,8 +70,7 @@ Every command, auth included, prints one `meshy.cli/v1` envelope on stdout (`ok`
 the unauthenticated and unverified answers below are `ok: true` with exit 3.
 
 - `authenticated: true`, `verified: true`, exit 0: continue with this account. **No new login.**
-  `result.account` names who is signed in when the site reports it (`null` for an API key, a
-  login made before CLI 0.8, and the China site for now).
+  `result.account` names who is signed in when the site reports it, and may be `null`.
 - `authenticated: false`, exit 3: no usable credential; log in (next section).
 - `authenticated: true`, `verified: false`, exit 3: a credential exists but verification failed —
   which includes network and server errors, not just rejection. Do not start a login or delete
@@ -94,10 +92,8 @@ meshy auth login --device --format json --no-update-check
 In mainland China, or when the user asks for the China site, add `--region cn`
 ([section 7](#7-the-china-site)): the code is then entered at `meshy.cn`.
 
-Run it as a **persistent tool session that you keep awaiting in the current turn**. A live
-CLI process alone is insufficient: finishing the agent turn leaves no active continuation
-to consume its result. Do not detach it with `&`, `nohup`, or a terminal launch and then
-return. The CLI writes the verification instruction to **stderr**, before it starts polling:
+The CLI writes the verification instruction to **stderr**, then polls until the user approves or
+the code expires:
 
 ```text
 Enter code WXYZ-1234 at https://www.meshy.ai/device
@@ -112,38 +108,17 @@ the chat — the CLI receives the credential itself.
 
 ### Keep the agent turn alive
 
-A host whose skill says it wakes the session when a background command exits (OpenClaw)
-follows that skill's procedure instead of this subsection. Everywhere else, after showing the link, your next action is to await the **same** running tool session.
-Do not ask the user to send "done" or "continue", and do not end the turn with "authorize
-and I will continue". Browser approval completes the CLI process; it is not a new user
-message and must not be relied on to restart a finished agent turn.
+Run the login as a running tool session and keep waiting on that **same** session in this turn,
+with the host's own tool for reading a running command, until it exits. Browser approval ends
+the CLI process, not your turn, and a process still running when the turn ends has nobody to
+read its result. So do not detach it (`&`, `nohup`, a new terminal), do not end the turn with
+"authorize and I will continue", and do not ask the user to reply "done". A tool yield or timeout
+is not a code expiry. While it polls, do not start a second login, kill it or poll the API
+yourself; send a brief progress note during a long wait. A host whose own skill says it wakes the
+session when a background command exits follows that procedure instead.
 
-For Codex shells exposing `exec_command` / `write_stdin`:
-
-1. Start the login with a short initial yield (e.g. `yield_time_ms: 1000`). Preserve the
-   returned `session_id`; a returned running session is not command completion.
-2. Show the verification instruction as commentary as soon as it arrives. If the first
-   chunk contains only npm startup output, read more from that same session.
-3. Call `write_stdin` with that `session_id`, empty input and a bounded wait (e.g.
-   `yield_time_ms: 1000`–`10000`). While still running, repeat; no output means keep waiting.
-   The CLI already polls OAuth, so do not spawn another login or poll HTTP yourself.
-4. Consume the actual exit code and final JSON. Only then verify `auth status` and continue
-   the original task in this turn. A tool yield/timeout is not an OAuth expiry.
-
-If shell calls are wrapped by `functions.exec` and it returns a running `cell_id`, resume
-that cell with `functions.wait`; once it returns the shell result, use its `session_id`
-if present. Do not confuse the two IDs or leave an unawaited promise in a finished wrapper.
-In Claude Code, start it with the Bash tool's `run_in_background`, read its output file until
-the code line appears, then keep checking that output until the process exits. Other hosts use
-their equivalent running-command wait tool. Send a brief progress
-update during a long wait without ending the turn. Stop waiting on a terminal login error,
-actual code expiry, user cancellation, or an explicit host limitation; report the reason.
-Do not create recurring automations or a second task to keep a login alive.
-
-The process keeps polling until the user approves or the code expires. While it polls, do not
-start a second login, do not kill it, and do not ask the user to paste anything. On approval it
-prints the envelope with `result.status: "logged_in"` and `result.verified: true` to stdout and
-exits 0. Then:
+On approval the CLI prints the envelope with `result.status: "logged_in"` and
+`result.verified: true` to stdout and exits 0. Then:
 
 1. Re-run `auth status`; `verified: true` is the proof, not the exit code of `login`.
 2. **Continue the request the user originally made**, with the same inputs, output path and
@@ -164,26 +139,22 @@ Failure branches — each is a different recovery, so read the error rather than
   "oauth_network"` and a `fetch failed` message, before any URL or code appears): the shell
   cannot reach Meshy, so no login can finish there. Run the *same* command again with network
   access or outside the sandbox, asking the user to allow it if the host requires approval. Do
-  not follow the error's `--with-key` hint, probe the network with `curl`, or go looking for a
-  credential to reuse: an older `credentials.json` is the CLI's to move over, never yours to
-  read, copy or edit (section 5).
-- **Host cannot keep a process alive at all**: use the two-step sign-in below.
+  not follow the error's `--with-key` hint, probe the network with `curl`, or look for a
+  credential to reuse (section 5).
+- **The host cannot wait in the turn** (no tool reads a running command, or progress messages
+  reach the user only when the turn ends): use the two-step sign-in below.
 
-### Remote chat: sign in across two turns
+### Two-step sign-in
 
-When the user talks to you through a chat bridge from another device (a phone in QQ, WeChat,
-Slack or Telegram), progress messages may arrive late or only when the turn ends, so a link shown
-while the login waits never reaches them. Sign in in two steps instead (add `--region cn` to the
-first for the China site):
+Step one returns at once (add `--region cn` for the China site):
 
 ```bash
 meshy auth login --device --no-wait --format json --no-update-check
 ```
 
-It returns at once with `result.verification_url` (the code is already in the link),
-`result.user_code` and `result.flow_id`. Keep FLOW_ID in your notes and end the turn with the link
-and the code: ask the user to open it in the phone's own browser rather than the chat app's (an
-in-app browser may not keep the sign-in), approve, and reply when done. When they reply:
+It prints `result.verification_url` (the code is already in the link), `result.user_code` and
+`result.flow_id`. Keep FLOW_ID in your notes, end the turn with the link and the code, and ask the
+user to approve and reply. When they reply:
 
 ```bash
 meshy auth login --device-flow FLOW_ID --format json --no-update-check
@@ -192,8 +163,7 @@ meshy auth login --device-flow FLOW_ID --format json --no-update-check
 It waits while the approval is still pending, saves the session and prints
 `result.status: "logged_in"`; verify `auth status` and continue the original request. An expired
 or unknown flow means running step one again. A host whose question tool reaches the user can
-instead ask with the link and wait for the answer in the same turn, then run step two. In
-DeepSeek Harness the `meshy_sign_in` tool replaces both steps (section 1).
+instead ask with the link and wait for the answer in the same turn, then run step two.
 
 Do not use `--manual` from an agent — it prompts on stdin for a pasted code. Never show a token, a device
 code or a signed URL to the user or copy one into chat or a file: task results and sidecars
@@ -226,9 +196,8 @@ Existing files are never silently replaced. `download` refuses to overwrite unle
 is passed, and `-o` refuses a target that holds anything but its own task's earlier output
 (rerunning the same `-o` for the same task is fine). So an existing `chest.glb` is a decision — a
 new name or, for `download`, an explicit overwrite — covered by what the user already authorized,
-not a silent clobber. A model delivered with `-o` leaves a small sidecar beside it
-(`chest_meta.json`): that is the task trail described in [delivery.md](delivery.md), not clutter
-to delete.
+not a silent clobber. The sidecar `-o` leaves beside a model is described in
+[delivery.md](delivery.md).
 
 ## 5. One session, both skills, any directory
 
@@ -237,14 +206,12 @@ are encrypted under a key the OS keeps (Keychain, DPAPI or the Secret Service; a
 file where none is usable). Generation and printing, in either plugin, reuse it when run as the
 same OS user with the same CLI configuration. Changing the working directory does not require
 another login. Different users, machines, containers or configuration directories do not
-automatically share sessions. A CLI before 0.8 kept `credentials.json` instead; 0.8 moves that
-login over on its first write, and an older CLI then signs in once on its own.
+automatically share sessions.
 
 `MESHY_CONFIG_DIR` changes the config directory; `MESHY_CREDENTIALS_PATH` overrides the
-credential file. Non-production API hosts use `credentials.v2.dev.json` by default. Keep these
-settings consistent. Only the CLI touches the config directory: never read, copy, move, edit or
-delete a credential file there (the older `credentials.json` included, even to inspect its
-fields), and do not copy tokens between plugins.
+credential file. Keep these settings consistent. Only the CLI touches the config directory: never
+read, copy, move, edit or delete a file there, never look for credentials anywhere else, and do
+not copy tokens between plugins.
 `auth list` reports profile kinds with masked credentials. `auth use <name>` changes the shared
 active profile, so do not switch it independently in concurrent workflows.
 
@@ -259,9 +226,9 @@ Credential priority is `--api-key` > `MESHY_API_KEY` > explicit `--api-key-file`
 Harness plugin's session > stored active profile. An existing environment key overrides browser login; report `source` when
 diagnosing account selection, and do not change the user's environment or account implicitly.
 
-DeepSeek Harness (`DSH_SHELL=1`) removes credential-shaped variables such as `MESHY_API_KEY`
-from every shell call, so a key the user exported before starting dsh never reaches the CLI.
-There the Meshy plugin's sign-in is used (section 1), or an explicit `--api-key-file`.
+In DeepSeek Harness an exported `MESHY_API_KEY` never reaches the CLI (dsh removes
+credential-shaped variables); the plugin's sign-in (section 1) or an explicit `--api-key-file` is
+used instead.
 
 There is no automatic `.env` discovery. If the user chooses a project key file, pass its
 explicit path on authenticated commands. **`auth status` ignores `--api-key-file`**,

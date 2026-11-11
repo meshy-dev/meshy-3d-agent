@@ -47,28 +47,17 @@ local dimension check cannot establish full printability.
 
 ## Cloud authorization
 
-**DeepSeek Harness with the Meshy plugin** (`DSH_MESHY_CLI` is set; check with
-`test -n "$DSH_MESHY_CLI"`): the plugin ships the CLI and keeps the sign-in. Run every command as
-`"$DSH_MESHY_NODE" "$DSH_MESHY_CLI" …` in place of `meshy …` — never a `meshy` on PATH, which
-cannot see that sign-in — install nothing, and when a command reports that nobody is signed in,
-call the `meshy_sign_in` tool instead of `auth login` (Setup, section 1). Everywhere else:
+In DeepSeek Harness with the Meshy plugin (`DSH_MESHY_CLI` is set) run every command as
+`"$DSH_MESHY_NODE" "$DSH_MESHY_CLI" …`, never a `meshy` on PATH, install nothing, and sign in with
+the `meshy_sign_in` tool. Everywhere else run `meshy --version` before the first command, without
+asking; when it is missing or older than 0.8.5, install it with `npm install -g meshy-cli@0.8`
+and say so in one line ([Setup](references/setup.md), section 1). Local-only work stops there.
 
-Before the first command run `meshy --version`; no need to ask. When `meshy` is missing or
-older than 0.8.5, install the newest 0.8.x with `npm install -g meshy-cli@0.8` and say so in
-one line; Setup covers a refused install and a CLI of 0.9 or newer. Local-only work stops at runner setup.
-Cloud work reuses a verified session. If login is needed, keep `auth login --device` running (with `--region cn` for a
-user in mainland China: the same account and credits as the global site),
-show its URL and user code in **commentary/progress, never a final answer**, and await the
-same tool session in this turn. After it exits, verify `auth status` and resume the print job.
-Never ask for credentials in chat, nor for a "done" message except in Setup's two-step sign-in for a
-user on a remote chat (a phone through a chat bot); Setup has the host wait procedure.
-
-Only the CLI touches its config directory (`~/.config/meshy` by default): never read, copy,
-edit or delete a file there (an old `credentials.json` included), and never look for credentials
-anywhere else. When a sandboxed shell blocks the network (`auth login` fails with `oauth_network`
-or `fetch failed`), run the same command again with network access or outside the sandbox, asking
-the user to allow it if the host requires. Do not probe with `curl` or switch to `--with-key`
-(Setup, section 3).
+Cloud work reuses a verified session. If login is needed, run `auth login --device` (with
+`--region cn` for a user in mainland China) as Setup, section 3 describes: show its URL and user
+code in **commentary/progress, never a final answer**, wait on that same command in this turn,
+verify `auth status`, then resume the print job. Never ask for credentials in chat; only the CLI
+touches its config directory.
 
 ## Printing-specific constraints
 

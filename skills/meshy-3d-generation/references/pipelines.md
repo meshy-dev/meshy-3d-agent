@@ -293,7 +293,7 @@ command carries `--workspace WORKSPACE`. A `get` of a task that has not succeede
 `downloads.state: "not_ready"` with exit 0, so `wait` first.
 
 Rerunning the same `-o` for the same task is safe and free; anything else already at a target is
-refused (exit 11). Meshy keeps a task's files for at most 3 days, and until then `get` and
-`download --resource` fetch them again, so never regenerate a model to obtain a file. Existing
+refused (exit 11). While Meshy keeps the task ([delivery](delivery.md)), `get` and
+`download --resource` fetch its files again, so never regenerate a model to obtain a file. Existing
 files, part-way transfers, task failures, interrupted waits and unknown submissions follow
 [troubleshooting](troubleshooting.md); a failed local save does not erase a remote task.

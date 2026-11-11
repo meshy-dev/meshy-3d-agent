@@ -33,8 +33,7 @@ assets for follow-ups.
 
 **Executables:** the Meshy CLI — `meshy`, or the pinned temporary package
 `npm exec --yes --package=meshy-cli@0.8.5 -- meshy` — plus `npm` to install it,
-`node --version` to check the runtime, and the file manager when the user asks to see a
-delivered file. No Python, no `curl`, no bundled scripts.
+`node --version` to check the runtime. No Python, no `curl`, no bundled scripts.
 
 **Credentials:** the CLI's own browser sign-in (OAuth device flow) stores and refreshes a
 session in `~/.config/meshy/credentials.v2.json` (mode 0600), encrypted under a key the OS keeps. An existing `MESHY_API_KEY`, or an
@@ -121,12 +120,7 @@ running the same login again; it never justifies re-running a paid task. Long `w
 behave the same way: let `exec` background them and resume from the completion wake, rather
 than re-submitting or looping on `sleep`.
 
-Only the CLI touches its config directory (`~/.config/meshy` by default): never read, copy,
-edit or delete a file there (an old `credentials.json` included), and never look for credentials
-anywhere else. When a sandboxed shell blocks the network (`auth login` fails with `oauth_network`
-or `fetch failed`), run the same command again with network access or outside the sandbox, asking
-the user to allow it if the host requires. Do not probe with `curl` or switch to `--with-key`
-(Setup, section 3).
+Only the CLI touches its config directory; a login blocked by a sandbox follows Setup, section 3.
 
 ## Execution boundaries
 

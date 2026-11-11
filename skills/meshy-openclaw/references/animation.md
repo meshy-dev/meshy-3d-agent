@@ -18,8 +18,7 @@ meshy rigging create --input-task-id TEXTURED_ID --height-meters 1.7 --async --f
 
 Apply the same pass/fail/unknown rule as for UV unwrap in [pipelines](pipelines.md). Wait through `rigging` using the newly accepted ID.
 For external input the rigging CLI accepts a textured GLB via `--model-url`, with the character
-facing +Z (glTF forward); it still needs the same suitability and face evidence. Do not pass the deprecated `--texture-image-url`: the rig
-keeps the model's own textures, and that flag replaces them with one image.
+facing +Z (glTF forward); it still needs the same suitability and face evidence.
 
 Choose the motion source in this order; stop at the first that gives the requested action:
 

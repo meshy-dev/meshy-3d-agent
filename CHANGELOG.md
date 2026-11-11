@@ -10,6 +10,10 @@
   task with image-to-3d. When proportions, depth or the back of the object matter, they offer
   multi-view images and multi-image-to-3d. Text-to-3d stays available as the quicker
   alternative. A white print from text follows the same route, with recipes for each step.
+- The skills are shorter. They drop guidance that is not about Meshy (wiring a model into an
+  app, revealing a file in the file manager, extracting archives, per-host process tools), notes
+  about older CLI and skill versions, and passages repeated across files. Setup now states the sign-in wait once for every host, and the
+  two-step sign-in applies to any host that cannot wait within a turn.
 
 ## [0.9.5] - 2026-11-09
 

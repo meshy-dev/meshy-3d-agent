@@ -218,7 +218,7 @@ test('explicit key-file uses balance verification without requiring a stored pro
   assert.ok(!output.stdout.includes('msy_synthetic_key_file'));
 });
 
-// setup.md "Remote chat": step one returns at once with the link and a flow id and prints no
+// setup.md "Two-step sign-in": step one returns at once with the link and a flow id and prints no
 // device code (the agent relays it to a chat); step two finishes that flow after the approval.
 test('two-step sign-in returns the link without the device code, then --device-flow finishes it', { skip }, async t => {
   const DEVICE_CODE = 'synthetic-two-step-device-code';

@@ -68,7 +68,6 @@ version, path and error handling in full.
 |---|---|
 | [meshy-3d-generation](skills/meshy-3d-generation/SKILL.md) | Text/image/2D/motion, textures, remesh, conversion, sizing, UV, rigging and animation |
 | [meshy-3d-printing](skills/meshy-3d-printing/SKILL.md) | White models, multi-color 3MF, analysis/repair, Creative Lab products and slicers |
-| [meshy-openclaw](skills/meshy-openclaw/SKILL.md) | Both workflows in one skill for OpenClaw, with its security manifest and install hint |
 
 Printing installs independently and controls its generation parameters from the start.
 Requested formats and already-approved budgets are preserved. Cost estimates come from
@@ -89,8 +88,8 @@ alone do not certify a host or operating system.
 ### Cursor plugin
 
 The repository is also a Cursor plugin. [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json)
-loads `meshy-3d-generation` and `meshy-3d-printing`, and leaves out `meshy-openclaw`, which repeats
-both. To load it from a clone instead of the marketplace:
+loads `meshy-3d-generation` and `meshy-3d-printing`. To load it from a clone instead of the
+marketplace:
 
 ```bash
 git clone https://github.com/meshy-dev/meshy-3d-agent.git ~/.cursor/plugins/local/meshy-3d-agent
@@ -122,11 +121,11 @@ allowlist for everyone in Cursor's dashboard. See
 
 ### OpenClaw and Hermes Agent
 
-OpenClaw installs one skill per listing, so `meshy-openclaw` carries both workflows and the same
-references as the other two (kept byte-identical by `scripts/build.py`). It is published on
-ClawHub as [Meshy 3D Agent](https://clawhub.ai/arlieeee/skills/meshy-3d-agent):
-`openclaw skills install @arlieeee/meshy-3d-agent`. It is eligible whenever `meshy` or `npm` is on
-`PATH` and offers the npm install of the CLI; `MESHY_API_KEY` is optional, not a gate.
+OpenClaw installs one skill per listing, so it gets both workflows in a single skill that lives in
+[meshy-openclaw](https://github.com/meshy-dev/meshy-openclaw) and carries this repository's
+references. It is published on ClawHub as
+[Meshy 3D Agent](https://clawhub.ai/arlieeee/skills/meshy-3d-agent):
+`openclaw skills install @arlieeee/meshy-3d-agent`.
 
 Hermes Agent reads the same skills from skills.sh, ClawHub or GitHub:
 `hermes skills install meshy-dev/meshy-3d-agent/skills/meshy-3d-generation`, or

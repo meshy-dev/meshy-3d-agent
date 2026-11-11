@@ -6,15 +6,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 # (owner skill, reference, skills carrying byte-identical copies so each installs on its own).
-# OpenClaw installs one skill, so it carries both workflows.
 SHARED = (
-    ("meshy-3d-generation", "setup.md", ("meshy-3d-printing", "meshy-openclaw")),
-    ("meshy-3d-generation", "delivery.md", ("meshy-3d-printing", "meshy-openclaw")),
-    ("meshy-3d-generation", "troubleshooting.md", ("meshy-3d-printing", "meshy-openclaw")),
-    ("meshy-3d-generation", "pipelines.md", ("meshy-openclaw",)),
-    ("meshy-3d-generation", "animation.md", ("meshy-openclaw",)),
-    ("meshy-3d-printing", "printing.md", ("meshy-openclaw",)),
-    ("meshy-3d-printing", "creative-lab.md", ("meshy-openclaw",)),
+    ("meshy-3d-generation", "setup.md", ("meshy-3d-printing",)),
+    ("meshy-3d-generation", "delivery.md", ("meshy-3d-printing",)),
+    ("meshy-3d-generation", "troubleshooting.md", ("meshy-3d-printing",)),
 )
 
 def sync_shared(check: bool) -> None:

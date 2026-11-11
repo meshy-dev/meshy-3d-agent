@@ -15,6 +15,15 @@
   about older CLI and skill versions, and passages repeated across files. Setup now states the sign-in wait once for every host, and the
   two-step sign-in applies to any host that cannot wait within a turn.
 
+### Removed
+
+- The combined OpenClaw skill moved to its own repository,
+  [meshy-openclaw](https://github.com/meshy-dev/meshy-openclaw), so an agent installing from this
+  repository gets the generation and printing skills once, without a third copy of both. The
+  ClawHub listing and `openclaw skills install @arlieeee/meshy-3d-agent` are unchanged. The
+  `meshy-openclaw` plugin is gone from this marketplace: on Claude Code, install
+  `meshy-3d-generation` and `meshy-3d-printing` instead.
+
 ## [0.9.5] - 2026-11-09
 
 ### Changed

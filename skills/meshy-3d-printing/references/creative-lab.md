@@ -110,9 +110,7 @@ meshy download --resource creative-lab.lamp.build --task-id BUILD_ID --asset mod
 
 For another listed asset, adapt the resource, selector and stage-specific output directory.
 Repeat `--asset` to select multiple actual parts. The CLI does not extract archives; do not label
-a downloaded ZIP as print-ready OBJ. Deliver the archive with extraction/import instructions, or
-use the host's supported archive operation within the workspace after validating member paths and
-symlinks. Do not create an extraction script inside the skill. Check the product's actual units
+a downloaded ZIP as print-ready OBJ. Check the product's actual units
 and orientation in the slicer; the generic Y-up rotation is not a blanket requirement for product
 STL/3MF/relief bundles. A figure OBJ that is Y-up can use the local preparation recipe.
 

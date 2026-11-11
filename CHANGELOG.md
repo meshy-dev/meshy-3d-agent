@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.9.6] - 2026-11-11
+
+### Changed
+
+- A 3D model from a description now starts with a recommended reference image. The generation,
+  printing and OpenClaw skills propose making an image first (text-to-image, or image-to-image
+  from a sketch, silhouette or logo), show it for approval, and build the model from that image
+  task with image-to-3d. When proportions, depth or the back of the object matter, they offer
+  multi-view images and multi-image-to-3d. Text-to-3d stays available as the quicker
+  alternative. A white print from text follows the same route, with recipes for each step.
+- The skills are shorter. They drop guidance that is not about Meshy (wiring a model into an
+  app, revealing a file in the file manager, extracting archives, per-host process tools), notes
+  about older CLI and skill versions, and passages repeated across files. Setup now states the sign-in wait once for every host, and the
+  two-step sign-in applies to any host that cannot wait within a turn.
+
+### Removed
+
+- The combined OpenClaw skill moved to its own repository,
+  [meshy-openclaw](https://github.com/meshy-dev/meshy-openclaw), so an agent installing from this
+  repository gets the generation and printing skills once, without a third copy of both. The
+  ClawHub listing and `openclaw skills install @arlieeee/meshy-3d-agent` are unchanged. The
+  `meshy-openclaw` plugin is gone from this marketplace: on Claude Code, install
+  `meshy-3d-generation` and `meshy-3d-printing` instead.
+
 ## [0.9.5] - 2026-11-09
 
 ### Changed

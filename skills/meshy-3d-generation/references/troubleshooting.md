@@ -3,8 +3,7 @@
 Every command uses `--format json --no-update-check` and prints one envelope. Read the process
 exit code and the envelope's `error`, `result` and `warnings`; preserve any task ID, operation
 ID, downloaded files and recovery command even when `ok` is false. Auth results are in
-`result` as well; see [setup.md](setup.md). A `metadata.json` left by an older version of this
-skill is no longer read by the CLI; take task IDs from it by hand.
+`result` as well; see [setup.md](setup.md).
 
 Contents: runner problems · authentication · exit codes · unknown submission, failure and
 timeout · deleting a task · local files.
@@ -37,8 +36,7 @@ status does not honor it.
 - **Login code expired or denied**: rerun the same `auth login --device` for a fresh code, and
   show the new URL and code. Nothing paid is retried because a login timed out.
 - **Works in another terminal**: compare status `source`, active profile, OS user and
-  config/API environment. An environment key overrides a stored OAuth session. Do not scan
-  shell profiles or print secret values.
+  config/API environment. An environment key overrides a stored OAuth session.
 - **`device_flow_not_supported`**: this API host has no device endpoint — the user logs in
   from their own desktop terminal, or supplies their own key privately.
 
@@ -47,7 +45,7 @@ status does not honor it.
 | Exit | Meaning | Recovery |
 |---|---|---|
 | 1 | Generic/server/protocol error or failed task | Inspect the error and any known task before deciding next steps. |
-| 2 | Usage or operation conflict | Correct arguments/account/payload mismatch; do not invent a fresh operation ID to bypass a conflict. A local STL/OBJ/FBX `--model-url` lands here: pass it as an http(s) URL instead. So do `unknown option '--output-schema'`, `'--project'` and `'--stage'`: drop those flags. |
+| 2 | Usage or operation conflict | Correct arguments/account/payload mismatch; do not invent a fresh operation ID to bypass a conflict. A local STL/OBJ/FBX `--model-url` lands here: pass it as an http(s) URL instead. |
 | 3 | Authentication | Use the source-aware checks above; status also uses this for failed network verification. |
 | 4 | Validation | Correct the rejected input or explain the unsupported request. |
 | 5 | Not found | Check the resource, task ID and account; a task older than Meshy's 3-day retention is gone (see Delivery). |

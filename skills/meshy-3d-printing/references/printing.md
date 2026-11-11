@@ -54,23 +54,53 @@ parts, product STLs) arrive in millimetres at a size Meshy chooses, not the user
 uniformly in the slicer to the requested size, and in the hand-over say which size to set rather
 than claiming the file already has it.
 
-## 1. White geometry from text or photo
+## 1. White geometry from a photo, an image or text
 
 A plain single-colour print is this route — generation, optional analysis, local preparation.
 The word "figurine", "statue" or "toy" does not by itself send the job to Creative Lab.
 
-Choose **one** creation route. Text preview is untextured geometry:
-
-```bash
-meshy text-to-3d create --mode preview --prompt "A sturdy small owl figurine on a broad flat base" --target-formats glb,obj --async --format json --no-update-check
-meshy text-to-3d wait TEXT_ID --timeout 600 --format json --no-update-check
-```
-
-Or use the user's photo (local JPG/PNG/WebP or a supported URL):
+Choose **one** creation route. The user's photo (local JPG/PNG/WebP or a supported URL) goes
+straight to image-to-3d:
 
 ```bash
 meshy image-to-3d create --image-url INPUT_IMAGE --should-texture false --target-formats glb,obj --async --format json --no-update-check
 meshy image-to-3d wait IMAGE_ID --timeout 600 --format json --no-update-check
+```
+
+Without a usable photo — a description, or a sketch, silhouette, line drawing or logo, which
+image-to-3d reads as a flat shape — recommend making a reference image first: the model follows
+its image closely, and a print is judged on exactly the shape the image fixes. Propose this route
+once, with text-to-3d (below) named as the quicker alternative with nothing to review; the user's
+yes covers every stage of the route they pick. Describe one solid object, whole and unobstructed,
+on a plain background in soft studio light, with the shape requirements the user stated (depth,
+proportions, what must not be thin). From a sketch, use image-to-image on it instead; wait on
+that resource the same way. When depth, sides or back matter, add `--generate-multi-view true`
+for front, side and back views:
+
+```bash
+meshy text-to-image create --ai-model gpt-image-2-5-flare --prompt "A single solid owl figurine on a broad flat base, whole object in view, plain background, soft studio light" --async --format json --no-update-check
+meshy image-to-image create --ai-model gpt-image-2-5-flare --prompt "Turn this outline into one solid, rounded object, whole object in view, plain background, soft studio light" --reference-image-urls INPUT_IMAGE --async --format json --no-update-check
+meshy text-to-image create --ai-model gpt-image-2-5-flare --prompt "A single solid owl figurine on a broad flat base" --generate-multi-view true --async --format json --no-update-check
+meshy text-to-image wait DESIGN_ID --timeout 600 --format json --no-update-check
+```
+
+Download the image with `download --kind image` and show it; continue once the user approves it,
+adjusting it with image-to-image `--input-task-id DESIGN_ID` until they do (unless they said not
+to stop for review). A multi-view task can return fewer than three views; look at them. Then make
+the model from that task: one image feeds image-to-3d, multi-view output feeds multi-image-to-3d.
+
+```bash
+meshy image-to-3d create --input-task-id DESIGN_ID --should-texture false --target-formats glb,obj --async --format json --no-update-check
+meshy multi-image-to-3d create --input-task-id DESIGN_ID --should-texture false --target-formats glb,obj --async --format json --no-update-check
+```
+
+Wait on the resource that made the model, as above. Text-to-3d goes straight from words to
+untextured geometry: faster, but the only way to steer it is to reword the prompt and pay for
+another model. Run it when the user picks it, asks for a quick draft, or names text-to-3d:
+
+```bash
+meshy text-to-3d create --mode preview --prompt "A sturdy small owl figurine on a broad flat base" --target-formats glb,obj --async --format json --no-update-check
+meshy text-to-3d wait TEXT_ID --timeout 600 --format json --no-update-check
 ```
 
 `--should-texture false` is deliberate for a white print: the CLI textures an image by default,

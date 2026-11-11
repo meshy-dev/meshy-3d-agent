@@ -16,7 +16,9 @@ text.
 
 | What the user wants | Route | Notes |
 |---|---|---|
-| A model to look at / a digital prop | text-to-3d preview, then refine when texture is wanted | GLB unless they name a format |
+| A model from a description | recommend: text-to-image → the user approves the image → image-to-3d from that task; or text-to-3d preview, then refine when texture is wanted | offer both, image route first; see *Start from an image* below |
+| A model from a sketch, silhouette, line drawing or logo | image-to-image into a shaded image → the user approves it → image-to-3d from that task | an outline is not a photo; text-to-3d would ignore it |
+| A model whose exact shape matters: proportions, depth, sides or back one picture cannot show | multi-view text-to-image or image-to-image → the user approves the views → multi-image-to-3d from that task | see *Start from an image* below |
 | A model of a specific object in a photo | image-to-3d, textured by default (`--should-texture false` for a draft) | one clean reference, whole subject visible; pick the models by project (below) |
 | A model from multi-view images of one object (front, side, back) | multi-image-to-3d | every view shows the same object; front first |
 | A game character to rig and animate, from an image | image-to-3d with smart topology (`meshy-t2.5`) and `--texture-model meshy-n1` in A/T pose, then rigging | set `--target-polycount`; see [animation](animation.md) |
@@ -29,11 +31,36 @@ text.
 | A motion clip without a character | text-to-motion | see [animation](animation.md) |
 | A UV-unwrapped white model to texture elsewhere | uv-unwrap | GLB, at most 40,000 faces |
 | A different format / size of an existing asset | convert / resize on that task | one step, no regeneration |
-| A concept image, or a style reference before committing to 3D | text-to-image / image-to-image | optional, and only when offered and accepted |
+| A concept image or a style reference on its own | text-to-image / image-to-image | see *2D images* below |
 | A printable physical object | the print workflow, not these recipes | it sets geometry, format and texture from the start |
 
 Prefer the shortest chain that satisfies the request. An untextured mesh does not need refine;
-a GLB does not need a convert step; a plain preview does not need a 2D concept first.
+a GLB does not need a convert step.
+
+## Start from an image
+
+A 3D model follows its reference image closely, so an image is the best place for the user to
+steer the result. When the request has no usable photo, recommend making one first:
+
+1. **Propose the plan once**, before any paid create: the image route, with text-to-3d named as
+   the quicker alternative with nothing to review. The user's yes covers every stage of the route
+   they pick; the image review below is not a second cost question.
+2. **Make the image** with text-to-image, or with image-to-image when the user gave a sketch,
+   silhouette, line drawing or logo: those are outlines, not photos, and image-to-3d reads them
+   as flat shapes. Describe the subject as one object, whole and unobstructed, on a plain
+   background in soft studio light, with the shape requirements the user stated (depth,
+   proportions, what must not be thin). For a model whose exact shape matters, add
+   `--generate-multi-view true` to get front, side and back views of the same object.
+3. **Show the image and wait for approval.** Adjust it with image-to-image from that task
+   (`--input-task-id`) until the user is satisfied: a new image costs less than a new model.
+   Skip the review only when the user said not to stop for it.
+4. **Make the model from that task** by `--input-task-id`: image-to-3d from a single image,
+   multi-image-to-3d from multi-view output. A multi-view task can return fewer than three views;
+   look at them before the 3D create.
+
+Text-to-3d goes straight from words to geometry: faster, but the only way to steer it is to
+reword the prompt and pay for another model. Run it when the user picks it, asks for a quick
+draft, or names text-to-3d.
 
 ## Choose the models by project
 
@@ -150,16 +177,18 @@ photos is `meshy-7.1` with `meshy-7`; `--texture-model meshy-n1` also paints fro
 meshy multi-image-to-3d create --image-urls "FRONT_PATH,SIDE_PATH,BACK_PATH" --should-texture true --texture-model meshy-7 --enable-pbr true --texture-resolution 4k --target-formats glb --async --format json --no-update-check
 ```
 
-A completed text-to-image or image-to-image task can supply the reference without downloading
-and re-uploading it:
+**From an image task** (the image-first route above): a completed text-to-image or
+image-to-image task supplies the reference without downloading and re-uploading it. These run
+the untextured draft; the texture and model flags of the recipes above apply the same way.
 
 ```bash
 meshy image-to-3d create --input-task-id IMAGE_TASK_ID --should-texture false --target-formats glb --async --format json --no-update-check
+meshy multi-image-to-3d create --input-task-id VIEWS_TASK_ID --should-texture false --target-formats glb --async --format json --no-update-check
 ```
 
-That image task must have produced exactly one image; a multi-view image task feeds
-`multi-image-to-3d --input-task-id` instead. Use the resulting 3D task for retexture, not the 2D
-task. For single-image humanoids, `--pose-mode a-pose` is available.
+Image-to-3d takes a task that produced exactly one image; a multi-view image task feeds
+multi-image-to-3d instead. Use the resulting 3D task for retexture, not the 2D task. For
+single-image humanoids, `--pose-mode a-pose` is available.
 
 ## Texture, topology, formats and scale
 
@@ -210,8 +239,8 @@ new download and check. An unknown count is not a pass, and not a reason for a s
 ## 2D images
 
 Text-to-image makes a design or reference image. Image-to-image edits an existing reference; keep
-the edit prompt specific. These may be final deliverables, or approved pre-steps to 3D — offer
-them, never insert them silently into a 3D request. Use `gpt-image-2-5-flare` unless the user names
+the edit prompt specific. These may be final deliverables, or the first stage of a 3D request
+(*Start from an image* above), proposed with the rest of the plan. Use `gpt-image-2-5-flare` unless the user names
 another model from `create --help`. `nano-banana-pro`, and `--pose-mode` on the older nano-banana
 models, need a Pro plan or above. On a lower plan the create fails with exit 9 and
 `plan_upgrade_required` even with credits left: retry once on `gpt-image-2-5-flare` rather than
@@ -222,9 +251,15 @@ meshy text-to-image create --ai-model gpt-image-2-5-flare --prompt "DESIGN_DESCR
 meshy image-to-image create --ai-model gpt-image-2-5-flare --prompt "EDIT_DESCRIPTION" --reference-image-urls "IMAGE_PATH" --async --format json --no-update-check
 ```
 
-Wait on the selected resource as above. A character concept from text-to-image can use
-`--generate-multi-view true --pose-mode a-pose` (drop `--aspect-ratio`: the two exclude each
-other). A nano-banana model renders any pose at 3:4
+Wait on the selected resource as above. `--generate-multi-view true` makes front, side and back
+views of one object as transparent cutouts, on either command; drop `--aspect-ratio`, which it
+excludes:
+
+```bash
+meshy text-to-image create --ai-model gpt-image-2-5-flare --prompt "VIEWS_DESCRIPTION" --generate-multi-view true --async --format json --no-update-check
+```
+
+A character concept adds `--pose-mode a-pose`. A nano-banana model renders any pose at 3:4
 (a `pose_aspect_ratio` warning says so). `--remove-background true` returns a transparent PNG. A
 finished image task can feed image-to-image with `--input-task-id IMAGE_TASK_ID` instead of
 re-uploading its output. Download image tasks with `--kind image`, using `--output-dir`.
@@ -258,7 +293,7 @@ command carries `--workspace WORKSPACE`. A `get` of a task that has not succeede
 `downloads.state: "not_ready"` with exit 0, so `wait` first.
 
 Rerunning the same `-o` for the same task is safe and free; anything else already at a target is
-refused (exit 11). Meshy keeps a task's files for at most 3 days, and until then `get` and
-`download --resource` fetch them again, so never regenerate a model to obtain a file. Existing
+refused (exit 11). While Meshy keeps the task ([delivery](delivery.md)), `get` and
+`download --resource` fetch its files again, so never regenerate a model to obtain a file. Existing
 files, part-way transfers, task failures, interrupted waits and unknown submissions follow
 [troubleshooting](troubleshooting.md); a failed local save does not erase a remote task.

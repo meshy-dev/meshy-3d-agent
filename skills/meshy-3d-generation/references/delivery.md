@@ -6,7 +6,7 @@ what the user sees while it runs, what is handed over at the end, and how the ne
 ("make it 1500 faces", "now as FBX") reuses what already exists.
 
 Contents: cost · waiting · previews · handing over the result · continuing from something that
-already exists · wiring the asset into a project.
+already exists.
 
 ## Cost: only estimates you can point at
 
@@ -99,31 +99,22 @@ download, and "looks right" is never claimed for an image nobody looked at.
 
 Deliver four things, every time:
 
-1. **The model file**, at the path the user asked for, written as a plain path in backticks.
-   Do not present it as a clickable link: hosts open such links in a text/preview pane that
-   cannot render a binary mesh, and it looks broken. A host with a tool that delivers files to the
-   user (dsh's `present`) gets the model through that tool as well, so it opens from the
-   conversation. Offer the next real action instead —
-   reveal it in the file manager (`open -R <path>` on macOS, `explorer /select,<path>` on
-   Windows), open it in a local 3D tool, or wire it into the project.
+1. **The model file**, at the path the user asked for.
 2. **The preview**, shown inline when one exists, or an explicit note that none does.
    A PNG render is not an interactive 3D viewer; this CLI has no local viewer command, so say
    "rendered preview", never "3D preview".
 3. **The task trail**: the producing task ID(s) and the resource each belongs to. That is what
    makes the next request cheap. A delivery made with `-o` also leaves a sidecar beside the model
-   (`chest_meta.json` next to `chest.glb`, or `meta.json` in a directory) that records the same
-   resource and task ID; `download` and `mesh prepare-print` leave none. The file's own location
-   comes from `result.downloads.files`. When there is a sidecar, name it in the handover so the
-   extra file is no surprise: it records which Meshy task made the model, so a later "now as FBX"
-   continues from that task instead of generating again. It also holds the task's signed URLs,
-   so do not paste it whole. The user may delete it; then follow-ups
-   fall back to the account's task list, and the same `-o` no longer replaces that model, so a new
-   delivery needs a new path.
+   (`chest_meta.json` next to `chest.glb`, or `meta.json` in a directory; `download` and
+   `mesh prepare-print` leave none) recording the same resource and task ID. Name it in the
+   handover: a later "now as FBX" continues from that task instead of generating again. It holds
+   the task's signed URLs, so do not paste it.
 4. **What it cost**: `consumed_credits` when reported, otherwise stated as unknown, plus any
    warnings that affect use.
 
-If the result is wrong, report it and offer the concrete fix (a rerun, a different reference
-image, different parameters) with its cost. Do not silently rerun a paid stage.
+If the result is wrong, report it and offer the concrete fix (a rerun, a new or edited
+reference image, multi-view input, different parameters) with its cost. Do not silently rerun a
+paid stage.
 
 ## Continuing from something that already exists
 
@@ -160,14 +151,3 @@ format, `resize` for a physical size, `retexture` for a new look, `rigging`/`ani
 Ask only when the reference is genuinely ambiguous (several candidates, none obviously the one),
 and then ask with the candidates listed — never by asking the user to find a task ID. A missing
 index is a lookup problem, not a reason to regenerate.
-
-## Wiring the asset into a project
-
-When the user asks for the asset **in** their game, site or app — "use it in my Three.js scene",
-"add it to the Unity project" — finish that job: check the preview first, put the file where the
-project keeps its assets, add the loader call, prefab entry or manifest line the project
-actually uses, and verify the reference resolves (the path exists, the build or type check still
-passes). Match the surrounding code's conventions.
-
-Without such a request, deliver the files and stop. Do not edit application code, asset
-manifests or build configuration on your own initiative.

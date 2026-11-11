@@ -8,9 +8,9 @@ compatibility: "Needs Node.js 22.12+ and the Meshy CLI 0.8.x, 0.8.5 or later (np
 # Meshy 3D Generation
 
 Use Meshy CLI **0.8** (0.8.5 or later) to turn the user's request into a delivered asset. Completion means
-saving the requested files in the requested location, inspecting an available preview, and
-finishing any project integration the user requested. Login or task submission alone is not
-completion. Choose the shortest suitable pipeline and reuse existing assets for follow-ups.
+saving the requested files in the requested location and inspecting an available preview.
+Login or task submission alone is not completion. Choose the shortest suitable pipeline and
+reuse existing assets for follow-ups.
 
 ## Read what this request needs
 
@@ -28,29 +28,17 @@ existing GLB needs no extra format conversion. Use command help when parameters 
 
 ## First use and authorization
 
-**DeepSeek Harness with the Meshy plugin** (`DSH_MESHY_CLI` is set; check with
-`test -n "$DSH_MESHY_CLI"`): the plugin ships the CLI and keeps the sign-in. Run every command as
-`"$DSH_MESHY_NODE" "$DSH_MESHY_CLI" …` in place of `meshy …` — never a `meshy` on PATH, which
-cannot see that sign-in — install nothing, and when a command reports that nobody is signed in,
-call the `meshy_sign_in` tool instead of `auth login` (Setup, section 1). Everywhere else:
+In DeepSeek Harness with the Meshy plugin (`DSH_MESHY_CLI` is set) run every command as
+`"$DSH_MESHY_NODE" "$DSH_MESHY_CLI" …`, never a `meshy` on PATH, install nothing, and sign in with
+the `meshy_sign_in` tool. Everywhere else run `meshy --version` before the first command, without
+asking; when it is missing or older than 0.8.5, install it with `npm install -g meshy-cli@0.8`
+and say so in one line ([Setup](references/setup.md), section 1).
 
-Before the first command run `meshy --version`; no need to ask. When `meshy` is missing or
-older than 0.8.5, install the newest 0.8.x with `npm install -g meshy-cli@0.8` and say so in
-one line; Setup covers a refused install and a CLI of 0.9 or newer. Reuse a verified session. If login is
-needed, follow Setup and run `auth login --device` (adding `--region cn` for a user in mainland
-China: the same account and the same credits as the global site) in a persistent tool session. Show its
-verification URL and user code in **commentary/progress, not a final answer**. Await that same
-session in this turn until it exits, verify `auth status`, then continue the original request.
-A background process cannot resume a finished turn; do not require a "done" chat message, except in
-Setup's two-step sign-in for a user on a remote chat (a phone through a chat bot).
-Browser approval stays with the user; credentials never belong in chat.
-
-Only the CLI touches its config directory (`~/.config/meshy` by default): never read, copy,
-edit or delete a file there (an old `credentials.json` included), and never look for credentials
-anywhere else. When a sandboxed shell blocks the network (`auth login` fails with `oauth_network`
-or `fetch failed`), run the same command again with network access or outside the sandbox, asking
-the user to allow it if the host requires. Do not probe with `curl` or switch to `--with-key`
-(Setup, section 3).
+Reuse a verified session. If login is needed, run `auth login --device` (with `--region cn` for a
+user in mainland China) as Setup, section 3 describes: show its URL and user code in
+**commentary/progress, not a final answer**, wait on that same command in this turn, verify
+`auth status`, then continue the original request. Browser approval stays with the user;
+credentials never belong in chat, and only the CLI touches its config directory.
 
 ## Execution boundaries
 
@@ -67,6 +55,9 @@ the user to allow it if the host requires. Do not probe with `curl` or switch to
 - Submit once with `create --async`, retain the owning resource and ID, then `wait` on that
   task. Keep the agent turn active while awaiting a running command. Follow Troubleshooting
   on timeout or unknown submission; these do not authorize another paid create.
+- Without a usable photo, recommend making a reference image first and building the model
+  from it; text-to-3d is the quicker alternative ([Pipelines](references/pipelines.md), *Start
+  from an image*).
 - Continue work within the user's approved scope and budget. Propose additional paid stages
   or reruns before spending; Delivery specifies estimates and balance checks.
 
@@ -74,5 +65,5 @@ the user to allow it if the host requires. Do not probe with `curl` or switch to
 
 Download only needed assets. Inspect and show a preview when available; a missing preview
 must not prevent delivery or be described as inspected. Delivery covers earlier-stage preview
-lookup, actual charges, and existing-project integration. Report the result and any concrete
+lookup and actual charges. Report the result and any concrete
 limitation; a rendered image does not establish topology quality or provide a 3D viewer.

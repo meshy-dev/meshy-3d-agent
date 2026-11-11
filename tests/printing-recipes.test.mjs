@@ -25,7 +25,7 @@ function recipe(prefix) {
   assert.ok(line, `documented command exists: ${prefix}`);
   return line;
 }
-const TOKENS = /JOB_DIR|CURRENT_MODEL_URL|INPUT_IMAGE|CURRENT_RESOURCE|CURRENT_ID|SOURCE_ID|SOURCE_OBJ|TEXTURED_ID|PROTOTYPE_ID|MULTICOLOR_ID|ANALYSIS_ID|REPAIR_ID|BUILD_ID|IMAGE_ID|TEXT_ID|OBJ_PATH|OUTPUT_FILE|WORKSPACE|PRODUCT/g;
+const TOKENS = /JOB_DIR|CURRENT_MODEL_URL|INPUT_IMAGE|CURRENT_RESOURCE|CURRENT_ID|SOURCE_ID|SOURCE_OBJ|TEXTURED_ID|PROTOTYPE_ID|MULTICOLOR_ID|ANALYSIS_ID|REPAIR_ID|BUILD_ID|DESIGN_ID|IMAGE_ID|TEXT_ID|OBJ_PATH|OUTPUT_FILE|WORKSPACE|PRODUCT/g;
 function argv(line, substitutions) {
   return words(line).slice(1).map(arg => arg.replace(TOKENS, token => {
     assert.ok(token in substitutions, `unbound documentation token: ${token}`);
@@ -114,7 +114,7 @@ async function fixture(t) {
   const image = join(root, 'photo.png');
   await writeFile(image, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a9l8AAAAASUVORK5CYII=', 'base64'));
   const tokens = { ...paths, INPUT_IMAGE: image, CURRENT_MODEL_URL: `${origin}/assets/model.glb`,
-    SOURCE_ID: 'source-task', CURRENT_ID: 'repair-task', TEXT_ID: 'text-preview', IMAGE_ID: 'image-task', TEXTURED_ID: 'textured-task', PROTOTYPE_ID: 'prototype-task' };
+    SOURCE_ID: 'source-task', CURRENT_ID: 'repair-task', TEXT_ID: 'text-preview', IMAGE_ID: 'image-task', TEXTURED_ID: 'textured-task', PROTOTYPE_ID: 'prototype-task', DESIGN_ID: 'design-task' };
   return { root, workspace, requests, tasks, tokens, ok, run, obj };
 }
 
@@ -168,11 +168,21 @@ test('actual documented create commands submit the expected white/multicolor/rep
         }
       } else {
         const paths = { 'text-to-3d': '/openapi/v2/text-to-3d', 'image-to-3d': '/openapi/v1/image-to-3d',
+          'multi-image-to-3d': '/openapi/v1/multi-image-to-3d', 'text-to-image': '/openapi/v1/text-to-image',
+          'image-to-image': '/openapi/v1/image-to-image',
           'analyze-printability': '/openapi/v1/print/analyze', 'repair-printability': '/openapi/v1/print/repair',
           retexture: '/openapi/v1/retexture', 'multi-color-print': '/openapi/v1/print/multi-color',
           'auto-split': '/openapi/v1/print/split' };
         assert.equal(request.path, paths[args[1]]);
-        if (args[1] === 'image-to-3d') { assert.equal(request.body.should_texture, false); assert.deepEqual(request.body.target_formats, ['glb', 'obj']); }
+        if (['image-to-3d', 'multi-image-to-3d'].includes(args[1])) { assert.equal(request.body.should_texture, false); assert.deepEqual(request.body.target_formats, ['glb', 'obj']); }
+        if (args[1] === 'multi-image-to-3d') assert.equal(request.body.input_task_id, 'design-task');
+        if (args[1] === 'image-to-3d' && !request.body.image_url) assert.equal(request.body.input_task_id, 'design-task');
+        if (args[1] === 'text-to-image' || args[1] === 'image-to-image') {
+          // A reference image for a print: one model chosen up front, and multi-view never with a ratio.
+          assert.equal(request.body.ai_model, 'gpt-image-2-5-flare');
+          if (request.body.generate_multi_view) assert.equal(request.body.aspect_ratio, undefined);
+          if (args[1] === 'image-to-image') assert.match(request.body.reference_image_urls[0], /^data:image\/png;base64,/);
+        }
         if (args[1] === 'text-to-3d') {
           assert.equal(request.body.mode, args[args.indexOf('--mode') + 1]);
           if (request.body.mode === 'preview') assert.deepEqual(request.body.target_formats, ['glb', 'obj']);
@@ -189,7 +199,7 @@ test('actual documented create commands submit the expected white/multicolor/rep
       count++;
     }
   }
-  assert.equal(count, 23, 'all current documented create variants were exercised');
+  assert.equal(count, 28, 'all current documented create variants were exercised');
 });
 
 test('Creative Lab downloads distinguish optional lamp base, bundles and relief OBJ archives', { skip }, async t => {
@@ -220,6 +230,28 @@ test('Creative Lab downloads distinguish optional lamp base, bundles and relief 
     else assert.match(text, /model\.obj/);
     assert.ok(files.length >= 1);
   }
+});
+
+test('the documented image-first white model chains the approved image task into image-to-3d', { skip }, async t => {
+  const f = await fixture(t);
+  const design = await f.ok(argv(recipe('text-to-image create '), f.tokens));
+  const tokens = { ...f.tokens, DESIGN_ID: design.result.submission.task_id };
+  const waited = await f.ok(argv(recipe('text-to-image wait DESIGN_ID '), tokens));
+  assert.equal(waited.result.task.status, 'SUCCEEDED');
+  const model = await f.ok(argv(recipe('image-to-3d create --input-task-id DESIGN_ID '), tokens));
+  const post = f.requests.filter(r => r.method === 'POST').at(-1);
+  assert.equal(post.path, '/openapi/v1/image-to-3d');
+  assert.equal(post.body.input_task_id, tokens.DESIGN_ID, 'the 3D create reuses the image task, no re-upload');
+  assert.equal(post.body.image_url, undefined);
+  assert.ok(model.result.submission.task_id);
+});
+
+test('the white-model route recommends a reference image first and keeps text-to-3d as the quicker alternative', () => {
+  const section = doc.slice(doc.indexOf('## 1. White geometry'), doc.indexOf('## 2. Analyze'));
+  assert.ok(section.indexOf('meshy text-to-image create ') < section.indexOf('meshy text-to-3d create '), 'the image route comes first');
+  assert.match(section, /recommend making a reference image first/);
+  assert.match(section, /text-to-3d \(below\) named as the quicker alternative/);
+  assert.match(section, /--generate-multi-view true/);
 });
 
 test('documented white-model download and prepare-print preserve source and produce requested Z-up dimensions', { skip }, async t => {

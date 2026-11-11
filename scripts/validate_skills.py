@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the three independently installable CLI skills and the plugin manifests that list them."""
+"""Validate the two independently installable CLI skills and the plugin manifests that list them."""
 import argparse
 import hashlib
 import json
@@ -14,9 +14,7 @@ import urllib.request
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
-SKILLS = ("meshy-3d-generation", "meshy-3d-printing", "meshy-openclaw")
-# meshy-openclaw repeats both of these in one skill for OpenClaw, so the Cursor plugin lists only these.
-CURSOR_SKILLS = ("meshy-3d-generation", "meshy-3d-printing")
+SKILLS = ("meshy-3d-generation", "meshy-3d-printing")
 # Cursor's schemas, fetched at a pinned commit and checked by hash. cursor/plugins has no license,
 # and the repository root is the plugin package, so no copy is kept here.
 CURSOR_SCHEMA_URL = "https://raw.githubusercontent.com/cursor/plugins/5229aad76c37451561c5b81a9b5072ae1c549a5b/schemas/{}.schema.json"
@@ -25,9 +23,8 @@ CURSOR_SCHEMAS = {
     "marketplace": "50c85058bf329588401fd2fc93180a574fa64abbb6c2606400febfb6f4d094e8",
 }
 PATH_KEYS = ("composerIcon", "logo", "skills", "icon_small", "icon_large")
-VERSION = "0.9.5"
-# The Meshy CLI the skills are written for: any 0.8.x from MIN_CLI. Package specs use the range.
-CLI = "0.8"
+VERSION = "0.9.6"
+# The Meshy CLI the skills are written for: any 0.8.x from MIN_CLI.
 MIN_CLI = "0.8.5"
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 # The pinned temporary-package runner documented in setup.md; recipes stay written as `meshy ...`.
@@ -55,13 +52,7 @@ def validate_skill(folder):
     meta = yaml.safe_load(match.group(1))
     require(meta.get("name") == folder.name, f"{entry}: name mismatch")
     require(bool(meta.get("description")), f"{entry}: missing description")
-    # OpenClaw gates and installs skills from metadata.openclaw; nothing else carries metadata.
-    allowed = {"openclaw"} if folder.name == "meshy-openclaw" else set()
-    require(set(meta.get("metadata") or {}) == allowed and "interface" not in meta, f"{entry}: unexpected metadata/interface block; the release version lives in the plugin manifests")
-    require("env" not in ((meta.get("metadata") or {}).get("openclaw", {}).get("requires") or {}), f"{entry}: an env gate hides the skill from users who sign in through the browser")
-    if folder.name == "meshy-openclaw":
-        installs = meta["metadata"]["openclaw"].get("install") or []
-        require([spec.get("package") for spec in installs] == [f"meshy-cli@{CLI}"], f"{entry}: the OpenClaw install hint must pin meshy-cli@{CLI}")
+    require(not meta.get("metadata") and "interface" not in meta, f"{entry}: unexpected metadata/interface block; the release version lives in the plugin manifests")
     require(MIN_CLI in text, f"{entry}: missing minimum CLI version")
     require(len(text.splitlines()) <= 300, f"{entry}: move detail into references")
     markdown = set()
@@ -154,9 +145,8 @@ def cursor_schema(name):
 def validate_cursor(manifest, root):
     for error in jsonschema.Draft7Validator(cursor_schema("plugin")).iter_errors(manifest):
         raise ValueError(f".cursor-plugin/plugin.json: {error.json_path}: {error.message}")
-    # Cursor scans a string as a folder of skills, which would also load meshy-openclaw; a list
-    # entry whose folder holds a SKILL.md loads exactly that skill.
-    require(manifest.get("skills") == [f"./skills/{name}" for name in CURSOR_SKILLS], ".cursor-plugin/plugin.json: skills must list exactly the generation and printing skills")
+    # A list entry whose folder holds a SKILL.md loads exactly that skill.
+    require(manifest.get("skills") == [f"./skills/{name}" for name in SKILLS], ".cursor-plugin/plugin.json: skills must list exactly the generation and printing skills")
     # The Marketplace tile shows the logo as a square; a PNG keeps its own dark background on light themes.
     logo = root / manifest.get("logo", "")
     require(logo.suffix == ".png" and logo.is_file(), ".cursor-plugin/plugin.json: logo must be a PNG in the repository")

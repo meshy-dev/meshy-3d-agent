@@ -122,8 +122,9 @@ Deliver four things, every time:
 4. **What it cost**: `consumed_credits` when reported, otherwise stated as unknown, plus any
    warnings that affect use.
 
-If the result is wrong, report it and offer the concrete fix (a rerun, a different reference
-image, different parameters) with its cost. Do not silently rerun a paid stage.
+If the result is wrong, report it and offer the concrete fix (a rerun, a new or edited
+reference image, multi-view input, different parameters) with its cost. Do not silently rerun a
+paid stage.
 
 ## Continuing from something that already exists
 

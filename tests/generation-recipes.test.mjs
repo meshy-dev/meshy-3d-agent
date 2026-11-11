@@ -145,7 +145,7 @@ const routes = {
 test('every documented generation create submits once with the intended payload and owning resource', { skip }, async t => {
   const f = await fixture(t, (req, res, count) => json(res, req.method === 'POST' ? 200 : 500, { result: `accepted-${count}` }));
   const creates = commands.filter(line => /^meshy \S+ create /.test(line));
-  assert.equal(creates.length, 20, 'review workflow coverage when adding/removing a recipe');
+  assert.equal(creates.length, 22, 'review workflow coverage when adding/removing a recipe');
   const pairs = new Set(); // geometry + texture model of each image recipe, checked against the guide below
   for (const line of creates) {
     const args = argv(line, f.replacements);
@@ -191,6 +191,7 @@ test('every documented generation create submits once with the intended payload 
         }
         break;
       case 'multi-image-to-3d':
+        if (p.input_task_id) { assert.equal(p.input_task_id, 'VIEWS_TASK_ID'); assert.equal(p.should_texture, false); assert.equal(p.image_urls, undefined); break; }
         assert.deepEqual(p.image_urls, [f.imageUri, f.imageUri, f.imageUri]); assert.equal(p.should_texture, true);
         assert.equal(p.ai_model, undefined, 'the default meshy-7.1'); assert.equal(p.texture_model, 'meshy-7'); assert.equal(p.enable_pbr, true); assert.equal(p.texture_resolution, '4k');
         pairs.add(`multi-image-to-3d meshy-7.1 ${p.texture_model}`);
@@ -207,18 +208,32 @@ test('every documented generation create submits once with the intended payload 
         else if (p.motion_task_id) { assert.equal(p.motion_task_id, 'MOTION_ID'); assert.equal(p.action_id, undefined); }
         else assert.equal(p.action_id, 1);
         break;
-      case 'text-to-image': assert.equal(p.ai_model, 'gpt-image-2-5-flare'); assert.equal(p.aspect_ratio, '1:1'); assert.equal(p.prompt, 'DESIGN_DESCRIPTION'); break;
+      case 'text-to-image':
+        assert.equal(p.ai_model, 'gpt-image-2-5-flare');
+        if (p.generate_multi_view) { assert.equal(p.generate_multi_view, true); assert.equal(p.aspect_ratio, undefined, 'multi-view excludes a ratio'); assert.equal(p.prompt, 'VIEWS_DESCRIPTION'); }
+        else { assert.equal(p.aspect_ratio, '1:1'); assert.equal(p.prompt, 'DESIGN_DESCRIPTION'); }
+        break;
       case 'image-to-image': assert.equal(p.ai_model, 'gpt-image-2-5-flare'); assert.deepEqual(p.reference_image_urls, [f.imageUri]); assert.equal(p.prompt, 'EDIT_DESCRIPTION'); break;
       case 'text-to-motion': assert.equal(p.mode, 'prime'); assert.equal(p.duration, 3); assert.equal(p.prompt, 'MOTION_DESCRIPTION'); break;
       default: assert.fail(`unreviewed recipe resource: ${args[0]}`);
     }
   }
-  assert.equal(f.requests.filter(req => req.method === 'POST').length, 20);
+  assert.equal(f.requests.filter(req => req.method === 'POST').length, 22);
   // Every digital row of the models guide has a recipe; the print row lives in the print workflow.
   assert.deepEqual([...pairs].sort(), [
     'image-to-3d meshy-6-lite meshy-6-lite', 'image-to-3d meshy-7.1 meshy-7', 'image-to-3d meshy-t2 meshy-n1',
     'image-to-3d meshy-t2.5 meshy-n1', 'multi-image-to-3d meshy-7.1 meshy-7',
   ]);
+});
+
+test('a description is routed to an approved reference image first, with text-to-3d as the quicker alternative', () => {
+  const doc = readFileSync(new URL('../skills/meshy-3d-generation/references/pipelines.md', import.meta.url), 'utf8');
+  const table = doc.slice(doc.indexOf('## Pick the route from the intent'), doc.indexOf('## Start from an image'));
+  const row = table.split('\n').find(line => line.startsWith('| A model from a description |'));
+  assert.ok(row, 'the description row exists');
+  assert.ok(row.indexOf('text-to-image') < row.indexOf('text-to-3d'), 'the image route is offered first');
+  assert.match(table, /\| A model from a sketch, silhouette, line drawing or logo \| image-to-image/);
+  assert.doesNotMatch(doc, /only when offered and accepted|does not need a 2D concept/);
 });
 
 // The "choose models by project" guide is the same in every Meshy integration (PRO-4335): wording

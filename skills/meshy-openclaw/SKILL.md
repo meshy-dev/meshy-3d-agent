@@ -81,7 +81,7 @@ first command**, so generation parameters fit the print. Everything else follows
 |---|---|
 | Scale, orient or ground an existing OBJ | Local `mesh prepare-print`; no sign-in or balance |
 | Open an existing STL or 3MF | Local `slicer detect` and `slicer open`; no sign-in or balance |
-| White model from text or photo | Geometry without textures; analyze/repair as needed; prepare the file |
+| White model from a photo, a sketch or text | Photo: image-to-3d. Otherwise recommend a reference image first (multi-view when depth or sides matter), with text-to-3d as the quicker alternative; geometry without textures; analyze/repair as needed; prepare the file |
 | Multicolor model | Generate/reuse geometry; analyze/repair as needed; texture; multi-color-print |
 | Print in separate parts (build plate, colours per part, fewer supports) | Generate/reuse geometry; auto-split; slice the parts |
 | Check or fix an existing model (holes, thin walls), any format | Free analyze-printability by task ID or `--model-url`; repair only if needed |
@@ -143,6 +143,9 @@ the user to allow it if the host requires. Do not probe with `curl` or switch to
 - Submit once with `create --async`, keep the owning resource and task ID, then `wait` on that
   task. Timeouts and unknown submissions follow Troubleshooting; they never authorize another
   paid create.
+- Without a usable photo, recommend making a reference image first and building the model
+  from it; text-to-3d is the quicker alternative ([Pipelines](references/pipelines.md), *Start
+  from an image*; prints: [Printing recipes](references/printing.md), section 1).
 - Work within the approved scope and budget; propose additional paid stages or reruns before
   spending. Local preparation and printability analysis are free; Delivery covers estimates.
 - Repair changes geometry and drops textures: use the repaired geometry downstream and

@@ -67,6 +67,9 @@ the user to allow it if the host requires. Do not probe with `curl` or switch to
 - Submit once with `create --async`, retain the owning resource and ID, then `wait` on that
   task. Keep the agent turn active while awaiting a running command. Follow Troubleshooting
   on timeout or unknown submission; these do not authorize another paid create.
+- Without a usable photo, recommend making a reference image first and building the model
+  from it; text-to-3d is the quicker alternative ([Pipelines](references/pipelines.md), *Start
+  from an image*).
 - Continue work within the user's approved scope and budget. Propose additional paid stages
   or reruns before spending; Delivery specifies estimates and balance checks.
 

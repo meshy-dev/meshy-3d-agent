@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.6] - 2026-11-11
+
+### Changed
+
+- A 3D model from a description now starts with a recommended reference image. The generation,
+  printing and OpenClaw skills propose making an image first (text-to-image, or image-to-image
+  from a sketch, silhouette or logo), show it for approval, and build the model from that image
+  task with image-to-3d. When proportions, depth or the back of the object matter, they offer
+  multi-view images and multi-image-to-3d. Text-to-3d stays available as the quicker
+  alternative. A white print from text follows the same route, with recipes for each step.
+
 ## [0.9.5] - 2026-11-09
 
 ### Changed

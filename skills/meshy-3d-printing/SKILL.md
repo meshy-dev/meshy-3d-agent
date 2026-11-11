@@ -28,7 +28,7 @@ needed for the user's output.
 |---|---|
 | Scale, orient or ground an existing OBJ | Local `mesh prepare-print`; no auth or balance |
 | Open an existing STL or 3MF | Local `slicer detect` and `slicer open`; no auth or balance |
-| White model from text or photo | Generate geometry without textures; analyze/repair as needed; prepare the file |
+| White model from a photo, a sketch or text | Photo: image-to-3d. Otherwise recommend a reference image first (multi-view when depth or sides matter), with text-to-3d as the quicker alternative; geometry without textures; analyze/repair as needed; prepare the file |
 | Multicolor model | Generate/reuse geometry; analyze/repair as needed; texture; multi-color-print |
 | Print in separate parts (build plate, colours per part, fewer supports) | Generate/reuse geometry; auto-split; slice the parts |
 | Check or fix an existing model (holes, thin walls), any format | Free analyze-printability by task ID or `--model-url`; repair only if needed |

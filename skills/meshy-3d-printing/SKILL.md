@@ -1,18 +1,29 @@
 ---
 name: meshy-3d-printing
-description: "Generates and prepares models for physical 3D printing with the Meshy CLI: white and multicolor prints (3MF, STL, OBJ), printability analysis and repair, splitting into parts, Creative Lab products such as figures, lamps and keychains, sizing, and slicer handoff (Bambu Studio, OrcaSlicer, PrusaSlicer, Cura). Use when the user wants something 3D-printed or asks for print or slicer files."
+description: "Generates and prepares models for physical 3D printing with Meshy: white and multicolor prints (3MF, STL, OBJ), printability analysis and repair, splitting into parts, Creative Lab products such as figures, lamps and keychains, sizing, and slicer handoff (Bambu Studio, OrcaSlicer, PrusaSlicer, Cura). Print preparation runs on the Meshy CLI; a host with only Meshy's hosted tools gets a model and its STL. Use when the user wants something 3D-printed or asks for print or slicer files."
 license: MIT
-compatibility: "Needs Node.js 22.12+ and the Meshy CLI 0.8.x, 0.8.5 or later (npm install -g meshy-cli@0.8); network access to the Meshy API."
+compatibility: "Print preparation: Node.js 22.12+ and the Meshy CLI 0.8.x, 0.8.5 or later (npm install -g meshy-cli@0.8); network access to the Meshy API. Without a shell: a host connected to Meshy's MCP server."
 ---
 
 # Meshy 3D Printing
 
-Use Meshy CLI **0.8** (0.8.5 or later) to deliver the requested print files at the intended size, with
-analysis/repair results where applicable and a slicer handoff when requested. This skill is
-self-contained. Ordinary digital assets belong to meshy-3d-generation.
+Deliver the requested print files at the intended size, with analysis/repair results where
+applicable and a slicer handoff when requested. This skill is self-contained. Ordinary digital
+assets belong to meshy-3d-generation.
+
+## How to run it
+
+Print work is CLI work: sizing, analysis and repair, splitting, multicolor files, Creative Lab
+and the slicer all need Meshy CLI **0.8** (0.8.5 or later) and a shell.
+
+| This session has | Run |
+|---|---|
+| A shell | The whole job on the CLI, as the sections below describe, whether or not Meshy's hosted tools are also listed. Its steps chain by task ID, and the CLI signs in separately from the host's connection |
+| Meshy's hosted tools (`image_to_3d`, `get_task`, `download_model`) and no shell | The model only: an untextured model from the photo or a reference image, and its STL download as the handoff ([Tools](references/tools.md)). Say that sizing, analysis, repair, multicolor files and the slicer are not available in this host; do not ask the user to install anything, and never call the model printable |
 
 | Need | Reference |
 |---|---|
+| The hosted tools, where there is no shell | [Tools](references/tools.md) |
 | CLI runner, credentials, or output location | [Setup](references/setup.md) |
 | Local preparation, white or multicolor prints, analysis/repair, or splitting into parts | [Printing recipes](references/printing.md) |
 | Creative Lab products (figures, lamps, keychains, magnets, keycaps, fidgets) | [Creative Lab](references/creative-lab.md) |

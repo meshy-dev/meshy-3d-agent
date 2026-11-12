@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the two independently installable CLI skills and the plugin manifests that list them."""
+"""Validate the two independently installable skills and the plugin manifests that list them."""
 import argparse
 import hashlib
 import json
@@ -23,7 +23,7 @@ CURSOR_SCHEMAS = {
     "marketplace": "50c85058bf329588401fd2fc93180a574fa64abbb6c2606400febfb6f4d094e8",
 }
 PATH_KEYS = ("composerIcon", "logo", "skills", "icon_small", "icon_large")
-VERSION = "0.9.6"
+VERSION = "0.10.0"
 # The Meshy CLI the skills are written for: any 0.8.x from MIN_CLI.
 MIN_CLI = "0.8.5"
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")

@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.10.0] - Unreleased
+
+### Added
+
+- The skills work with Meshy's hosted tools. A host connected to Meshy's MCP server
+  (`https://mcp.meshy.ai/mcp`) lists tools such as `image_to_3d`, `text_to_3d_preview`,
+  `texture_model`, `download_model` and `get_balance`. Where they are listed, the generation
+  skill uses them for models, reference images, texturing, lookups, downloads and the balance,
+  under the account connected in the host. The new shared reference `tools.md` covers the route
+  for each request, credits and consent, `request_id`, progress, delivery and what to say when a
+  tool refuses.
+- Each skill opens with *How to run it*. With the tools and a shell, the tools generate and the
+  CLI does what they do not: rigging, animation, motion, remeshing, UV unwrapping,
+  multi-image-to-3d, conversion, resizing and steps on local files. A job that needs one of
+  those from the start runs on the CLI throughout. With the tools and no shell, the skill says
+  which steps are not available in that host and installs nothing.
+- Print preparation stays on the CLI. Without a shell, the printing skill delivers an untextured
+  model and its STL through the tools and says that sizing, analysis, repair, multicolor files
+  and the slicer are not available there.
+
+### Changed
+
+- A host with a shell and no hosted tools runs everything on the CLI, as in 0.9.6. The CLI
+  references are unchanged.
+- The rules that hold either way (ask what the model is for, recommend a reference image
+  first, stay within the approved budget, never create twice) are stated once in the generation
+  skill, ahead of the CLI sections.
+- The skill descriptions and `compatibility` no longer say the CLI is required in every host.
+
 ## [0.9.6] - 2026-11-11
 
 ### Changed

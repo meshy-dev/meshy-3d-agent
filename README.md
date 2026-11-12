@@ -1,8 +1,9 @@
 # Meshy 3D Agent
 
-Meshy skills for creating digital assets and preparing 3D prints. All three skills drive
-**Meshy CLI 0.8** (0.8.5 or later, `meshy`) on **Node.js 22.12+**. They are instructions and references only —
-no bundled runtime scripts. Current release: **0.9.6**.
+Meshy skills for creating digital assets and preparing 3D prints. Both skills drive
+**Meshy CLI 0.8** (0.8.5 or later, `meshy`) on **Node.js 22.12+**, and use Meshy's hosted tools
+instead for generation, texturing and downloads where the host has them connected. They are
+instructions and references only — no bundled runtime scripts. Current release: **0.10.0**.
 
 **Requires a paid Meshy plan (Pro or above),** and generation spends Meshy credits. Sign in with
 your Meshy account; no API key needed. A Free account can sign in, but creating tasks is refused
@@ -68,6 +69,20 @@ version, path and error handling in full.
 |---|---|
 | [meshy-3d-generation](skills/meshy-3d-generation/SKILL.md) | Text/image/2D/motion, textures, remesh, conversion, sizing, UV, rigging and animation |
 | [meshy-3d-printing](skills/meshy-3d-printing/SKILL.md) | White models, multi-color 3MF, analysis/repair, Creative Lab products and slicers |
+
+### Hosted tools and the CLI
+
+A host connected to Meshy's MCP server (`https://mcp.meshy.ai/mcp`) lists Meshy's hosted tools:
+`image_to_3d`, `text_to_3d_preview`, `texture_model`, `download_model` and others. Where they are
+listed, the generation skill uses them for models, reference images, texturing, lookups and
+downloads, with the account connected in the host; nothing is installed for that. The CLI does
+the rest wherever there is a shell: rigging, animation, remeshing, conversion, work on local
+files, and all print preparation. A host with a shell and no hosted tools runs everything on the
+CLI, as before. A host with the tools and no shell gets what the tools do and is told plainly
+what they do not. [tools.md](skills/meshy-3d-generation/references/tools.md) has the details.
+
+The paid-plan requirement at the top of this page is the CLI's. With the hosted tools, the
+tools apply the connected account's plan and report what it does not allow.
 
 Printing installs independently and controls its generation parameters from the start.
 Requested formats and already-approved budgets are preserved. Cost estimates come from

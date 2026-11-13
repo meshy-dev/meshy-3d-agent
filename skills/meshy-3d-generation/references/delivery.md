@@ -5,8 +5,8 @@ session and `WORKSPACE`/`JOB_DIR`; this file covers what happens around a job: w
 what the user sees while it runs, what is handed over at the end, and how the next sentence
 ("make it 1500 faces", "now as FBX") reuses what already exists.
 
-Contents: cost · waiting · previews · handing over the result · continuing from something that
-already exists.
+Contents: cost · waiting · previews · handing over the result · showing the model beside the
+chat · continuing from something that already exists.
 
 ## Cost: only estimates you can point at
 
@@ -101,8 +101,8 @@ Deliver four things, every time:
 
 1. **The model file**, at the path the user asked for.
 2. **The preview**, shown inline when one exists, or an explicit note that none does.
-   A PNG render is not an interactive 3D viewer; this CLI has no local viewer command, so say
-   "rendered preview", never "3D preview".
+   A PNG render is not an interactive 3D viewer, so say "rendered preview", never "3D preview".
+   Where the host can show a web page beside the chat, the interactive view is the next section.
 3. **The task trail**: the producing task ID(s) and the resource each belongs to. That is what
    makes the next request cheap. A delivery made with `-o` also leaves a sidecar beside the model
    (`chest_meta.json` next to `chest.glb`, or `meta.json` in a directory; `download` and
@@ -115,6 +115,86 @@ Deliver four things, every time:
 If the result is wrong, report it and offer the concrete fix (a rerun, a new or edited
 reference image, multi-view input, different parameters) with its cost. Do not silently rerun a
 paid stage.
+
+## Showing the model beside the chat
+
+When the host can open a web page in a panel next to the chat, open every delivered GLB or glTF
+there right after the handover, without asking. In Cursor that is the browser tool
+`browser_navigate` with `position: "side"`, present when browser tools are enabled. With no such
+tool, or for another format, skip this section without comment. It is free, the model never
+leaves this computer, and it does not replace the rendered preview.
+
+1. Save the script below, unchanged, as `JOB_DIR/view.mjs`.
+2. Start it in the background and read the URL it prints. It serves `WORKSPACE` read-only on
+   127.0.0.1 (models, buffers and textures, never the `_meta.json` sidecars) together with a
+   viewer page, and exits after an hour without requests; start it again if it has exited.
+
+```bash
+node JOB_DIR/view.mjs WORKSPACE
+```
+
+3. Open `URL?src=/PATH` beside the chat, where `PATH` is the model's path inside `WORKSPACE`
+   (`/chest/chest.glb`), in a new tab for each model. Do not wait on the page or screenshot it.
+4. Tell the user the model is open beside the chat to orbit and zoom, served from this computer
+   only; the page loads its viewer, Google's `<model-viewer>`, from jsDelivr.
+
+```js
+// view.mjs: serves WORKSPACE read-only on 127.0.0.1, plus a <model-viewer> page at /?src=/PATH.
+import { createServer } from 'node:http';
+import { createReadStream, realpathSync, statSync } from 'node:fs';
+import { extname, resolve, sep } from 'node:path';
+
+const root = realpathSync(resolve(process.argv[2] ?? '.'));
+const TYPES = {
+  '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream',
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ktx2': 'image/ktx2',
+};
+const PAGE = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Model</title>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.4.0/dist/model-viewer.min.js"
+  integrity="sha384-wjsPzEO+lXOf7d9csIDfAQpPt2OKuUU3m0K9qsdKIuzX4N8czSF6hdh23eAbZa3p" crossorigin="anonymous"></script>
+<style>html,body{margin:0;height:100%;background:#1e1e1e}model-viewer{width:100%;height:100%}</style>
+</head><body>
+<model-viewer camera-controls shadow-intensity="1" exposure="1" alt="3D model"></model-viewer>
+<script>
+  const src = new URLSearchParams(location.search).get('src') || '';
+  document.querySelector('model-viewer').src = src;
+  document.title = decodeURIComponent(src.split('/').pop()) || 'Model';
+</script>
+</body></html>
+`;
+
+let timer;
+const idle = () => { clearTimeout(timer); timer = setTimeout(() => process.exit(0), 60 * 60 * 1000); };
+const server = createServer((req, res) => {
+  idle();
+  const { port } = server.address();
+  const hosts = [`127.0.0.1:${port}`, `localhost:${port}`];
+  if (!hosts.includes(req.headers.host) || !['GET', 'HEAD'].includes(req.method)) return res.writeHead(404).end();
+  let file;
+  try {
+    const path = decodeURIComponent(new URL(req.url, `http://${hosts[0]}`).pathname);
+    if (path === '/') {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      return res.end(req.method === 'HEAD' ? undefined : PAGE);
+    }
+    file = realpathSync(resolve(root, `.${path}`));
+  } catch {
+    return res.writeHead(404).end();
+  }
+  const type = TYPES[extname(file).toLowerCase()];
+  const stat = type && file.startsWith(root + sep) ? statSync(file, { throwIfNoEntry: false }) : undefined;
+  if (!stat?.isFile()) return res.writeHead(404).end();
+  res.writeHead(200, { 'Content-Type': type, 'Content-Length': stat.size, 'Cache-Control': 'no-store' });
+  if (req.method === 'HEAD') return res.end();
+  createReadStream(file).pipe(res);
+});
+server.listen(0, '127.0.0.1', () => {
+  idle();
+  console.log(`http://127.0.0.1:${server.address().port}/`);
+});
+```
 
 ## Continuing from something that already exists
 

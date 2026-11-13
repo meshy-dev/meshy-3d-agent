@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- After delivering a GLB or glTF, the generation skill opens the model in a panel beside the chat
+  when the host can show a web page there (Cursor, with browser tools enabled), so the user can
+  orbit and zoom it. The agent saves a short Node script from the delivery reference into the job
+  folder. It serves the output folder read-only on 127.0.0.1 (models, buffers and textures, never
+  the sidecars) with a `<model-viewer>` page, and stops after an hour without requests. The model
+  never leaves the computer; the page loads `<model-viewer>` 4.4.0 from jsDelivr, pinned with a
+  subresource-integrity hash. Hosts without such a panel skip the step.
+
 ## [0.9.6] - 2026-11-11
 
 ### Changed

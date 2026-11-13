@@ -67,3 +67,7 @@ Download only needed assets. Inspect and show a preview when available; a missin
 must not prevent delivery or be described as inspected. Delivery covers earlier-stage preview
 lookup and actual charges. Report the result and any concrete
 limitation; a rendered image does not establish topology quality or provide a 3D viewer.
+
+After every delivered GLB or glTF, when the host can open a web page beside the chat (Cursor's
+browser tools), open the model there without asking, as [Delivery](references/delivery.md)
+describes under *Showing the model beside the chat*.

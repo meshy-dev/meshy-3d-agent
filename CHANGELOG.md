@@ -1,6 +1,13 @@
 # Changelog
 
-## [Unreleased]
+## [0.9.7] - 2026-11-13
+
+### Changed
+
+- Before the first command that spends credits, the generation skill now stops: it checks the
+  CLI and sign-in, gets a dry-run estimate, asks what the model is for, offers the routes with
+  their credits and ends the turn to wait for the answer. "Make me a model" is a request, not an
+  answer. In Cursor's Agents window the agent had gone straight to a paid create without asking.
 
 ### Fixed
 
@@ -11,6 +18,11 @@
 - Reference images and rendered previews go into the reply as Markdown images with their
   absolute paths, so hosts such as Cursor show them inline. A path in backticks had left the user
   to open the file to see what they were asked to approve.
+
+### Internal
+
+- `validate_skills.py` ignores inline code when it checks links, so a reference can show the
+  Markdown image syntax as an example. A broken link in plain text still fails.
 
 ## [0.9.6] - 2026-11-11
 

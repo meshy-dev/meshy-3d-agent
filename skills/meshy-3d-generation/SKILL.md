@@ -1,6 +1,6 @@
 ---
 name: meshy-3d-generation
-description: "Generates and edits digital 3D assets with the Meshy CLI: text-to-3D and image-to-3D models, texturing, remeshing and LODs, UV unwrapping, format conversion (GLB, FBX, OBJ, USDZ, STL, 3MF, Blender), rigging, animation, motion clips from text and reference images. Use when the user asks to make, texture, rig, animate or convert a 3D model or game asset. For physical 3D printing use meshy-3d-printing."
+description: "Generates and edits digital 3D assets with the Meshy CLI: text-to-3D and image-to-3D models, texturing, remeshing and LODs, UV unwrapping, format conversion (GLB, FBX, OBJ, USDZ, STL, 3MF, Blender), rigging, animation, motion clips from text and reference images. Use when the user asks to make, texture, rig, animate or convert a 3D model or game asset. For physical 3D printing use meshy-3d-printing. Before the first command that spends credits, ask what the model is for, offer the routes with their credits and wait for the answer."
 license: MIT
 compatibility: "Needs Node.js 22.12+ and the Meshy CLI 0.8.x, 0.8.5 or later (npm install -g meshy-cli@0.8); network access to the Meshy API."
 ---
@@ -11,6 +11,24 @@ Use Meshy CLI **0.8** (0.8.5 or later) to turn the user's request into a deliver
 saving the requested files in the requested location and inspecting an available preview.
 Login or task submission alone is not completion. Choose the shortest suitable pipeline and
 reuse existing assets for follow-ups.
+
+## Stop before the first paid command
+
+Every `create`, every `make` without `--dry-run`, and every `api POST` spends the user's credits.
+Before the first one in a conversation, unless the user has already said what the model is for and
+picked a route:
+
+1. Check the CLI and sign-in, then run `meshy make "<prompt>" --dry-run --format json` for an estimate.
+2. Ask once what the model is for (a render or hero prop, a game asset, a character to rig, a 3D print)
+   and offer the routes with their credits ([Pipelines](references/pipelines.md)). Without a usable
+   photo, recommend a reference image first and building the model from it; text-to-3d is the
+   quicker alternative. A game asset or a face-count budget means smart topology, not a standard
+   model remeshed down.
+3. End your turn there and wait for the answer. Use the host's question tool when it has one.
+
+"Make me a model" is a request, not an answer to this question. Ask even when the request seems
+clear; skip it only when the user has named the use and the route, or tells you to go ahead with
+your recommendation.
 
 ## Read what this request needs
 
@@ -48,16 +66,9 @@ credentials never belong in chat, and only the CLI touches its config directory.
 - Use `--format json --no-update-check` on every command: stdout is one `meshy.cli/v1` envelope,
   auth included. Resolve `WORKSPACE` from the user's output
   path and pass it to writes.
-- Know what the model is for before the first paid create: a game asset, a character to rig, a
-  render, a 3D print. If the user hasn't said, ask once; the answer picks the route and the models
-  ([Pipelines](references/pipelines.md)). A game asset or a face-count budget means smart topology,
-  not a standard model remeshed down.
 - Submit once with `create --async`, retain the owning resource and ID, then `wait` on that
   task. Keep the agent turn active while awaiting a running command. Follow Troubleshooting
   on timeout or unknown submission; these do not authorize another paid create.
-- Without a usable photo, recommend making a reference image first and building the model
-  from it; text-to-3d is the quicker alternative ([Pipelines](references/pipelines.md), *Start
-  from an image*).
 - Continue work within the user's approved scope and budget. Propose additional paid stages
   or reruns before spending; Delivery specifies estimates and balance checks.
 

@@ -8,6 +8,9 @@
   the turn, and build the model only after the user approves it. In a Cursor run the agent had
   taken the user's choice of route as approval of the image as well, looked at it itself and went
   straight to the 3D model.
+- Reference images and rendered previews go into the reply as Markdown images with their
+  absolute paths, so hosts such as Cursor show them inline. A path in backticks had left the user
+  to open the file to see what they were asked to approve.
 
 ## [0.9.6] - 2026-11-11
 

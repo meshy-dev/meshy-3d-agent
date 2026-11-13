@@ -66,7 +66,8 @@ def validate_skill(folder):
         content = file.read_text()
         require(not re.search(r"\b(?:meshy_task\.py|fix_obj\.py|slicers\.py|pip install requests)\b", content), f"{file}: old runtime instruction")
         links = set()
-        for target in LINK.findall(content):
+        # Inline code is an example to write, not a link to follow (`![Preview](/abs/path.png)`).
+        for target in LINK.findall(re.sub(r"`[^`\n]*`", "", content)):
             if re.match(r"[a-z]+://|#", target):
                 continue
             target = target.split("#")[0]

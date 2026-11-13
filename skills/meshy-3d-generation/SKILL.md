@@ -31,7 +31,8 @@ clear; skip it only when the user has named the use and the route, or tells you 
 your recommendation.
 
 The image route has a second stop, and it is not about cost: after the image task, show the
-image and end your turn. Make the model only once the user approves the image or asks for
+image as a Markdown image with its absolute path (`![Reference image](/abs/path/image.png)`; a
+path in backticks is not showing it) and end your turn. Make the model only once the user approves the image or asks for
 changes; picking the route is not approval of the image, and neither is your own look at it.
 Skip this stop only when the user said not to wait for the image.
 

@@ -84,7 +84,10 @@ meshy download --resource RESOURCE --task-id TASK_ID --asset thumbnail.primary -
 carries when there is more than one view. Take keys from the listing rather than guessing them.
 
 Then **open the downloaded PNG with the host's file-reading tool and look at it**, and show it
-to the user. Judge only what a render can show: is it the requested subject, is it complete, is
+to the user: put it in your message as a Markdown image with its absolute path, such as
+`![Rendered preview](/abs/path/JOB_DIR/preview-TASK_ID.png)`, which hosts like Cursor display
+inline. A path in backticks or a plain link is not showing it. The same goes for a reference
+image the user has to approve. Judge only what a render can show: is it the requested subject, is it complete, is
 it obviously untextured when texture was requested. A thumbnail says nothing about back-face
 topology, watertightness, print reliability or polygon count — do not imply otherwise.
 

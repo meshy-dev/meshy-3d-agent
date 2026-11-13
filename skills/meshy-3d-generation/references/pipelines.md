@@ -51,8 +51,9 @@ steer the result. When the request has no usable photo, recommend making one fir
    background in soft studio light, with the shape requirements the user stated (depth,
    proportions, what must not be thin). For a model whose exact shape matters, add
    `--generate-multi-view true` to get front, side and back views of the same object.
-3. **Show the image and end your turn.** Make the model only after the user approves it; your
-   own look at the image is not approval. Adjust it with image-to-image from that task
+3. **Show the image and end your turn.** Download it and put it in your message as a Markdown
+   image with its absolute path, as *Previews* in [delivery](delivery.md) describes. Make the
+   model only after the user approves it; your own look at the image is not approval. Adjust it with image-to-image from that task
    (`--input-task-id`) until the user is satisfied: a new image costs less than a new model.
    Skip the review only when the user said not to stop for it.
 4. **Make the model from that task** by `--input-task-id`: image-to-3d from a single image,

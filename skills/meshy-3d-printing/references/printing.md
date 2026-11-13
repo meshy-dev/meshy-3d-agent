@@ -85,8 +85,9 @@ meshy text-to-image create --ai-model gpt-image-2-5-flare --prompt "A single sol
 meshy text-to-image wait DESIGN_ID --timeout 600 --format json --no-update-check
 ```
 
-Download the image with `download --kind image`, show it and end your turn; your own look at it
-is not approval. Continue once the user approves it, adjusting it with image-to-image
+Download the image with `download --kind image`, show it as a Markdown image with its absolute
+path (*Previews* in [delivery](delivery.md)) and end your turn; your own look at it is not
+approval. Continue once the user approves it, adjusting it with image-to-image
 `--input-task-id DESIGN_ID` until they do (unless they said not to stop for review). A multi-view task can return fewer than three views; look at them. Then make
 the model from that task: one image feeds image-to-3d, multi-view output feeds multi-image-to-3d.
 

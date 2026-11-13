@@ -120,7 +120,7 @@ paid stage.
 
 When the host can open a web page in a panel next to the chat, open every delivered GLB or glTF
 there right after the handover, without asking. In Cursor that is the browser tool
-`browser_navigate` with `position: "side"`, present when browser tools are enabled. With no such
+`browser_navigate`, present when browser tools are enabled. With no such
 tool, or for another format, skip this section without comment. It is free, the model never
 leaves this computer, and it does not replace the rendered preview.
 
@@ -134,7 +134,9 @@ node JOB_DIR/view.mjs WORKSPACE
 ```
 
 3. Open `URL?src=/PATH` beside the chat, where `PATH` is the model's path inside `WORKSPACE`
-   (`/chest/chest.glb`), in a new tab for each model. Do not wait on the page or screenshot it.
+   (`/chest/chest.glb`). In Cursor call `browser_navigate` with both `newTab: true` and
+   `position: "side"`; without `newTab` the panel can stay blank. Do not wait on the page or
+   screenshot it.
 4. Tell the user the model is open beside the chat to orbit and zoom, served from this computer
    only; the page loads its viewer, Google's `<model-viewer>`, from jsDelivr.
 

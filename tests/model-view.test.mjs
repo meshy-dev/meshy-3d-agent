@@ -12,6 +12,8 @@ import { test } from 'node:test';
 const doc = readFileSync(new URL('../skills/meshy-3d-generation/references/delivery.md', import.meta.url), 'utf8');
 const scripts = [...doc.matchAll(/```js\n([\s\S]*?)```/g)].map(match => match[1]).filter(code => code.startsWith('// view.mjs'));
 assert.equal(scripts.length, 1, 'delivery.md must carry exactly one view.mjs script');
+// Cursor left the side panel blank when browser_navigate reused a tab; a new tab rendered.
+assert.match(doc, /`browser_navigate` with both `newTab: true` and\s+`position: "side"`/, 'delivery.md must name both browser_navigate options');
 
 function get(port, path, { method = 'GET', host = `127.0.0.1:${port}` } = {}) {
   return new Promise((resolve, reject) => {

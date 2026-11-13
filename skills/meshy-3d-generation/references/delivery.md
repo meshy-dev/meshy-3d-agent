@@ -51,7 +51,9 @@ meshy balance --format json --no-update-check
 
 Spend rules: work already authorized by the user proceeds without asking again, stage by stage,
 to the end of the agreed plan. Ask only for a **new** cost the user has not agreed to — an extra
-stage, a second variant, a rerun after a disappointing result. Exit 9 (`insufficient_credit`)
+stage, a second variant, a rerun after a disappointing result. One pause stays inside an agreed
+plan, and it is not about cost: a reference image is shown, and the model waits until the user
+approves it. Exit 9 (`insufficient_credit`)
 stops new paid submissions immediately: keep everything already produced, report what is
 missing and the cause the message gives (balance, plan or a key's credit limit; see
 Troubleshooting), and point at the account page rather than retrying.

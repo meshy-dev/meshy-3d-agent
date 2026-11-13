@@ -43,15 +43,16 @@ A 3D model follows its reference image closely, so an image is the best place fo
 steer the result. When the request has no usable photo, recommend making one first:
 
 1. **Propose the plan once**, before any paid create: the image route, with text-to-3d named as
-   the quicker alternative with nothing to review. The user's yes covers every stage of the route
-   they pick; the image review below is not a second cost question.
+   the quicker alternative with nothing to review. The user's yes covers the cost of every stage
+   of the route they pick, not the image itself: they still see it before the model (step 3).
 2. **Make the image** with text-to-image, or with image-to-image when the user gave a sketch,
    silhouette, line drawing or logo: those are outlines, not photos, and image-to-3d reads them
    as flat shapes. Describe the subject as one object, whole and unobstructed, on a plain
    background in soft studio light, with the shape requirements the user stated (depth,
    proportions, what must not be thin). For a model whose exact shape matters, add
    `--generate-multi-view true` to get front, side and back views of the same object.
-3. **Show the image and wait for approval.** Adjust it with image-to-image from that task
+3. **Show the image and end your turn.** Make the model only after the user approves it; your
+   own look at the image is not approval. Adjust it with image-to-image from that task
    (`--input-task-id`) until the user is satisfied: a new image costs less than a new model.
    Skip the review only when the user said not to stop for it.
 4. **Make the model from that task** by `--input-task-id`: image-to-3d from a single image,

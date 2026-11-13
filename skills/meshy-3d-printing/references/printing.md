@@ -71,7 +71,8 @@ Without a usable photo — a description, or a sketch, silhouette, line drawing 
 image-to-3d reads as a flat shape — recommend making a reference image first: the model follows
 its image closely, and a print is judged on exactly the shape the image fixes. Propose this route
 once, with text-to-3d (below) named as the quicker alternative with nothing to review; the user's
-yes covers every stage of the route they pick. Describe one solid object, whole and unobstructed,
+yes covers the cost of every stage of the route they pick, not the image, which they still
+approve before the model. Describe one solid object, whole and unobstructed,
 on a plain background in soft studio light, with the shape requirements the user stated (depth,
 proportions, what must not be thin). From a sketch, use image-to-image on it instead; wait on
 that resource the same way. When depth, sides or back matter, add `--generate-multi-view true`
@@ -84,9 +85,9 @@ meshy text-to-image create --ai-model gpt-image-2-5-flare --prompt "A single sol
 meshy text-to-image wait DESIGN_ID --timeout 600 --format json --no-update-check
 ```
 
-Download the image with `download --kind image` and show it; continue once the user approves it,
-adjusting it with image-to-image `--input-task-id DESIGN_ID` until they do (unless they said not
-to stop for review). A multi-view task can return fewer than three views; look at them. Then make
+Download the image with `download --kind image`, show it and end your turn; your own look at it
+is not approval. Continue once the user approves it, adjusting it with image-to-image
+`--input-task-id DESIGN_ID` until they do (unless they said not to stop for review). A multi-view task can return fewer than three views; look at them. Then make
 the model from that task: one image feeds image-to-3d, multi-view output feeds multi-image-to-3d.
 
 ```bash

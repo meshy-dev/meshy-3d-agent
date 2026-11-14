@@ -80,6 +80,8 @@ touches its config directory.
   downloads are recovery cases, not permission to generate again.
 - Work within the approved scope and budget; propose additional paid stages before spending.
   Delivery describes applicable estimates. Local preparation and printability analysis are free.
+- On the reference-image route, show the image and end your turn; make the model only once the
+  user approves it. Picking the route is not approval of the image, and neither is your own look.
 
 ## Finish the handoff
 

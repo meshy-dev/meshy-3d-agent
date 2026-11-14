@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.7] - 2026-11-13
+
+### Fixed
+
+- On the reference-image route, the generation and printing skills now show the image and end
+  the turn, and build the model only after the user approves it. Choosing the route agrees to
+  its cost, not to the image: in a test run the agent had taken the user's choice of route as
+  approval of the image as well, looked at it itself and gone straight to the 3D model.
+
 ## [0.9.6] - 2026-11-11
 
 ### Changed

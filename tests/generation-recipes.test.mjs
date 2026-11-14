@@ -19,6 +19,7 @@ const shellLines = doc => [...doc.matchAll(/```bash\n([\s\S]*?)```/g)]
   .flatMap(match => match[1].split('\n')).filter(line => line.startsWith('meshy '));
 const commands = shellLines(markdown);
 const deliveryCommands = shellLines(deliveryDoc);
+const viewCommands = shellLines(readFileSync(new URL('../skills/meshy-3d-generation/references/visual-hosts.md', import.meta.url), 'utf8'));
 
 // Deliberately a restricted argv tokenizer, not shell eval. Fail when recipes acquire
 // operators/substitution or multiline shell programs instead of silently skipping them.
@@ -356,6 +357,22 @@ test('the documented preview recipe downloads a thumbnail, and a task without on
     { ...converted, OUTPUT_FILE: join(f.workspace, 'converted.glb') })));
   assert.equal(model.ok, true, 'a missing preview never blocks the model download');
   assert.ok(f.requests.every(request => request.method !== 'POST'), 'no paid task is created to obtain a picture');
+});
+
+test('the documented viewer serves the delivered model on 127.0.0.1 and returns at once, with no request to the API', { skip }, async t => {
+  const f = await fixture(t, (req, res) => json(res, 500, { message: 'the viewer must not call the API' }));
+  await mkdir(f.workspace, { recursive: true });
+  await writeFile(f.replacements.OUTPUT_FILE, glb());
+  const line = pick(viewCommands, l => l.startsWith('meshy view '), 'viewer command');
+  const { result } = output(await f.run(argv(line, f.replacements)));
+  t.after(() => { try { process.kill(result.pid); } catch {} });
+  assert.match(result.url, /^http:\/\/127\.0\.0\.1:\d+\/$/);
+  assert.equal(result.opened, false, '--no-open leaves the user\'s browser alone');
+  const page = await fetch(result.url);
+  assert.equal(page.status, 200);
+  const model = await fetch(new URL('model.glb', result.url));
+  assert.deepEqual(Buffer.from(await model.arrayBuffer()), glb(), 'the page loads the delivered file itself');
+  assert.equal(f.requests.length, 0);
 });
 
 // A GLB whose JSON declares `triangles` triangles in one mesh; the face counter reads accessor counts only.

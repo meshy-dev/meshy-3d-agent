@@ -2,12 +2,12 @@
 name: meshy-3d-printing
 description: "Generates and prepares models for physical 3D printing with the Meshy CLI: white and multicolor prints (3MF, STL, OBJ), printability analysis and repair, splitting into parts, Creative Lab products such as figures, lamps and keychains, sizing, and slicer handoff (Bambu Studio, OrcaSlicer, PrusaSlicer, Cura). Use when the user wants something 3D-printed or asks for print or slicer files."
 license: MIT
-compatibility: "Needs Node.js 22.12+ and the Meshy CLI 0.8.x, 0.8.5 or later (npm install -g meshy-cli@0.8); network access to the Meshy API."
+compatibility: "Needs Node.js 22.12+ and the Meshy CLI 0.8.x, 0.8.6 or later (npm install -g meshy-cli@0.8); network access to the Meshy API."
 ---
 
 # Meshy 3D Printing
 
-Use Meshy CLI **0.8** (0.8.5 or later) to deliver the requested print files at the intended size, with
+Use Meshy CLI **0.8** (0.8.6 or later) to deliver the requested print files at the intended size, with
 analysis/repair results where applicable and a slicer handoff when requested. This skill is
 self-contained. Ordinary digital assets belong to meshy-3d-generation.
 
@@ -50,7 +50,7 @@ local dimension check cannot establish full printability.
 In DeepSeek Harness with the Meshy plugin (`DSH_MESHY_CLI` is set) run every command as
 `"$DSH_MESHY_NODE" "$DSH_MESHY_CLI" …`, never a `meshy` on PATH, install nothing, and sign in with
 the `meshy_sign_in` tool. Everywhere else run `meshy --version` before the first command, without
-asking; when it is missing or older than 0.8.5, install it with `npm install -g meshy-cli@0.8`
+asking; when it is missing or older than 0.8.6, install it with `npm install -g meshy-cli@0.8`
 and say so in one line ([Setup](references/setup.md), section 1). Local-only work stops there.
 
 Cloud work reuses a verified session. If login is needed, run `auth login --device` (with
@@ -87,4 +87,5 @@ Show an available rendered preview and deliver file paths, dimensions, analysis/
 and reported charges. Launch a detected slicer only when requested or already authorized;
 `launch_requested` does not prove successful import or start a physical printer. If no suitable
 slicer is installed, still deliver the files. Explain relevant remaining checks, such as supports
-and wall thickness, without describing an untested model as guaranteed printable.
+and wall thickness, without describing an untested model as guaranteed printable. Where your chat
+shows images or web pages, [Visual hosts](references/visual-hosts.md) covers showing them there.

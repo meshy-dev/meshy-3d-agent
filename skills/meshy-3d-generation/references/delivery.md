@@ -101,8 +101,10 @@ Deliver four things, every time:
 
 1. **The model file**, at the path the user asked for.
 2. **The preview**, shown inline when one exists, or an explicit note that none does.
-   A PNG render is not an interactive 3D viewer; this CLI has no local viewer command, so say
-   "rendered preview", never "3D preview".
+   A PNG render is not an interactive 3D viewer, so say "rendered preview", never "3D preview".
+   For a GLB or glTF, add that `meshy view PATH` opens it in a 3D viewer in the user's browser,
+   served from their computer. Where your chat shows images or web pages, see
+   [visual-hosts.md](visual-hosts.md).
 3. **The task trail**: the producing task ID(s) and the resource each belongs to. That is what
    makes the next request cheap. A delivery made with `-o` also leaves a sidecar beside the model
    (`chest_meta.json` next to `chest.glb`, or `meta.json` in a directory; `download` and

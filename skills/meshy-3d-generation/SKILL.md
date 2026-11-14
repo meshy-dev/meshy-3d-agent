@@ -2,12 +2,12 @@
 name: meshy-3d-generation
 description: "Generates and edits digital 3D assets with the Meshy CLI: text-to-3D and image-to-3D models, texturing, remeshing and LODs, UV unwrapping, format conversion (GLB, FBX, OBJ, USDZ, STL, 3MF, Blender), rigging, animation, motion clips from text and reference images. Use when the user asks to make, texture, rig, animate or convert a 3D model or game asset. For physical 3D printing use meshy-3d-printing."
 license: MIT
-compatibility: "Needs Node.js 22.12+ and the Meshy CLI 0.8.x, 0.8.5 or later (npm install -g meshy-cli@0.8); network access to the Meshy API."
+compatibility: "Needs Node.js 22.12+ and the Meshy CLI 0.8.x, 0.8.6 or later (npm install -g meshy-cli@0.8); network access to the Meshy API."
 ---
 
 # Meshy 3D Generation
 
-Use Meshy CLI **0.8** (0.8.5 or later) to turn the user's request into a delivered asset. Completion means
+Use Meshy CLI **0.8** (0.8.6 or later) to turn the user's request into a delivered asset. Completion means
 saving the requested files in the requested location and inspecting an available preview.
 Login or task submission alone is not completion. Choose the shortest suitable pipeline and
 reuse existing assets for follow-ups.
@@ -31,7 +31,7 @@ existing GLB needs no extra format conversion. Use command help when parameters 
 In DeepSeek Harness with the Meshy plugin (`DSH_MESHY_CLI` is set) run every command as
 `"$DSH_MESHY_NODE" "$DSH_MESHY_CLI" …`, never a `meshy` on PATH, install nothing, and sign in with
 the `meshy_sign_in` tool. Everywhere else run `meshy --version` before the first command, without
-asking; when it is missing or older than 0.8.5, install it with `npm install -g meshy-cli@0.8`
+asking; when it is missing or older than 0.8.6, install it with `npm install -g meshy-cli@0.8`
 and say so in one line ([Setup](references/setup.md), section 1).
 
 Reuse a verified session. If login is needed, run `auth login --device` (with `--region cn` for a
@@ -67,7 +67,5 @@ Download only needed assets. Inspect and show a preview when available; a missin
 must not prevent delivery or be described as inspected. Delivery covers earlier-stage preview
 lookup and actual charges. Report the result and any concrete
 limitation; a rendered image does not establish topology quality or provide a 3D viewer.
-
-After every delivered GLB or glTF, when the host can open a web page beside the chat (Cursor's
-browser tools), open the model there without asking, as [Delivery](references/delivery.md)
-describes under *Showing the model beside the chat*.
+Where your chat shows images or web pages, [Visual hosts](references/visual-hosts.md) covers
+showing the preview and the model there.

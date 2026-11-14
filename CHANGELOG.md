@@ -4,13 +4,16 @@
 
 ### Added
 
-- After delivering a GLB or glTF, the generation skill opens the model in a panel beside the chat
-  when the host can show a web page there (Cursor, with browser tools enabled), so the user can
-  orbit and zoom it. The agent saves a short Node script from the delivery reference into the job
-  folder. It serves the output folder read-only on 127.0.0.1 (models, buffers and textures, never
-  the sidecars) with a `<model-viewer>` page, and stops after an hour without requests. The model
-  never leaves the computer; the page loads `<model-viewer>` 4.4.0 from jsDelivr, pinned with a
-  subresource-integrity hash. Hosts without such a panel skip the step.
+- `references/visual-hosts.md` in both skills: what to do when the chat can show more than text.
+  Previews and reference images are shown as inline images, and a delivered GLB or glTF opens in
+  `meshy view`, a local viewer page, in a panel beside the chat. Terminal hosts skip the file, and
+  their behaviour is unchanged.
+- The handover names `meshy view PATH` for a GLB or glTF, so the user can open the model in a 3D
+  viewer in their own browser.
+
+### Changed
+
+- The skills require Meshy CLI 0.8.6 or later, the first release with `meshy view`.
 
 ## [0.9.6] - 2026-11-11
 

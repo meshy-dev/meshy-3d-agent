@@ -25,7 +25,7 @@ CURSOR_SCHEMAS = {
 PATH_KEYS = ("composerIcon", "logo", "skills", "icon_small", "icon_large")
 VERSION = "0.9.6"
 # The Meshy CLI the skills are written for: any 0.8.x from MIN_CLI.
-MIN_CLI = "0.8.5"
+MIN_CLI = "0.8.6"
 LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 # The pinned temporary-package runner documented in setup.md; recipes stay written as `meshy ...`.
 RUNNER = ["npm", "exec", "--yes", f"--package=meshy-cli@{MIN_CLI}", "--"]

@@ -2,27 +2,12 @@
 
 ## [0.9.7] - 2026-11-13
 
-### Changed
-
-- Before the first command that spends credits, the generation skill now stops: it checks the
-  CLI and sign-in, gets a dry-run estimate, asks what the model is for, offers the routes with
-  their credits and ends the turn to wait for the answer. "Make me a model" is a request, not an
-  answer. In Cursor's Agents window the agent had gone straight to a paid create without asking.
-
 ### Fixed
 
 - On the reference-image route, the generation and printing skills now show the image and end
-  the turn, and build the model only after the user approves it. In a Cursor run the agent had
-  taken the user's choice of route as approval of the image as well, looked at it itself and went
-  straight to the 3D model.
-- Reference images and rendered previews go into the reply as Markdown images with their
-  absolute paths, so hosts such as Cursor show them inline. A path in backticks had left the user
-  to open the file to see what they were asked to approve.
-
-### Internal
-
-- `validate_skills.py` ignores inline code when it checks links, so a reference can show the
-  Markdown image syntax as an example. A broken link in plain text still fails.
+  the turn, and build the model only after the user approves it. Choosing the route agrees to
+  its cost, not to the image: in a test run the agent had taken the user's choice of route as
+  approval of the image as well, looked at it itself and gone straight to the 3D model.
 
 ## [0.9.6] - 2026-11-11
 

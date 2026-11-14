@@ -53,8 +53,8 @@ Spend rules: work already authorized by the user proceeds without asking again, 
 to the end of the agreed plan. Ask only for a **new** cost the user has not agreed to — an extra
 stage, a second variant, a rerun after a disappointing result. One pause stays inside an agreed
 plan, and it is not about cost: a reference image is shown, and the model waits until the user
-approves it. Exit 9 (`insufficient_credit`)
-stops new paid submissions immediately: keep everything already produced, report what is
+approves it. Exit 9 (`insufficient_credit`) stops new paid submissions immediately: keep
+everything already produced, report what is
 missing and the cause the message gives (balance, plan or a key's credit limit; see
 Troubleshooting), and point at the account page rather than retrying.
 
@@ -84,10 +84,7 @@ meshy download --resource RESOURCE --task-id TASK_ID --asset thumbnail.primary -
 carries when there is more than one view. Take keys from the listing rather than guessing them.
 
 Then **open the downloaded PNG with the host's file-reading tool and look at it**, and show it
-to the user: put it in your message as a Markdown image with its absolute path, such as
-`![Rendered preview](/abs/path/JOB_DIR/preview-TASK_ID.png)`, which hosts like Cursor display
-inline. A path in backticks or a plain link is not showing it. The same goes for a reference
-image the user has to approve. Judge only what a render can show: is it the requested subject, is it complete, is
+to the user. Judge only what a render can show: is it the requested subject, is it complete, is
 it obviously untextured when texture was requested. A thumbnail says nothing about back-face
 topology, watertightness, print reliability or polygon count — do not imply otherwise.
 

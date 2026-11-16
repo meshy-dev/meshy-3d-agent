@@ -20,6 +20,7 @@ reuse existing assets for follow-ups.
 | Generation and the models to pair for a project, texturing, remeshing, conversion, scale, or 2D images | [Pipelines](references/pipelines.md) |
 | Rigging, animation, or generated motion | [Animation](references/animation.md) |
 | Cost, waiting, preview, delivery, or finding a previous model | [Delivery](references/delivery.md) |
+| A chat that shows images or web pages (desktop or IDE agent apps), at delivery or when the user asks to see the model | [Visual hosts](references/visual-hosts.md) |
 | Failed or uncertain operation | [Troubleshooting](references/troubleshooting.md) |
 
 Read the relevant section when needed; recipes are examples to adapt to the requested result,
@@ -67,5 +68,6 @@ Download only needed assets. Inspect and show a preview when available; a missin
 must not prevent delivery or be described as inspected. Delivery covers earlier-stage preview
 lookup and actual charges. Report the result and any concrete
 limitation; a rendered image does not establish topology quality or provide a 3D viewer.
-Where your chat shows images or web pages, [Visual hosts](references/visual-hosts.md) covers
-showing the preview and the model there.
+When your chat can show images or web pages (a desktop or IDE agent app, not a terminal), read
+[Visual hosts](references/visual-hosts.md) before the handover and when the user asks to see the
+model, and follow it.

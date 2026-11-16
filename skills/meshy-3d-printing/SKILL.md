@@ -17,6 +17,7 @@ self-contained. Ordinary digital assets belong to meshy-3d-generation.
 | Local preparation, white or multicolor prints, analysis/repair, or splitting into parts | [Printing recipes](references/printing.md) |
 | Creative Lab products (figures, lamps, keychains, magnets, keycaps, fidgets) | [Creative Lab](references/creative-lab.md) |
 | Cost, waiting, preview, delivery, or finding a previous model | [Delivery](references/delivery.md) |
+| A chat that shows images or web pages (desktop or IDE agent apps), at delivery or when the user asks to see the model | [Visual hosts](references/visual-hosts.md) |
 | Failed or uncertain operation | [Troubleshooting](references/troubleshooting.md) |
 
 Read relevant sections as needed. Recipes illustrate valid commands; select only the stages
@@ -89,5 +90,6 @@ Show an available rendered preview and deliver file paths, dimensions, analysis/
 and reported charges. Launch a detected slicer only when requested or already authorized;
 `launch_requested` does not prove successful import or start a physical printer. If no suitable
 slicer is installed, still deliver the files. Explain relevant remaining checks, such as supports
-and wall thickness, without describing an untested model as guaranteed printable. Where your chat
-shows images or web pages, [Visual hosts](references/visual-hosts.md) covers showing them there.
+and wall thickness, without describing an untested model as guaranteed printable. When your chat
+can show images or web pages (a desktop or IDE agent app, not a terminal), read
+[Visual hosts](references/visual-hosts.md) before the handover and follow it.

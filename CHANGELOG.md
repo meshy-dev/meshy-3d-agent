@@ -9,7 +9,8 @@
   `meshy view`, a local viewer page, in a panel beside the chat. Terminal hosts skip the file, and
   their behaviour is unchanged.
 - The handover names `meshy view PATH` for a GLB or glTF, so the user can open the model in a 3D
-  viewer in their own browser.
+  viewer in their own browser. An agent that runs it itself adds `--detach`, so the viewer keeps
+  serving after the command returns.
 
 ### Changed
 

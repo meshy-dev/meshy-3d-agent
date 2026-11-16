@@ -1,16 +1,28 @@
 ---
-description: After delivering a Meshy GLB or glTF in Cursor, show it in Cursor's browser beside the chat with meshy view.
+description: In Cursor, show Meshy previews and reference images inline, and open a delivered GLB or glTF in Cursor's browser beside the chat with meshy view.
 alwaysApply: true
 ---
 
-# Show a delivered Meshy model beside the chat
+# Meshy results in Cursor's chat
 
-Applies only after you deliver a `.glb` or `.gltf` with the Meshy skills (meshy-3d-generation or
-meshy-3d-printing), or when the user asks to see one. Otherwise ignore this rule.
+Applies only to work with the Meshy skills (meshy-3d-generation or meshy-3d-printing). Otherwise
+ignore this rule.
+
+## Images inline
+
+Cursor's chat renders local images. Show a rendered preview, or a reference image the user has to
+approve, as a Markdown image whose target is the file's absolute path:
+`![Preview](/absolute/path/preview.png)`. Wrap a path with spaces in angle brackets
+(`![Preview](</path/with space/preview.png>)`), and on Windows write `/C:/Users/…`. A path in
+backticks or a plain link shows the user only text.
+
+## The model beside the chat
+
+After you deliver a `.glb` or `.gltf`, or when the user asks to see one:
 
 1. Look up the `browser_navigate` tool of the `cursor-ide-browser` MCP server. It is not in your
    default tools, so find it with your dynamic-tool lookup. If it is not available (browser tools
-   off, a cloud agent), skip this rule: the skill's handover is complete without it.
+   off, a cloud agent), skip these steps: the skill's handover is complete without them.
 2. Run `meshy view "OUTPUT_FILE" --detach --no-open --format json --no-update-check` and read
    `result.url` from its output. It is free and serves only that model on 127.0.0.1.
 3. Call `browser_navigate` with `url` set to `result.url`, `position: "side"` and `newTab: true`.

@@ -12,9 +12,10 @@
   viewer in their own browser. An agent that runs it itself adds `--detach`, so the viewer keeps
   serving after the command returns.
 - Cursor only: `rules/meshy-viewer.mdc`, listed in `.cursor-plugin/plugin.json` and loaded by no
-  other host. After a GLB or glTF delivery, the agent runs `meshy view --detach --no-open` and
-  opens the page in Cursor's browser beside the chat. Cursor's browser tools are not in the
-  agent's default tools, so the shared `visual-hosts.md` alone did not get it there.
+  other host. Previews and reference images are shown inline as Markdown images, and after a
+  GLB or glTF delivery the agent runs `meshy view --detach --no-open` and opens the page in
+  Cursor's browser beside the chat. Cursor's browser tools are not in the agent's default
+  tools, so the shared `visual-hosts.md` alone did not get it there.
 
 ### Changed
 

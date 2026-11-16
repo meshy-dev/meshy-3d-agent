@@ -53,8 +53,8 @@ steer the result. When the request has no usable photo, recommend making one fir
    `--generate-multi-view true` to get front, side and back views of the same object.
 3. **Show the image and end your turn.** Make the model only after the user approves it; your own
    look at the image is not approval. Adjust it with image-to-image from that task
-   (`--input-task-id`) until the user is satisfied: a new image costs less than a new model.
-   Skip the review only when the user said not to stop for it.
+   (`--input-task-id`) until the user is satisfied: a new image costs less than a new model. Skip
+   the review only when the user said not to stop for it.
 4. **Make the model from that task** by `--input-task-id`: image-to-3d from a single image,
    multi-image-to-3d from multi-view output. A multi-view task can return fewer than three views;
    look at them before the 3D create.

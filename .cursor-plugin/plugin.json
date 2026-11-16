@@ -35,5 +35,8 @@
   "skills": [
     "./skills/meshy-3d-generation",
     "./skills/meshy-3d-printing"
+  ],
+  "rules": [
+    "./rules/meshy-viewer.mdc"
   ]
 }

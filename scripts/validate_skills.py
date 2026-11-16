@@ -22,7 +22,7 @@ CURSOR_SCHEMAS = {
     "plugin": "31db124b1c7e43c22abb13ebf7e7c74556482e480fd492b80638d815c85b96b1",
     "marketplace": "50c85058bf329588401fd2fc93180a574fa64abbb6c2606400febfb6f4d094e8",
 }
-PATH_KEYS = ("composerIcon", "logo", "skills", "icon_small", "icon_large")
+PATH_KEYS = ("composerIcon", "logo", "skills", "rules", "icon_small", "icon_large")
 VERSION = "0.9.8"
 # The Meshy CLI the skills are written for: any 0.8.x from MIN_CLI.
 MIN_CLI = "0.8.6"
@@ -147,6 +147,11 @@ def validate_cursor(manifest, root):
         raise ValueError(f".cursor-plugin/plugin.json: {error.json_path}: {error.message}")
     # A list entry whose folder holds a SKILL.md loads exactly that skill.
     require(manifest.get("skills") == [f"./skills/{name}" for name in SKILLS], ".cursor-plugin/plugin.json: skills must list exactly the generation and printing skills")
+    # Cursor-only behaviour lives in rules/, which no other host loads; the viewer rule runs the
+    # same command as visual-hosts.md so the two cannot drift apart.
+    require(manifest.get("rules") == ["./rules/meshy-viewer.mdc"], ".cursor-plugin/plugin.json: rules must list exactly rules/meshy-viewer.mdc")
+    view = next(line for line in (root / "skills" / "meshy-3d-generation" / "references" / "visual-hosts.md").read_text().splitlines() if line.startswith("meshy view "))
+    require(f"`{view}`" in " ".join((root / "rules" / "meshy-viewer.mdc").read_text().split()), "rules/meshy-viewer.mdc: must run the meshy view command documented in visual-hosts.md")
     # The Marketplace tile shows the logo as a square; a PNG keeps its own dark background on light themes.
     logo = root / manifest.get("logo", "")
     require(logo.suffix == ".png" and logo.is_file(), ".cursor-plugin/plugin.json: logo must be a PNG in the repository")

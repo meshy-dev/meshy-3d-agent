@@ -56,6 +56,10 @@ the generation and printing skills. The installer detects the agent it runs in; 
 npx -y skills add meshy-dev/meshy-3d-agent --skill meshy-3d-generation --skill meshy-3d-printing -g -y
 ```
 
+In Cursor, the model viewer beside the chat comes from the Meshy plugin's rule (see the README's
+Cursor plugin section). Skills installed with this command don't include it; the handover names
+`meshy view` instead.
+
 Hermes Agent can also install the skills from its own hub:
 `hermes skills install meshy-dev/meshy-3d-agent/skills/meshy-3d-generation` (and
 `…/meshy-3d-printing`).

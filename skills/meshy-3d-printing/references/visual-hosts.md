@@ -26,8 +26,7 @@ that one model, and for a glTF the buffers and textures in its folder, on 127.0.
 stops after 30 minutes without a request.
 
 - When you have a browser tool that opens a page in a panel beside the chat, run it after the
-  handover, or when the user asks to see the model, and open `result.url` there. Tell the user
-  they can orbit and zoom the model.
+  handover and open `result.url` there. Tell the user they can orbit and zoom the model.
 - Without such a panel, do not open a browser yourself: `--no-open` keeps the user's own browser
   closed. The handover already says `meshy view` can open the model on their computer.
 - It shows GLB and glTF only. For an FBX, OBJ, STL, 3MF or USDZ delivery, view a GLB from the same

@@ -88,8 +88,11 @@ alone do not certify a host or operating system.
 ### Cursor plugin
 
 The repository is also a Cursor plugin. [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json)
-loads `meshy-3d-generation` and `meshy-3d-printing`. To load it from a clone instead of the
-marketplace:
+loads `meshy-3d-generation` and `meshy-3d-printing`, plus a Cursor-only rule,
+[`rules/meshy-viewer.mdc`](rules/meshy-viewer.mdc), that shows previews inline and opens a delivered
+model in Cursor's browser beside the chat. Only the plugin carries that rule: skills installed with
+`npx skills add` or copied into `.cursor/skills/` don't, and there the handover names `meshy view`
+instead. To load the plugin from a clone instead of the marketplace:
 
 ```bash
 git clone https://github.com/meshy-dev/meshy-3d-agent.git ~/.cursor/plugins/local/meshy-3d-agent

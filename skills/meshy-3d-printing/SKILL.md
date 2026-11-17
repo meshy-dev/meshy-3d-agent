@@ -90,6 +90,5 @@ Show an available rendered preview and deliver file paths, dimensions, analysis/
 and reported charges. Launch a detected slicer only when requested or already authorized;
 `launch_requested` does not prove successful import or start a physical printer. If no suitable
 slicer is installed, still deliver the files. Explain relevant remaining checks, such as supports
-and wall thickness, without describing an untested model as guaranteed printable. When your chat
-can show images or web pages (a desktop or IDE agent app, not a terminal), read
-[Visual hosts](references/visual-hosts.md) before the handover and follow it.
+and wall thickness, without describing an untested model as guaranteed printable. Where your chat
+shows images or web pages, [Visual hosts](references/visual-hosts.md) covers showing them there.

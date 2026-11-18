@@ -150,7 +150,8 @@ def validate_cursor(manifest, root):
     # Cursor-only behaviour lives in rules/, which no other host loads; the viewer rule runs the
     # same command as visual-hosts.md so the two cannot drift apart.
     require(manifest.get("rules") == ["./rules/meshy-viewer.mdc"], ".cursor-plugin/plugin.json: rules must list exactly rules/meshy-viewer.mdc")
-    view = next(line for line in (root / "skills" / "meshy-3d-generation" / "references" / "visual-hosts.md").read_text().splitlines() if line.startswith("meshy view "))
+    view = next((line for line in (root / "skills" / "meshy-3d-generation" / "references" / "visual-hosts.md").read_text().splitlines() if line.startswith("meshy view ")), None)
+    require(view, "visual-hosts.md: no meshy view command to compare rules/meshy-viewer.mdc with")
     require(f"`{view}`" in " ".join((root / "rules" / "meshy-viewer.mdc").read_text().split()), "rules/meshy-viewer.mdc: must run the meshy view command documented in visual-hosts.md")
     # The Marketplace tile shows the logo as a square; a PNG keeps its own dark background on light themes.
     logo = root / manifest.get("logo", "")

@@ -25,7 +25,7 @@ the user this before Step 3, so they know before they sign in.
 meshy --version
 ```
 
-- It prints 0.8.5 or a later 0.8.x: keep it. The skills are written for 0.8, and another minor
+- It prints 0.8.6 or a later 0.8.x: keep it. The skills are written for 0.8, and another minor
   version can change flags and output.
 - It prints an older version, or there is no `meshy`: install the newest 0.8.x.
 
@@ -34,7 +34,7 @@ npm install -g meshy-cli@0.8
 ```
 
 - It prints 0.9 or newer: do not downgrade it, since something else may rely on it. Use the
-  temporary package `npm exec --yes --package=meshy-cli@0.8.5 -- meshy …` as `meshy` in the
+  temporary package `npm exec --yes --package=meshy-cli@0.8.6 -- meshy …` as `meshy` in the
   steps below.
 
 If the global install is refused (permissions, a managed machine), leave it and use the same
@@ -55,6 +55,10 @@ the generation and printing skills. The installer detects the agent it runs in; 
 ```bash
 npx -y skills add meshy-dev/meshy-3d-agent --skill meshy-3d-generation --skill meshy-3d-printing -g -y
 ```
+
+In Cursor, the model viewer beside the chat comes from the Meshy plugin's rule (see the README's
+Cursor plugin section). Skills installed with this command don't include it; the handover names
+`meshy view` instead.
 
 Hermes Agent can also install the skills from its own hub:
 `hermes skills install meshy-dev/meshy-3d-agent/skills/meshy-3d-generation` (and

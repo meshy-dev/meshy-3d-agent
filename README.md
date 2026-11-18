@@ -1,8 +1,8 @@
 # Meshy 3D Agent
 
 Meshy skills for creating digital assets and preparing 3D prints. All three skills drive
-**Meshy CLI 0.8** (0.8.5 or later, `meshy`) on **Node.js 22.12+**. They are instructions and references only —
-no bundled runtime scripts. Current release: **0.9.7**.
+**Meshy CLI 0.8** (0.8.6 or later, `meshy`) on **Node.js 22.12+**. They are instructions and references only —
+no bundled runtime scripts. Current release: **0.9.8**.
 
 **Requires a paid Meshy plan (Pro or above),** and generation spends Meshy credits. Sign in with
 your Meshy account; no API key needed. A Free account can sign in, but creating tasks is refused
@@ -37,7 +37,7 @@ Two more things worth knowing:
 - **The agent installs the CLI.** With Node 22.12+ and no `meshy` (or an older one), it runs
   `npm install -g meshy-cli@0.8`. Where a global install is not allowed, or a newer CLI is
   already installed, it runs the pinned package temporarily instead
-  (`npm exec --yes --package=meshy-cli@0.8.5 -- meshy …`).
+  (`npm exec --yes --package=meshy-cli@0.8.6 -- meshy …`).
 - **Local print work needs no account.** Rescaling an OBJ or opening a 3MF in a slicer runs
   entirely on your machine — no login, no balance check, no credits.
 
@@ -88,8 +88,11 @@ alone do not certify a host or operating system.
 ### Cursor plugin
 
 The repository is also a Cursor plugin. [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json)
-loads `meshy-3d-generation` and `meshy-3d-printing`. To load it from a clone instead of the
-marketplace:
+loads `meshy-3d-generation` and `meshy-3d-printing`, plus a Cursor-only rule,
+[`rules/meshy-viewer.mdc`](rules/meshy-viewer.mdc), that shows previews inline and opens a delivered
+model in Cursor's browser beside the chat. Only the plugin carries that rule: skills installed with
+`npx skills add` or copied into `.cursor/skills/` don't, and there the handover names `meshy view`
+instead. To load the plugin from a clone instead of the marketplace:
 
 ```bash
 git clone https://github.com/meshy-dev/meshy-3d-agent.git ~/.cursor/plugins/local/meshy-3d-agent
